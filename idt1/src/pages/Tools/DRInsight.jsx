@@ -163,9 +163,12 @@ export default function DRInsight() {
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(true);
   
-  // State สำหรับจัดการ Crosshair (ตำแหน่งจะถูกซิงค์ให้เท่ากันทั้ง 3 กราฟ)
-  const [hoverPos, setHoverPos] = useState(null);       // ตำแหน่งแกน X (%) 
-  const [hoverPosY, setHoverPosY] = useState(null);     // ตำแหน่งแกน Y (%)
+  // State สำหรับเก็บตำแหน่งแกน X (%)
+  const [hoverPos, setHoverPos] = useState(null);       
+  
+  // ใช้ useRef เก็บ Path และ State เพื่อเก็บข้อมูลเส้นที่สแกนแล้ว
+  const pathRefs = useRef([]);
+  const [yLookupTable, setYLookupTable] = useState([[], [], []]);
 
   const scrollDirection = useRef(1);
   const isPaused = useRef(false);
@@ -191,6 +194,46 @@ export default function DRInsight() {
     chart2: "ASML01",
     chart3: "BABA80",
   });
+
+  /* ===============================
+      0. PRE-CALCULATE GRAPH POINTS (Fixed Timing Bug)
+  ================================ */
+  // สแกนเส้นกราฟเมื่อหน้า Dashboard (enteredTool === true) ถูกเปิดขึ้นมาแล้วเท่านั้น!
+  useEffect(() => {
+    if (!enteredTool) return; // ออกทันทีถ้ายังอยู่หน้า Preview
+
+    const timer = setTimeout(() => {
+      const newLookup = [[], [], []];
+      pathRefs.current.forEach((pathNode, index) => {
+        if (pathNode) {
+          const length = pathNode.getTotalLength();
+          const lookup = new Array(1001).fill(null); // ความละเอียด 0.0% - 100.0%
+          const step = length / 3000; // สแกนถี่ยิบ
+          
+          for (let i = 0; i <= length; i += step) {
+            const point = pathNode.getPointAtLength(i);
+            const xIndex = Math.round((point.x / 300) * 1000);
+            if (xIndex >= 0 && xIndex <= 1000 && lookup[xIndex] === null) {
+              lookup[xIndex] = point.y;
+            }
+          }
+          
+          let lastY = lookup[0] || 50;
+          for (let i = 0; i <= 1000; i++) {
+            if (lookup[i] === null) {
+              lookup[i] = lastY;
+            } else {
+              lastY = lookup[i];
+            }
+          }
+          newLookup[index] = lookup;
+        }
+      });
+      setYLookupTable(newLookup);
+    }, 300); // ให้เวลา Component วาด SVG ลงจอก่อนนิดนึง
+
+    return () => clearTimeout(timer);
+  }, [enteredTool]); // <--- เพิ่ม Dependency ตรงนี้เพื่อให้ทำงานถูกจังหวะ
 
   /* ===============================
       1. MEMBER CHECK & LOGIC
@@ -409,6 +452,12 @@ export default function DRInsight() {
                 const themeColors = ["#3b82f6", "#ef4444", "#22c55e"]; 
                 const lineColor = themeColors[index];
 
+                // แปลงค่า X ของเมาส์ให้เป็น Index แล้วดึงค่า Y ของกราฟนั้นๆ มาแสดง
+                const lookupIndex = hoverPos !== null ? Math.round(hoverPos * 10) : null;
+                const currentYPercent = lookupIndex !== null && yLookupTable[index] && yLookupTable[index].length > 0 
+                    ? yLookupTable[index][lookupIndex] 
+                    : null;
+
                 return (
                     <div key={chartKey} className="bg-[#111827] border border-slate-800/80 rounded-xl p-4 flex flex-col flex-1 shadow-lg overflow-hidden min-h-0">
                         
@@ -440,19 +489,13 @@ export default function DRInsight() {
                         <div 
                           className="flex-1 w-full bg-[#0B1221] border border-slate-800/40 rounded-lg relative overflow-hidden flex items-end mt-3 group/chart cursor-crosshair"
                           onMouseMove={(e) => {
-                            // คำนวณหาตำแหน่งเมาส์ แกน X และ Y
+                            // หาตำแหน่ง X เพียงอย่างเดียว
                             const rect = e.currentTarget.getBoundingClientRect();
                             const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
-                            const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
-                            
-                            // อัปเดต State (บังคับให้อยู่ในกรอบ 0-100%) เพื่อให้ซิงค์กันทุกกราฟ
                             setHoverPos(Math.max(0, Math.min(100, xPercent)));
-                            setHoverPosY(Math.max(0, Math.min(100, yPercent)));
                           }}
                           onMouseLeave={() => {
-                            // พอเมาส์ออก ก็ให้ค่ากลับเป็น null ทำให้เส้นหายไปทั้งหมด
                             setHoverPos(null);
-                            setHoverPosY(null);
                           }}
                         >
                             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
@@ -464,7 +507,9 @@ export default function DRInsight() {
                                             <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
                                     </linearGradient>
                                 </defs>
+                                {/* วาดเส้นกราฟหลัก และเก็บ ref ไว้สแกนค่า Y */}
                                 <path 
+                                    ref={(el) => (pathRefs.current[index] = el)}
                                     d={index === 0 
                                         ? "M0,80 C30,70 60,90 90,50 C120,30 150,60 180,40 C210,20 240,30 270,10 L300,25" 
                                         : index === 1 
@@ -476,6 +521,7 @@ export default function DRInsight() {
                                     strokeWidth="2" 
                                     vectorEffect="non-scaling-stroke"
                                 />
+                                {/* พื้นหลังกราฟแบบไล่สี */}
                                 <path 
                                     d={(index === 0 
                                         ? "M0,80 C30,70 60,90 90,50 C120,30 150,60 180,40 C210,20 240,30 270,10 L300,25" 
@@ -495,33 +541,32 @@ export default function DRInsight() {
                                 <span>185.0</span>
                             </div>
 
-                            {/* เส้นประแกน X (แนวตั้ง) - แสดงทุกกราฟ */}
-                            {hoverPos !== null && (
-                                <div 
-                                    className="absolute top-0 bottom-0 z-20 pointer-events-none border-l border-dashed border-slate-400 opacity-80"
-                                    style={{ left: `${hoverPos}%` }}
-                                ></div>
-                            )}
+                            {/* วาดแกน X, แกน Y และ จุด ก็ต่อเมื่อดึงค่า Y มาสำเร็จแล้ว */}
+                            {hoverPos !== null && currentYPercent !== null && (
+                                <>
+                                    {/* เส้นแกน X (แนวตั้ง) */}
+                                    <div 
+                                        className="absolute top-0 bottom-0 z-20 pointer-events-none border-l border-dashed border-slate-400 opacity-80"
+                                        style={{ left: `${hoverPos}%` }}
+                                    ></div>
 
-                            {/* เส้นประแกน Y (แนวนอน) - แสดงทุกกราฟ */}
-                            {hoverPosY !== null && (
-                                <div 
-                                    className="absolute left-0 right-0 z-20 pointer-events-none border-t border-dashed border-slate-400 opacity-80"
-                                    style={{ top: `${hoverPosY}%` }}
-                                ></div>
-                            )}
-                            
-                            {/* จุดตัดตรงกลาง - แสดงทุกกราฟ และเปลี่ยนสีตามเส้นกราฟ */}
-                            {hoverPos !== null && hoverPosY !== null && (
-                                <div 
-                                    className="absolute z-30 pointer-events-none w-2.5 h-2.5 rounded-full -translate-x-1/2 -translate-y-1/2"
-                                    style={{ 
-                                        left: `${hoverPos}%`, 
-                                        top: `${hoverPosY}%`,
-                                        backgroundColor: lineColor, 
-                                        boxShadow: `0 0 10px ${lineColor}`
-                                    }}
-                                ></div>
+                                    {/* เส้นแกน Y (แนวนอน) วิ่งเลาะตามเส้นกราฟ */}
+                                    <div 
+                                        className="absolute left-0 right-0 z-20 pointer-events-none border-t border-dashed border-slate-400 opacity-80"
+                                        style={{ top: `${currentYPercent}%` }}
+                                    ></div>
+                                    
+                                    {/* จุดตัด (Dot) ล็อคตรงกลางพอดีเป๊ะ */}
+                                    <div 
+                                        className="absolute z-30 pointer-events-none w-2.5 h-2.5 rounded-full -translate-x-1/2 -translate-y-1/2"
+                                        style={{ 
+                                            left: `${hoverPos}%`, 
+                                            top: `${currentYPercent}%`,
+                                            backgroundColor: lineColor, 
+                                            boxShadow: `0 0 10px ${lineColor}`
+                                        }}
+                                    ></div>
+                                </>
                             )}
 
                         </div>
