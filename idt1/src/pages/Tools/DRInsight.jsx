@@ -162,6 +162,10 @@ export default function DRInsight() {
   const [enteredTool, setEnteredTool] = useState(false);
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(true);
+  
+  // State สำหรับจัดการ Crosshair (ตำแหน่งจะถูกซิงค์ให้เท่ากันทั้ง 3 กราฟ)
+  const [hoverPos, setHoverPos] = useState(null);       // ตำแหน่งแกน X (%) 
+  const [hoverPosY, setHoverPosY] = useState(null);     // ตำแหน่งแกน Y (%)
 
   const scrollDirection = useRef(1);
   const isPaused = useRef(false);
@@ -271,7 +275,6 @@ export default function DRInsight() {
     const filteredStocks = stocks.filter(s => s.dr.toLowerCase().includes(currentFilter.toLowerCase()));
 
     return (
-      // ใช้ flexClass แบ่งสัดส่วนแนวตั้ง แทนการฟิกซ์ความสูง (h-[...])
       <div className={`bg-[#111827] border border-slate-800/80 rounded-xl flex flex-col overflow-hidden shadow-lg min-h-0 ${flexClass}`}>
           {/* Header */}
           <div className="px-3 py-2.5 flex justify-between items-center border-b border-slate-800/60 bg-[#141b2a]">
@@ -398,7 +401,7 @@ export default function DRInsight() {
             {renderFigmaPanel("ETC", "etc", etcStocks, "⚙️", "flex-[2]")}
         </div>
 
-        {/* === Middle Column: 3 Charts (6/12) ล็อกไม่ให้มี Scroll === */}
+        {/* === Middle Column: 3 Charts (6/12) === */}
         <div className="col-span-12 md:col-span-6 flex flex-col gap-4 h-full overflow-hidden">
             {['chart1', 'chart2', 'chart3'].map((chartKey, index) => {
                 const stockName = chartSelections[chartKey];
@@ -434,7 +437,24 @@ export default function DRInsight() {
                         </div>
 
                         {/* Graph Area */}
-                        <div className="flex-1 w-full bg-[#0B1221] border border-slate-800/40 rounded-lg relative overflow-hidden flex items-end mt-3">
+                        <div 
+                          className="flex-1 w-full bg-[#0B1221] border border-slate-800/40 rounded-lg relative overflow-hidden flex items-end mt-3 group/chart cursor-crosshair"
+                          onMouseMove={(e) => {
+                            // คำนวณหาตำแหน่งเมาส์ แกน X และ Y
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
+                            const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
+                            
+                            // อัปเดต State (บังคับให้อยู่ในกรอบ 0-100%) เพื่อให้ซิงค์กันทุกกราฟ
+                            setHoverPos(Math.max(0, Math.min(100, xPercent)));
+                            setHoverPosY(Math.max(0, Math.min(100, yPercent)));
+                          }}
+                          onMouseLeave={() => {
+                            // พอเมาส์ออก ก็ให้ค่ากลับเป็น null ทำให้เส้นหายไปทั้งหมด
+                            setHoverPos(null);
+                            setHoverPosY(null);
+                          }}
+                        >
                             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
                             
                             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 100" preserveAspectRatio="none">
@@ -474,6 +494,36 @@ export default function DRInsight() {
                                 <span>186.5</span>
                                 <span>185.0</span>
                             </div>
+
+                            {/* เส้นประแกน X (แนวตั้ง) - แสดงทุกกราฟ */}
+                            {hoverPos !== null && (
+                                <div 
+                                    className="absolute top-0 bottom-0 z-20 pointer-events-none border-l border-dashed border-slate-400 opacity-80"
+                                    style={{ left: `${hoverPos}%` }}
+                                ></div>
+                            )}
+
+                            {/* เส้นประแกน Y (แนวนอน) - แสดงทุกกราฟ */}
+                            {hoverPosY !== null && (
+                                <div 
+                                    className="absolute left-0 right-0 z-20 pointer-events-none border-t border-dashed border-slate-400 opacity-80"
+                                    style={{ top: `${hoverPosY}%` }}
+                                ></div>
+                            )}
+                            
+                            {/* จุดตัดตรงกลาง - แสดงทุกกราฟ และเปลี่ยนสีตามเส้นกราฟ */}
+                            {hoverPos !== null && hoverPosY !== null && (
+                                <div 
+                                    className="absolute z-30 pointer-events-none w-2.5 h-2.5 rounded-full -translate-x-1/2 -translate-y-1/2"
+                                    style={{ 
+                                        left: `${hoverPos}%`, 
+                                        top: `${hoverPosY}%`,
+                                        backgroundColor: lineColor, 
+                                        boxShadow: `0 0 10px ${lineColor}`
+                                    }}
+                                ></div>
+                            )}
+
                         </div>
                     </div>
                 );
