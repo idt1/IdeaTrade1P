@@ -1,299 +1,413 @@
+import React, { useState, useRef, useEffect, useCallback } from "react";
 
-import React, { useState } from 'react';
-import { 
-  AreaChart, Area, LineChart, Line, CartesianGrid, Tooltip, ResponsiveContainer, XAxis, YAxis 
-} from 'recharts';
-import { 
-  Search, Bell, RefreshCw, FileText, ChevronDown, FolderOpen 
-} from 'lucide-react';
+/* ── PRNG ── */
+function createRng(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s += 0x6d2b79f5;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
-// --- Mock Data ---
-const xAxisTicks = ['ก.ค.', 'ต.ค.', 'พ.ย.', 'ธ.ค.', 'ม.ค. 2569'];
+/* ── Generate dates ── */
+function generateDates(n = 80) {
+  const dates = [];
+  const start = new Date("2025-01-11");
+  for (let i = 0; i < n; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i * 3);
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yy = String(d.getFullYear()).slice(2);
+    dates.push(`${dd}/${mm}/${yy}`);
+  }
+  return dates;
+}
+const DATES = generateDates(80);
 
-const dataLast = [
-  { name: 'ก.ค.', value: 4.8 }, { name: 'ส.ค.', value: 4.7 }, { name: 'ก.ย.', value: 4.9 },
-  { name: 'ต.ค.', value: 6.2 }, { name: 'พ.ย.', value: 4.5 }, { name: 'ธ.ค.', value: 6 },
-  { name: 'ม.ค. 2569', value: 4.4 }
-];
+/* ── Generate series ── */
+function genSeries(seed, n, base, vol, trend = 0) {
+  const rng = createRng(seed);
+  let v = base;
+  return Array.from({ length: n }, () => {
+    v += (rng() - 0.5) * vol + trend;
+    return parseFloat(Math.max(base * 0.5, Math.min(base * 2, v)).toFixed(2));
+  });
+}
 
-const dataShort = [
-  { name: 'ก.ค.', short1: 12, short2: 13 }, { name: 'ส.ค.', short1: 14, short2: 13.5 },
-  { name: 'ก.ย.', short1: 14.5, short2: 12.5 }, { name: 'ต.ค.', short1: 14, short2: 18 },
-  { name: 'พ.ย.', short1: 17, short2: 15.5 }, { name: 'ธ.ค.', short1: 20, short2: 17 },
-  { name: 'ม.ค. 2569', short1: 18, short2: 16 }
-];
+function genStep(seed, n, levels) {
+  const rng = createRng(seed);
+  let cur = Math.floor(rng() * levels.length);
+  return Array.from({ length: n }, () => {
+    if (rng() < 0.15) cur = Math.max(0, Math.min(levels.length - 1, cur + (rng() < 0.5 ? 1 : -1)));
+    return levels[cur];
+  });
+}
 
-const dataPredict = [
-  { name: 'ก.ค.', value: 18 }, { name: 'ส.ค.', value: 20 }, { name: 'ก.ย.', value: 21 },
-  { name: 'ต.ค.', value: 22 }, { name: 'พ.ย.', value: 16 }, { name: 'ธ.ค.', value: 24 },
-  { name: 'ม.ค. 2569', value: 23 }
-];
+function genMultiLine(seed, n, count, bases, vol) {
+  return bases.map((b, i) => genSeries(seed + i * 37, n, b, vol));
+}
 
-const dataPeak = [
-  { name: 'ก.ค.', value: 5 }, { name: 'ส.ค.', value: 5.2 }, { name: 'ก.ย.', value: 5.5 },
-  { name: 'ต.ค.', value: 5 }, { name: 'พ.ย.', value: 5 }, { name: 'ธ.ค.', value: 22 },
-  { name: 'ม.ค. 2569', value: 8 }
-];
+/* ── SVG path helpers ── */
+function toPath(data, xs, ys, step = false) {
+  if (!data.length) return "";
+  let d = `M ${xs(0)} ${ys(data[0])}`;
+  for (let i = 1; i < data.length; i++) {
+    if (step) {
+      d += ` L ${xs(i)} ${ys(data[i - 1])} L ${xs(i)} ${ys(data[i])}`;
+    } else {
+      const px = xs(i - 1), cx = xs(i);
+      const cp1x = px + (cx - px) / 3, cp2x = px + (cx - px) * 2 / 3;
+      d += ` C ${cp1x} ${ys(data[i - 1])} ${cp2x} ${ys(data[i])} ${cx} ${ys(data[i])}`;
+    }
+  }
+  return d;
+}
 
-export default function StockDashboard() {
-    const [isToggled, setIsToggled] = useState(true);
+/* ── Chart Panel ── */
+function ChartPanel({
+  id, label, options, selectedOption, onOptionChange,
+  datasets, colors, fills, step = false,
+  sharedIdx, onHover, n = 80,
+  showBadges = false,
+  peak = false,
+}) {
+  const svgRef = useRef(null);
+  const W = 700, H = 180;
+  const PL = 8, PR = 52, PT = 20, PB = 28;
+  const cw = W - PL - PR, ch = H - PT - PB;
+
+  const allVals = datasets.flat();
+  const rawMin = Math.min(...allVals), rawMax = Math.max(...allVals);
+  const range = rawMax - rawMin || 1;
+  const yMin = rawMin - range * 0.08, yMax = rawMax + range * 0.08;
+
+  const xs = i => PL + (i / (n - 1)) * cw;
+  const ys = v => PT + (1 - (v - yMin) / (yMax - yMin)) * ch;
+
+  // sparse x-axis labels
+  const labelStep = Math.ceil(n / 12);
+  const xLabels = DATES.slice(0, n).map((d, i) => i % labelStep === 0 ? { i, d } : null).filter(Boolean);
+
+  // y-axis labels
+  const yLabels = Array.from({ length: 5 }, (_, i) => {
+    const v = yMin + (i / 4) * (yMax - yMin);
+    return { y: ys(v), v: v.toFixed(2) };
+  }).reverse();
+
+  const hoverData = sharedIdx !== null ? datasets.map(d => d[sharedIdx]) : null;
+
+  const handleMouseMove = useCallback((e) => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const rx = (e.clientX - rect.left - PL) / cw;
+    const idx = Math.max(0, Math.min(n - 1, Math.round(rx * (n - 1))));
+    onHover(idx);
+  }, [cw, n, onHover]);
+
+  // peak fill area (chart4)
+  const peakIdx = peak && datasets[0] ? datasets[0].indexOf(Math.max(...datasets[0])) : -1;
+
   return (
-    <div className="w-full max-w-[1600px] h-full bg-[#0e1118] border border-blue-500/50 rounded-2xl shadow-[0_0_20px_rgba(59,130,246,0.6)] flex flex-col p-4 md:p-5 overflow-hidden relative text-white">
-      
-      {/* 1. TOP BAR: Search & Icons (Compact Size) */}
-      <div className="flex justify-between items-center mb-3 shrink-0">
-        <div className="flex items-center gap-3">
-          
-          <div 
-            onClick={() => setIsToggled(!isToggled)} 
-            className={`w-8 h-5 rounded-full relative cursor-pointer flex items-center transition-all duration-300 
-              ${isToggled ? 'bg-blue-600 shadow-sm shadow-blue-900/20' : 'bg-slate-700'}`}
+    <div className="relative bg-[#0d1117] border border-[#1e2a3a] rounded-lg overflow-hidden flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 pt-2 pb-1">
+        <div className="flex items-center gap-2">
+          <select
+            value={selectedOption}
+            onChange={e => onOptionChange(e.target.value)}
+            className="bg-[#161d2a] border border-[#2a3a50] text-white text-xs px-2 py-1 rounded outline-none cursor-pointer"
           >
-             <div className={`absolute left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-300 shadow-sm
-               ${isToggled ? 'translate-x-3' : 'translate-x-0'}`}>
-             </div>
-          </div>
-
-          <div className="flex items-center bg-[#151a25] border border-slate-700/50 rounded-full h-7 px-3 min-w-[160px] transition-all focus-within:border-blue-500 focus-within:shadow-[0_0_10px_rgba(59,130,246,0.15)] group">
-             <Search size={12} className="text-slate-400 mr-2 group-focus-within:text-blue-500 transition-colors" />
-             <input 
-               type="text" 
-               defaultValue="BANPU" 
-               className="bg-transparent border-none outline-none text-xs text-white w-full font-bold uppercase placeholder:text-slate-600 placeholder:font-normal"
-               placeholder="SEARCH..."
-             />
-          </div>
+            {options.map(o => <option key={o}>{o}</option>)}
+          </select>
         </div>
-
-        <div className="flex items-center gap-1.5">
-          <IconButton icon={<Bell size={14} />} />
-          <IconButton icon={<RefreshCw size={14} />} />
-          <IconButton icon={<FileText size={14} />} />
-        </div>
+        <span className="text-[10px] text-[#3a5070] font-mono">{id}</span>
       </div>
 
-      {/* 2. SUMMARY BAR (Table Format - Compact Size) */}
-      <div className="w-full mb-4 shrink-0 overflow-x-auto">
-        <table className="w-full text-left border-collapse rounded-lg overflow-hidden border border-slate-800 bg-[#151a25]">
-          <thead className="bg-[#1e2330]/80 border-b border-slate-800">
-            <tr>
-              <th className="px-4 py-2 text-slate-500 text-[9px] font-bold tracking-wider uppercase w-1/4 whitespace-nowrap">LAST PRICE</th>
-              <th className="px-4 py-2 text-slate-500 text-[9px] font-bold tracking-wider uppercase w-1/4 whitespace-nowrap">VOLUME</th>
-              <th className="px-4 py-2 text-slate-500 text-[9px] font-bold tracking-wider uppercase w-1/4 whitespace-nowrap">HIGH / LOW</th>
-              <th className="px-4 py-2 text-slate-500 text-[9px] font-bold tracking-wider uppercase w-1/4 whitespace-nowrap">MARKET STATUS</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="hover:bg-[#1e2330]/40 transition-colors">
-              <td className="px-4 py-2.5 border-r border-slate-800/50">
-                <div className="flex items-baseline gap-2 whitespace-nowrap">
-                  <span className="text-[9px] font-bold text-white">5.30</span>
-                  <span className="text-[9px] font-bold text-red-500">-0.10 (-1.92%)</span>
-                </div>
-              </td>
-              <td className="px-4 py-2.5 border-r border-slate-800/50">
-                <div className="flex items-baseline gap-2 whitespace-nowrap">
-                  <span className="text-[9px] font-bold text-white">62.8M</span>
-                  <span className="text-[9px] font-bold text-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 rounded">Avg: 58M</span>
-                </div>
-              </td>
-              <td className="px-4 py-2.5 border-r border-slate-800/50">
-                <div className="flex items-baseline gap-1.5 whitespace-nowrap">
-                  <span className="text-[9px] font-bold text-white">
-                    5.35 <span className="text-slate-500 font-normal mx-0.5 text-[9px]">/</span> 5.15
-                  </span>
-                </div>
-              </td>
-              <td className="px-4 py-2.5">
-                <div className="flex items-center gap-1.5 whitespace-nowrap">
-                  <div className="w-2 h-2 bg-[#22c55e] rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse"></div>
-                  <span className="text-[9px] font-bold text-[#22c55e]">OPEN (II)</span>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      {/* SVG */}
+      <div className="flex-1 relative" onMouseLeave={() => onHover(null)}>
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${W} ${H}`}
+          className="w-full h-full"
+          preserveAspectRatio="none"
+          onMouseMove={handleMouseMove}
+          style={{ cursor: "crosshair" }}
+        >
+          {/* Grid lines */}
+          {yLabels.map((l, i) => (
+            <line key={i} x1={PL} y1={l.y} x2={W - PR} y2={l.y} stroke="#1a2535" strokeWidth="0.8" />
+          ))}
+          <line x1={PL} y1={PT + ch} x2={W - PR} y2={PT + ch} stroke="#2a3a50" strokeWidth="1" />
 
-      {/* 3. MAIN GRID */}
-      {/* 🔴 2. เอา overflow-y-auto ออก และใส่ flex-1 min-h-0 เพื่อให้ Container แบ่งพื้นที่ที่เหลืออย่างพอดี */}
-      <div className="flex-1 min-h-0 w-full pb-2"> 
-        
-        {/* 🔴 3. เปลี่ยนจาก auto-rows เป็น xl:grid-rows-3 (ให้แบ่ง 3 แถวเท่าๆ กันบนจอ Desktop) และใช้ h-full */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 grid-rows-[repeat(6,minmax(250px,auto))] xl:grid-rows-3 gap-4 h-full">
+          {/* X labels */}
+          {xLabels.map(({ i, d }) => (
+            <text key={i} x={xs(i)} y={H - 4} fill="#3a5070" fontSize="7" textAnchor="middle">{d}</text>
+          ))}
 
-          {/* Row 1 */}
-          <ChartPanel title="Last" watermark="BANPU">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={dataLast} margin={{ top: -10, right: -27, left: -25, bottom: 0 }}>
+          {/* Y labels */}
+          {yLabels.map((l, i) => (
+            <text key={i} x={W - PR + 4} y={l.y} fill="#3a5070" fontSize="8" dominantBaseline="central">{l.v}</text>
+          ))}
+
+          {/* Datasets */}
+          {datasets.map((data, di) => {
+            const color = colors[di];
+            const linePath = toPath(data, xs, ys, step);
+            const lastX = xs(n - 1), lastY = ys(data[n - 1]);
+
+            // area fill
+            const areaPath = linePath + ` L ${xs(n - 1)} ${PT + ch} L ${PL} ${PT + ch} Z`;
+            const gradId = `grad-${id}-${di}`;
+
+            // peak shading
+            let peakAreaPath = "";
+            if (peak && di === 0 && peakIdx > 0) {
+              const sub = data.slice(peakIdx);
+              let pp = `M ${xs(peakIdx)} ${ys(data[peakIdx])}`;
+              for (let i = 1; i < sub.length; i++) {
+                const px = xs(peakIdx + i - 1), cx = xs(peakIdx + i);
+                const cp1x = px + (cx - px) / 3, cp2x = px + (cx - px) * 2 / 3;
+                pp += ` C ${cp1x} ${ys(sub[i - 1])} ${cp2x} ${ys(sub[i])} ${cx} ${ys(sub[i])}`;
+              }
+              pp += ` L ${xs(n - 1)} ${PT + ch} L ${xs(peakIdx)} ${PT + ch} Z`;
+              peakAreaPath = pp;
+            }
+
+            return (
+              <g key={di}>
                 <defs>
-                  <linearGradient id="colorLast" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={color} stopOpacity={fills ? "0.22" : "0"} />
+                    <stop offset="100%" stopColor={color} stopOpacity="0" />
                   </linearGradient>
+                  {peak && di === 0 && (
+                    <linearGradient id={`peak-${id}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+                      <stop offset="100%" stopColor={color} stopOpacity="0.05" />
+                    </linearGradient>
+                  )}
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#232936" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 10}} dy={10} />
-                <YAxis orientation="right" axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 10}} domain={['dataMin - 0.2', 'dataMax + 0.2']} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} fill="url(#colorLast)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartPanel>
+                {fills && <path d={areaPath} fill={`url(#${gradId})`} />}
+                {peak && di === 0 && peakAreaPath && (
+                  <path d={peakAreaPath} fill={`url(#peak-${id})`} />
+                )}
+                <path d={linePath} fill="none" stroke={color} strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" />
 
-          <ChartPanel title="%Short" watermark="BANPU">
-  <ResponsiveContainer width="100%" height="100%">
-    <AreaChart data={dataShort} margin={{ top: 5, right: -27, left: -25, bottom: 0 }}>
-      <CartesianGrid strokeDasharray="3 3" stroke="#232936" />
-      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 10}} dy={10} />
-      <YAxis orientation="right" axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 10}} />
-      <Tooltip content={<CustomTooltip />} />
-      
-      <Area type="monotone" dataKey="short1" stroke="#22c55e" fill="transparent" strokeWidth={2} />
-      <Area type="monotone" dataKey="short2" stroke="#ef4444" fill="transparent" strokeWidth={2} />
-    </AreaChart>
-  </ResponsiveContainer>
-</ChartPanel>
+                {/* Last value badge */}
+                {!showBadges && (
+                  <g>
+                    <rect x={W - PR + 2} y={lastY - 9} width={PR - 4} height={18} fill={color} rx="3" />
+                    <text x={W - PR / 2} y={lastY} fill="#fff" fontSize="9" textAnchor="middle" dominantBaseline="central" fontWeight="bold">
+                      {data[n - 1].toFixed(2)}
+                    </text>
+                  </g>
+                )}
+              </g>
+            );
+          })}
 
-          {/* Row 2 */}
-          <ChartPanel title="PredictTrend" watermark="BANPU">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={dataPredict} margin={{ top: 11, right: -27, left: -25, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#232936" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 10}} dy={10} />
-                <YAxis orientation="right" axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 10}} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="value" stackId="1" stroke="#f97316" fill="transparent" strokeWidth={2} />
-                
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartPanel>
+          {/* Hover crosshair */}
+          {sharedIdx !== null && (
+            <g>
+              <line x1={xs(sharedIdx)} y1={PT} x2={xs(sharedIdx)} y2={PT + ch} stroke="#4a6080" strokeWidth="0.8" strokeDasharray="3,2" />
 
-          <ChartPanel title="Peak" watermark="BANPU">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={dataPeak} margin={{ top: 11, right: -27, left: -25, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorPeak" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#eab308" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#eab308" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#232936" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 10}} dy={10} />
-                <YAxis orientation="right" axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 10}} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="value" stroke="#eab308" strokeWidth={2} fill="url(#colorPeak)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartPanel>
+              {/* Tooltip box */}
+              {(() => {
+                const bx = xs(sharedIdx);
+                const boxW = 60, boxH = 14 + datasets.length * 14;
+                const bLeft = bx - boxW / 2 < PL + 4;
+                const bRight = bx + boxW / 2 > W - PR - 4;
+                const tx = bLeft ? PL + 4 : bRight ? W - PR - boxW - 4 : bx - boxW / 2;
+                const ty = PT + 4;
+                return (
+                  <g>
+                    <rect x={tx} y={ty} width={boxW} height={boxH} fill="#0d1420" stroke="#2a3a50" strokeWidth="0.8" rx="3" />
+                    <text x={tx + boxW / 2} y={ty + 10} fill="#8899aa" fontSize="8" textAnchor="middle">
+                      {DATES[sharedIdx]}
+                    </text>
+                    {datasets.map((d, di) => (
+                      <text key={di} x={tx + boxW / 2} y={ty + 22 + di * 14} fill={colors[di]} fontSize="9" textAnchor="middle" fontWeight="bold">
+                        {d[sharedIdx]?.toFixed(2)}
+                      </text>
+                    ))}
+                  </g>
+                );
+              })()}
 
-          {/* Row 3 */}
-          <ChartPanel title="Shareholder">
-            <div className="w-full h-full flex flex-col items-center justify-center text-slate-600">
-              <FolderOpen size={48} className="mb-2 opacity-50" strokeWidth={2} />
-              <p className="text-sm font-medium">Shareholder {'>'} 5% ไม่มีข้อมูล</p>
-            </div>
-          </ChartPanel>
-
-          <ChartPanel title="manager" extraHeader={<span className="text-[10px] text-[#22c55e] cursor-pointer hover:underline">Show/Hide All</span>} watermark="BANPU">
-            <div className="flex flex-col justify-center h-full w-full px-4 gap-3">
-               <CustomBar label="" value="62.8M" width="90%" color="bg-[#22c55e]" />
-               <CustomBar label="" value="2.06M" width="30%" color="bg-[#a855f7]" />
-               <CustomBar label="" value="1.2M" width="20%" color="bg-[#f97316]" />
-               <CustomBar label="" value="-334K" width="55%" color="bg-[#3b82f6]" />
-               <CustomBar label="" value="-61.0M" width="25%" color="bg-[#ef4444]" />
-            </div>
-          </ChartPanel>
-
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- Sub Components ---
-
-function IconButton({ icon }) {
-  return (
-    <button className="w-7 h-7 flex items-center justify-center bg-[#151a25] border border-slate-700/50 rounded-md text-slate-400 hover:text-white hover:border-slate-500 transition focus:outline-none">
-      {icon}
-    </button>
-  );
-}
-
-function StatBox({ label, value, subValue, isUp, subColor }) {
-  return (
-    <div className="flex flex-col justify-center">
-       <span className="text-[10px] text-slate-500 font-bold uppercase mb-1 tracking-wider">{label}</span>
-       <div className="flex items-baseline gap-2">
-          <span className="text-xl font-bold text-white">{value}</span>
-          {subValue && (
-            <span className={`text-xs font-bold ${subColor ? subColor : (isUp === false ? 'text-red-500' : 'text-[#22c55e]')}`}>
-               {subValue}
-            </span>
+              {/* Dots on lines */}
+              {datasets.map((d, di) => (
+                <g key={di}>
+                  <circle cx={xs(sharedIdx)} cy={ys(d[sharedIdx])} r="3" fill={colors[di]} stroke="#0d1117" strokeWidth="1.5" />
+                  {/* value tag on left of crosshair */}
+                  <rect x={PL + 4} y={ys(d[sharedIdx]) - 10} width={36} height={20} fill={colors[di]} rx="3" />
+                  <text x={PL + 22} y={ys(d[sharedIdx])} fill="#fff" fontSize="9" textAnchor="middle" dominantBaseline="central" fontWeight="bold">
+                    {d[sharedIdx]?.toFixed(2)}
+                  </text>
+                </g>
+              ))}
+            </g>
           )}
-       </div>
-    </div>
-  );
-}
+        </svg>
 
-function ChartPanel({ title, children, watermark, extraHeader }) {
-  return (
-    <div className="bg-[#151a25] border border-slate-800 rounded-xl relative overflow-hidden flex flex-col h-full w-full">
-       
-       <div className="absolute top-0 left-0 w-full p-4 z-20 flex justify-between items-center pointer-events-none">
-          <div className="flex items-center gap-1 bg-[#1e2330] border border-slate-700 rounded px-2 py-1 pointer-events-auto cursor-pointer">
-             <span className="text-xs font-medium text-slate-300">{title}</span>
-             <ChevronDown size={14} className="text-slate-500"/>
+        {/* Multi-line right badges */}
+        {showBadges && (
+          <div className="absolute right-0 top-0 h-full flex flex-col justify-around pr-1 py-4">
+            {datasets.map((d, di) => (
+              <div key={di} className="text-[9px] font-bold px-1.5 py-0.5 rounded text-white text-right" style={{ backgroundColor: colors[di], minWidth: 36 }}>
+                {sharedIdx !== null
+                  ? (d[sharedIdx] >= 0 ? "+" : "") + d[sharedIdx]?.toFixed(2)
+                  : (d[n - 1] >= 0 ? "+" : "") + d[n - 1]?.toFixed(2)
+                }
+              </div>
+            ))}
           </div>
-          {extraHeader && <div className="pointer-events-auto">{extraHeader}</div>}
-       </div>
-
-       {watermark && (
-         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 opacity-[0.03]">
-            <span className="text-7xl font-black text-white uppercase tracking-[0.2em]">{watermark}</span>
-         </div>
-       )}
-
-       <div className="flex-1 w-full h-full pt-14 pb-4 px-0 z-10 relative">
-         {children}
-       </div>
-    </div>
-  );
-}
-
-function CustomBar({ label, value, width, color, isNegative }) {
-  return (
-    <div className="relative w-full flex items-center h-4">
-      {label && <span className="absolute -left-2 -translate-x-full text-xs text-slate-400">{label}</span>}
-      <div className="w-full h-1 bg-slate-800 rounded-full relative">
-         <div className={`absolute top-1/2 -translate-y-1/2 h-1.5 rounded-full ${color}`} style={{ width: width, left: 0 }}>
-            <div className={`absolute top-1/2 -translate-y-1/2 -right-1 w-2.5 h-2.5 rounded-full ${color} border-2 border-[#151a25] shadow-sm`}></div>
-         </div>
-      </div>
-
-      <div className="w-16 flex justify-end ml-3 shrink-0">
-        <span className="text-[10px] font-bold text-white font-mono tracking-tighter bg-slate-800/30 px-1.5 py-0.5 rounded border border-slate-700/30">
-          {value}
-        </span>
+        )}
       </div>
     </div>
   );
 }
 
-function CustomTooltip({ active, payload, label }) {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-[#0e1118] border border-slate-700 p-2 rounded shadow-xl text-xs flex flex-col gap-1">
-        <p className="text-slate-400 border-b border-slate-800 pb-1 mb-1">{label}</p>
-        {payload.map((entry, index) => (
-          <div key={index} className="flex items-center gap-2">
-             <div className="w-2 h-2 rounded-full" style={{backgroundColor: entry.color}}></div>
-             <span className="font-bold text-white">{entry.value}</span>
-          </div>
+/* ── MAIN ── */
+export default function StockDashboard() {
+  const [symbol, setSymbol] = useState("GULF");
+  const [inputVal, setInputVal] = useState("GULF");
+  const [sharedIdx, setSharedIdx] = useState(null);
+
+  const [opts, setOpts] = useState({
+    c1: "Last", c2: "%Short", c3: "PredictTrend", c4: "Peak", c5: "Shareholder", c6: "Manager",
+  });
+
+  const N = 80;
+  const seed = symbol.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+
+  // Chart 1: single line blue, fill
+  const c1data = [genSeries(seed + 1, N, 24, 0.4, 0.03)];
+
+  // Chart 2: two lines orange + light blue, no fill
+  const c2data = [
+    genSeries(seed + 2, N, 18, 0.3, 0.01),
+    genSeries(seed + 3, N, 20, 0.25, 0.005),
+  ];
+
+  // Chart 3: single orange line, fill
+  const c3data = [genSeries(seed + 4, N, 32, 0.5, 0.04)];
+
+  // Chart 4: single yellow line, peak area fill
+  const c4data = [genSeries(seed + 5, N, 10, 0.8, 0.01)];
+
+  // Chart 5: step red line
+  const c5data = [genStep(seed + 6, N, [8.87, 8.89, 8.91, 8.95, 8.98, 9.01, 9.03])];
+
+  // Chart 6: multi-line (5 lines)
+  const c6bases = [5.82, 1.70, 0.57, -3.36, -6.72];
+  const c6data = c6bases.map((b, i) => genSeries(seed + 10 + i, N, b, 0.1));
+  const c6colors = ["#f97316", "#22c55e", "#06b6d4", "#3b82f6", "#eab308"];
+
+  const handleHover = useCallback((idx) => setSharedIdx(idx), []);
+
+  const handleSubmit = () => setSymbol(inputVal.toUpperCase());
+
+  return (
+    <div className="w-full min-h-screen bg-[#080d14] text-white p-4 font-mono">
+      <style>{`
+        select option { background: #161d2a; }
+        input::placeholder { color: #3a5070; }
+      `}</style>
+
+      {/* Search bar */}
+      <div className="flex items-center gap-2 mb-4">
+        <div className="relative flex items-center bg-[#0d1420] border border-[#2a3a50] rounded px-3 py-1.5 w-56">
+          <svg className="w-3.5 h-3.5 text-[#4a6080] mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input
+            value={inputVal}
+            onChange={e => setInputVal(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleSubmit()}
+            className="bg-transparent outline-none text-white text-sm w-full"
+            placeholder="Symbol..."
+          />
+          {inputVal && (
+            <button onClick={() => { setInputVal(""); setSymbol(""); }} className="text-[#4a6080] hover:text-white ml-1">✕</button>
+          )}
+        </div>
+
+        {/* Icon buttons */}
+        {[
+          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>,
+          <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>,
+          <path d="M13 5l7 7-7 7M5 5l7 7-7 7"/>,
+        ].map((path, i) => (
+          <button key={i} className="bg-[#0d1420] border border-[#2a3a50] rounded p-1.5 hover:border-[#4a6080] transition">
+            <svg className="w-4 h-4 text-[#4a6080]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {path}
+            </svg>
+          </button>
         ))}
       </div>
-    );
-  }
-  return null;
+
+      {/* 3×2 grid */}
+      <div className="grid grid-cols-2 gap-3" style={{ gridTemplateRows: "repeat(3, 220px)" }}>
+
+        {/* Chart 1 — Last, blue fill */}
+        <ChartPanel
+          id="chart1" label="chart1"
+          options={["Last","Open","High","Low","Volume"]}
+          selectedOption={opts.c1} onOptionChange={v => setOpts(p => ({...p, c1: v}))}
+          datasets={c1data} colors={["#4488dd"]} fills={true}
+          sharedIdx={sharedIdx} onHover={handleHover} n={N}
+        />
+
+        {/* Chart 2 — %Short, two lines */}
+        <ChartPanel
+          id="chart2" label="chart2"
+          options={["%Short","NetBuy","Foreign"]}
+          selectedOption={opts.c2} onOptionChange={v => setOpts(p => ({...p, c2: v}))}
+          datasets={c2data} colors={["#f97316","#60a5fa"]} fills={false}
+          sharedIdx={sharedIdx} onHover={handleHover} n={N}
+        />
+
+        {/* Chart 3 — PredictTrend, orange fill */}
+        <ChartPanel
+          id="chart3" label="chart3"
+          options={["PredictTrend","Trend","Signal"]}
+          selectedOption={opts.c3} onOptionChange={v => setOpts(p => ({...p, c3: v}))}
+          datasets={c3data} colors={["#f59e0b"]} fills={true}
+          sharedIdx={sharedIdx} onHover={handleHover} n={N}
+        />
+
+        {/* Chart 4 — Peak, yellow peak area */}
+        <ChartPanel
+          id="chart4" label="chart4"
+          options={["Peak","Valley","Range"]}
+          selectedOption={opts.c4} onOptionChange={v => setOpts(p => ({...p, c4: v}))}
+          datasets={c4data} colors={["#eab308"]} fills={false} peak={true}
+          sharedIdx={sharedIdx} onHover={handleHover} n={N}
+        />
+
+        {/* Chart 5 — Shareholder, step red */}
+        <ChartPanel
+          id="chart5" label="chart5"
+          options={["Shareholder","Insider","Institution"]}
+          selectedOption={opts.c5} onOptionChange={v => setOpts(p => ({...p, c5: v}))}
+          datasets={c5data} colors={["#ef4444"]} fills={false} step={true}
+          sharedIdx={sharedIdx} onHover={handleHover} n={N}
+        />
+
+        {/* Chart 6 — Manager, multi-line with right badges */}
+        <ChartPanel
+          id="chart6" label="chart6"
+          options={["Manager","Director","Fund"]}
+          selectedOption={opts.c6} onOptionChange={v => setOpts(p => ({...p, c6: v}))}
+          datasets={c6data} colors={c6colors} fills={false}
+          sharedIdx={sharedIdx} onHover={handleHover} n={N}
+          showBadges={true}
+        />
+
+      </div>
+    </div>
+  );
 }
