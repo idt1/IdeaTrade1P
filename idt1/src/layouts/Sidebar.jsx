@@ -446,7 +446,7 @@ useEffect(() => {
                    >
                       <img 
                         src={getIcon(p.iconKey, active)} 
-                        className="w-5 transition-all" 
+                        className="w-5" 
                         alt={p.name}
                         style={
                           active 
