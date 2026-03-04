@@ -181,6 +181,9 @@ export default function DRInsight() {
   const navigate = useNavigate();
   const scrollContainerRef = useRef(null);
 
+  // เพิ่ม State ใหม่
+const [fullscreenChart, setFullscreenChart] = useState(null); // ✅ เก็บ chart ที่ fullscreen
+
   // States
   const [isMember, setIsMember] = useState(false);
   const [enteredTool, setEnteredTool] = useState(false);
@@ -201,11 +204,13 @@ export default function DRInsight() {
 
   const [globalFilter, setGlobalFilter] = useState("");
 
-  const [chartSelections, setChartSelections] = useState({
-    chart1: "AAPL80X",
-    chart2: "ASML01",
-    chart3: "BABA80",
-  });
+ const [chartSelections, setChartSelections] = useState({
+  chart1: "",  // ✅ เริ่มแรกว่างเปล่า
+  chart2: "",
+  chart3: "",
+});
+
+const [selectedSymbol, setSelectedSymbol] = useState(""); // ✅ เก็บ symbol ที่เลือกเดียว
 
   // -----------------------------------------------------------------
   // 🌟 NEW: State สำหรับเช็คว่ากราฟไหนกำลังทำงานอยู่ (ถูกคลิกโฟกัสไว้)
@@ -213,31 +218,37 @@ export default function DRInsight() {
   const [activeTargetChart, setActiveTargetChart] = useState("chart1");
 
   // ฟังก์ชันสำหรับกดเลือกหุ้นจาก List ด้านข้าง
-  const handleStockClick = (symbol) => {
-    setChartSelections(prev => ({
-      ...prev,
-      [activeTargetChart]: symbol // เปลี่ยนชื่อหุ้นให้เฉพาะกราฟที่กำลังโฟกัสอยู่
-    }));
-  };
+const handleStockClick = (symbol) => {
+  // ✅ เลือกได้แค่ตัวเดียว - อัปเดตทั้ง 3 chart พร้อมกัน
+  setChartSelections({
+    chart1: symbol,
+    chart2: symbol,
+    chart3: symbol,
+  });
+  setSelectedSymbol(symbol);
+};
 
   // อัปเดตกราฟเมื่อ chartSelections เปลี่ยน
-  useEffect(() => {
-    const newData = { ...chartData };
-    const newMinMax = { ...chartMinMax };
+useEffect(() => {
+  const newData = { ...chartData };
+  const newMinMax = { ...chartMinMax };
 
-    Object.keys(chartSelections).forEach((key) => {
-        const stockName = chartSelections[key];
+  Object.keys(chartSelections).forEach((key) => {
+      const stockName = chartSelections[key];
+      if (stockName) { // ✅ ถ้าไม่มี symbol ไม่ต้องสร้างกราฟ
         const basePrice = (stockName.length * 15) + 50; 
         const data = generateMockStockData(basePrice, 80); 
         
         newData[key] = data;
         newMinMax[key] = { min: Math.min(...data), max: Math.max(...data) };
-    });
+      } else {
+        newData[key] = [];
+      }
+  });
 
-    setChartData(newData);
-    setChartMinMax(newMinMax);
-  // eslint-disable-next-line
-  }, [chartSelections]);
+  setChartData(newData);
+  setChartMinMax(newMinMax);
+}, [chartSelections]);
 
   /* ===============================
       1. MEMBER CHECK & LOGIC
@@ -318,7 +329,6 @@ export default function DRInsight() {
       3. RENDER HELPER (Figma Theme)
   ================================ */
 const renderFigmaPanel = (title, stocks, iconText = "🌐", flexClass = "flex-1") => {
-  // ✅ ใช้ globalFilter เดียว
   const filteredStocks = stocks.filter(s => s.dr.toLowerCase().includes(globalFilter.toLowerCase()));
 
   return (
@@ -328,19 +338,22 @@ const renderFigmaPanel = (title, stocks, iconText = "🌐", flexClass = "flex-1"
             <span className="text-cyan-500 text-[11px] font-bold">{iconText}</span>
         </div>
 
-        {/* ✅ Header ล็อคด้านบน sticky - ไม่มีพื้นที่ว่าง */}
         <div className="flex justify-between text-[9px] text-slate-500 px-2 py-1 font-semibold uppercase tracking-wider sticky top-0 bg-[#111827] border-b border-slate-800/60 z-20">
           <span>DR/DRx</span>
           <span>TradingView</span>
         </div>
 
-        {/* ✅ Content เลื่อนได้ */}
         <div className="overflow-y-auto flex-1 bg-[#0B1221] p-2" style={scrollbarHideStyle}>
             {filteredStocks.map((stock, idx) => (
                 <div 
                   key={idx} 
                   onClick={() => handleStockClick(stock.dr)}
-                  className="flex justify-between items-center text-[10px] p-1.5 hover:bg-slate-800/60 rounded cursor-pointer transition-colors group"
+                  // ✅ Highlight ถ้าเลือก
+                  className={`flex justify-between items-center text-[10px] p-1.5 rounded cursor-pointer transition-colors group ${
+                    selectedSymbol === stock.dr 
+                      ? 'bg-cyan-500/20 border border-cyan-500/50' 
+                      : 'hover:bg-slate-800/60'
+                  }`}
                 >
                     <div className="flex items-center gap-2">
                         <div className={`w-1.5 h-1.5 rounded-full ${dotColors[idx % dotColors.length]}`}></div>
@@ -459,66 +472,94 @@ const renderFigmaPanel = (title, stocks, iconText = "🌐", flexClass = "flex-1"
         <div className="col-span-12 md:col-span-3 flex flex-col gap-4 h-full overflow-hidden">
             {renderFigmaPanel("USA", usaStocks, "🌎", "flex-[4]")}
             {renderFigmaPanel("Europe", europeStocks, "🌍", "flex-[3]")}
-            {renderFigmaPanel("ETC", etcStocks, "⚙️", "flex-[2]")}
+            {renderFigmaPanel("ETC", etcStocks, "🌎", "flex-[2]")}
         </div>
 
         {/* === Middle Column: 3 Charts (6/12) === */}
         <div className="col-span-12 md:col-span-6 flex flex-col gap-4 h-full overflow-hidden">
-            {['chart1', 'chart2', 'chart3'].map((chartKey, index) => {
-                const stockName = chartSelections[chartKey];
-                const stockData = allStockOptions.find(s => s.dr === stockName) || {};
-                const themeColors = ["#3b82f6", "#ef4444", "#22c55e"]; 
-                const lineColor = themeColors[index];
+           {['chart1', 'chart2', 'chart3'].map((chartKey, index) => {
+              const stockName = chartSelections[chartKey];
+              const stockData = allStockOptions.find(s => s.dr === stockName) || {};
+              
+              // ✅ สร้างชื่อกราฟตามรูปแบบ
+              let chartTitle = "";
+              if (index === 0) {
+                chartTitle = stockData.real || "Select a symbol"; 
+              } else if (index === 1) {
+                chartTitle = `PE:${stockData.real || "Select a symbol"}`; 
+              } else {
+                chartTitle = stockName || "Select a symbol"; 
+              }
 
-                const data = chartData[chartKey];
-                const { min, max } = chartMinMax[chartKey];
-                const range = max - min || 1;
-                const pathD = buildSvgPath(data, min, max);
+              const themeColors = ["#3b82f6", "#ef4444", "#22c55e"]; 
+              const lineColor = themeColors[index];
 
-                let currentYPercent = null;
-                let hoverValue = null;
-                let actualXPercent = hoverPos;
+              const data = chartData[chartKey];
+              const { min, max } = chartMinMax[chartKey];
+              const range = max - min || 1;
+              const pathD = buildSvgPath(data, min, max);
 
-                if (hoverPos !== null && data.length > 0) {
-                    const dataIndex = Math.min(data.length - 1, Math.max(0, Math.round((hoverPos / 100) * (data.length - 1))));
-                    hoverValue = data[dataIndex];
-                    currentYPercent = 100 - ((hoverValue - min) / range) * 100;
-                    actualXPercent = (dataIndex / (data.length - 1)) * 100;
-                }
+              let currentYPercent = null;
+              let hoverValue = null;
+              let actualXPercent = hoverPos;
 
-                const isActive = activeTargetChart === chartKey;
+              if (hoverPos !== null && data.length > 0) {
+                  const dataIndex = Math.min(data.length - 1, Math.max(0, Math.round((hoverPos / 100) * (data.length - 1))));
+                  hoverValue = data[dataIndex];
+                  currentYPercent = 100 - ((hoverValue - min) / range) * 100;
+                  actualXPercent = (dataIndex / (data.length - 1)) * 100;
+              }
 
-                return (
-                    <div 
-                        key={chartKey} 
-                        onClick={() => setActiveTargetChart(chartKey)}
-                        className={`bg-[#111827] border ${isActive ? 'border-cyan-500/50 shadow-[0_0_15px_rgba(34,212,238,0.2)]' : 'border-slate-800/80'} rounded-xl p-4 flex flex-col flex-1 overflow-hidden min-h-0 relative transition-all duration-200 cursor-pointer`}
-                    >
+              const isActive = activeTargetChart === chartKey;
+
+    return (
+        <div 
+            key={chartKey} 
+            onClick={() => setActiveTargetChart(chartKey)}
+            className={`bg-[#111827] border border-slate-700 rounded-xl p-4 flex flex-col flex-1 overflow-hidden min-h-0 relative transition-all duration-200 cursor-pointer`}
+        >
                         
-                        {/* Chart Header */}
-                        <div className="flex justify-between items-start shrink-0 z-40 relative mb-3">
-                            <div className="relative group/select cursor-pointer flex items-baseline gap-2">
-                                 <select
-                                    value={stockName}
-                                    onChange={(e) => setChartSelections({...chartSelections, [chartKey]: e.target.value})}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                 >
-                                    {allStockOptions.map(s => (
-                                        <option key={s.dr} value={s.dr} className="bg-[#1f2937] text-slate-300">
-                                            {s.dr} {s.name ? `(${s.name})` : ""}
-                                        </option>
-                                    ))}
-                                 </select>
-                                 <span className="font-bold text-[15px] text-white tracking-wide">{stockName}</span>
-                                 <span className="text-xs text-slate-500 font-medium">({stockData.name || "Company"})</span>
-                                 
-                                 {isActive && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 ml-2 animate-pulse"></span>}
-                            </div>
-                            <div className="flex gap-3 text-slate-600">
-                                <button className="hover:text-white transition">⛶</button>
-                                <button className="hover:text-white transition">⚙</button>
-                            </div>
-                        </div>
+        {/* Chart Header */}
+        <div className="flex justify-between items-start shrink-0 z-40 relative mb-3">
+          {/* ✅ Dropdown Select */}
+            <div className="relative group/select cursor-pointer flex items-baseline gap-2">
+                  <select
+                    value={stockName}
+                    onChange={(e) => {
+                      setChartSelections({...chartSelections, [chartKey]: e.target.value});
+                      setActiveTargetChart(chartKey);
+                    }}
+                    className="w-full px-3 py-1.5 bg-[#1a2235] border border-slate-700/50 rounded text-sm text-slate-300 focus:outline-none focus:border-cyan-500 placeholder-slate-600 appearance-none cursor-pointer"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 8px center',
+                      paddingRight: '28px'
+                    }}
+                 >
+                     <option value="" className="bg-[#1f2937] text-slate-300">Select a symbol...</option>
+                    {allStockOptions.map(s => (
+                        <option key={s.dr} value={s.dr} className="bg-[#1f2937] text-slate-300">
+                            {s.dr} - {s.name}
+                        </option>
+                    ))}
+                 </select>
+                 {/* ✅ แสดงชื่อกราฟตามรูปแบบ */}
+                 
+                 {isActive && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 ml-2 animate-pulse"></span>}
+            </div>
+            <div className="flex gap-3 text-slate-600">
+                 {/* Fullscreen Button */}
+                <button 
+                  onClick={() => setFullscreenChart(chartKey)}
+                  className="hover:text-cyan-400 transition"
+                  title="Fullscreen"
+                >
+                  ⛶
+                </button>
+                <button className="hover:text-white transition">⚙</button>
+            </div>
+        </div>
 
                         {/* Graph Area */}
                         <div 
@@ -532,69 +573,214 @@ const renderFigmaPanel = (title, stocks, iconText = "🌐", flexClass = "flex-1"
                         >
                             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
                             
-                            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 100" preserveAspectRatio="none">
-                                <defs>
-                                    <linearGradient id={`grad-${index}`} x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor={lineColor} stopOpacity="0.25" />
-                                            <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
-                                    </linearGradient>
-                                </defs>
-                                <path 
-                                    d={pathD} 
-                                    fill="none" 
-                                    stroke={lineColor} 
-                                    strokeWidth="2" 
-                                    vectorEffect="non-scaling-stroke"
-                                />
-                                <path 
-                                    d={pathD + " V 100 H 0 Z"} 
-                                    fill={`url(#grad-${index})`} 
-                                    stroke="none" 
-                                />
-                            </svg>
+                            {/* ✅ ถ้าไม่มี symbol ให้แสดง placeholder */}
+                            {!stockName && (
+                              <div className="absolute inset-0 flex items-center justify-center z-10">
+                                <span className="text-slate-500 text-sm">Select a symbol to display chart</span>
+                              </div>
+                            )}
+                            
+                            {/* ✅ ถ้ามี symbol จึงแสดง SVG */}
+                            {stockName && (
+                              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 100" preserveAspectRatio="none">
+                                  <defs>
+                                      <linearGradient id={`grad-${index}`} x1="0" y1="0" x2="0" y2="1">
+                                              <stop offset="0%" stopColor={lineColor} stopOpacity="0.25" />
+                                              <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+                                      </linearGradient>
+                                  </defs>
+                                  <path 
+                                      d={pathD} 
+                                      fill="none" 
+                                      stroke={lineColor} 
+                                      strokeWidth="2" 
+                                      vectorEffect="non-scaling-stroke"
+                                  />
+                                  <path 
+                                      d={pathD + " V 100 H 0 Z"} 
+                                      fill={`url(#grad-${index})`} 
+                                      stroke="none" 
+                                  />
+                              </svg>
+                            )}
 
-                            <div className="absolute right-2 top-3 bottom-3 flex flex-col justify-between text-[8px] text-slate-600 text-right pointer-events-none z-10">
-                                <span>{max.toFixed(2)}</span>
-                                <span>{(min + range * 0.75).toFixed(2)}</span>
-                                <span>{(min + range * 0.5).toFixed(2)}</span>
-                                <span>{(min + range * 0.25).toFixed(2)}</span>
-                                <span>{min.toFixed(2)}</span>
-                            </div>
+                            {stockName && (
+                              <>
+                                <div className="absolute right-2 top-3 bottom-3 flex flex-col justify-between text-[8px] text-slate-600 text-right pointer-events-none z-10">
+                                    <span>{max.toFixed(2)}</span>
+                                    <span>{(min + range * 0.75).toFixed(2)}</span>
+                                    <span>{(min + range * 0.5).toFixed(2)}</span>
+                                    <span>{(min + range * 0.25).toFixed(2)}</span>
+                                    <span>{min.toFixed(2)}</span>
+                                </div>
 
-                            {hoverPos !== null && currentYPercent !== null && (
-                                <>
-                                    <div 
-                                        className="absolute top-0 bottom-0 z-20 pointer-events-none border-l border-dashed border-slate-400 opacity-80"
-                                        style={{ left: `${actualXPercent}%` }}
-                                    ></div>
+                                {hoverPos !== null && currentYPercent !== null && (
+                                    <>
+                                        <div 
+                                            className="absolute top-0 bottom-0 z-20 pointer-events-none border-l border-dashed border-slate-400 opacity-80"
+                                            style={{ left: `${actualXPercent}%` }}
+                                        ></div>
 
-                                    <div 
-                                        className="absolute left-0 right-0 z-20 pointer-events-none border-t border-dashed border-slate-400 opacity-80"
-                                        style={{ top: `${currentYPercent}%` }}
-                                    ></div>
-                                    
-                                    <div 
-                                        className="absolute z-30 pointer-events-none w-2.5 h-2.5 rounded-full -translate-x-1/2 -translate-y-1/2"
-                                        style={{ 
-                                            left: `${actualXPercent}%`, 
-                                            top: `${currentYPercent}%`,
-                                            backgroundColor: lineColor, 
-                                            boxShadow: `0 0 10px ${lineColor}`
-                                        }}
-                                    ></div>
+                                        <div 
+                                            className="absolute left-0 right-0 z-20 pointer-events-none border-t border-dashed border-slate-400 opacity-80"
+                                            style={{ top: `${currentYPercent}%` }}
+                                        ></div>
+                                        
+                                        <div 
+                                            className="absolute z-30 pointer-events-none w-2.5 h-2.5 rounded-full -translate-x-1/2 -translate-y-1/2"
+                                            style={{ 
+                                                left: `${actualXPercent}%`, 
+                                                top: `${currentYPercent}%`,
+                                                backgroundColor: lineColor, 
+                                                boxShadow: `0 0 10px ${lineColor}`
+                                            }}
+                                        ></div>
 
-                                    <div 
-                                        className="absolute right-0 z-30 -translate-y-1/2 px-1.5 py-0.5 bg-slate-800 text-white text-[9px] rounded shadow-md border border-slate-600 pointer-events-none"
-                                        style={{ top: `${currentYPercent}%` }}
-                                    >
-                                        {hoverValue?.toFixed(2)}
-                                    </div>
-                                </>
+                                        <div 
+                                            className="absolute right-0 z-30 -translate-y-1/2 px-1.5 py-0.5 bg-slate-800 text-white text-[9px] rounded shadow-md border border-slate-600 pointer-events-none"
+                                            style={{ top: `${currentYPercent}%` }}
+                                        >
+                                            {hoverValue?.toFixed(2)}
+                                        </div>
+                                    </>
+                                )}
+                              </>
                             )}
                         </div>
                     </div>
                 );
             })}
+
+            {/* ✅ FULLSCREEN MODAL */}
+                  {fullscreenChart && (() => {
+                    const stockName = chartSelections[fullscreenChart];
+                    const stockData = allStockOptions.find(s => s.dr === stockName) || {};
+                    const index = ['chart1', 'chart2', 'chart3'].indexOf(fullscreenChart);
+                    const themeColors = ["#3b82f6", "#ef4444", "#22c55e"];
+                    const lineColor = themeColors[index];
+
+                    // ✅ สร้างชื่อกราฟตามรูปแบบ
+                    let chartTitle = "";
+                    if (index === 0) {
+                      chartTitle = stockData.real || stockName;
+                    } else if (index === 1) {
+                      chartTitle = `PE:${stockData.real || stockName}`;
+                    } else {
+                      chartTitle = stockName;
+                    }
+
+                    const data = chartData[fullscreenChart];
+                    const { min, max } = chartMinMax[fullscreenChart];
+                    const range = max - min || 1;
+                    const pathD = buildSvgPath(data, min, max);
+
+                    return (
+                      <div className="fixed inset-0 bg-[#0B1221] z-50 flex flex-col p-4 overflow-hidden">
+                        {/* Header */}
+                        <div className="flex justify-between items-center mb-4 shrink-0">
+                          <div className="flex items-center gap-3">
+                            <h2 className="text-2xl font-bold text-white">{chartTitle}</h2>
+                            <span className="text-sm text-slate-500">({stockData.name || "Company"})</span>
+                          </div>
+                          <button 
+                            onClick={() => setFullscreenChart(null)}
+                            className="text-3xl text-slate-400 hover:text-white transition"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        
+                        {/* Fullscreen Chart Area */}
+                        <div 
+                          className="flex-1 bg-[#111827] border border-slate-700 rounded-xl relative overflow-hidden group/chart cursor-crosshair"
+                          onMouseMove={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
+                            setHoverPos(Math.max(0, Math.min(100, xPercent)));
+                          }}
+                          onMouseLeave={() => setHoverPos(null)}
+                        >
+                          {/* Grid Background */}
+                          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
+                          
+                          {/* SVG Chart */}
+                          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 100" preserveAspectRatio="none">
+                            <defs>
+                              <linearGradient id={`fullscreen-grad-${index}`} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={lineColor} stopOpacity="0.25" />
+                                <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+                              </linearGradient>
+                            </defs>
+                            <path 
+                              d={pathD} 
+                              fill="none" 
+                              stroke={lineColor} 
+                              strokeWidth="2" 
+                              vectorEffect="non-scaling-stroke"
+                            />
+                            <path 
+                              d={pathD + " V 100 H 0 Z"} 
+                              fill={`url(#fullscreen-grad-${index})`} 
+                              stroke="none" 
+                            />
+                          </svg>
+
+                          {/* Y-axis Labels */}
+                          <div className="absolute right-2 top-3 bottom-3 flex flex-col justify-between text-[10px] text-slate-600 text-right pointer-events-none z-10">
+                            <span className="font-semibold">{max.toFixed(2)}</span>
+                            <span>{(min + range * 0.75).toFixed(2)}</span>
+                            <span>{(min + range * 0.5).toFixed(2)}</span>
+                            <span>{(min + range * 0.25).toFixed(2)}</span>
+                            <span className="font-semibold">{min.toFixed(2)}</span>
+                          </div>
+
+                          {/* Hover Lines */}
+                          {hoverPos !== null && (() => {
+                            const dataIndex = Math.min(data.length - 1, Math.max(0, Math.round((hoverPos / 100) * (data.length - 1))));
+                            const hoverValue = data[dataIndex];
+                            const currentYPercent = 100 - ((hoverValue - min) / range) * 100;
+                            const actualXPercent = (dataIndex / (data.length - 1)) * 100;
+
+                            return (
+                              <>
+                                {/* Vertical Line */}
+                                <div 
+                                  className="absolute top-0 bottom-0 z-20 pointer-events-none border-l border-dashed border-slate-400 opacity-80"
+                                  style={{ left: `${actualXPercent}%` }}
+                                ></div>
+
+                                {/* Horizontal Line */}
+                                <div 
+                                  className="absolute left-0 right-0 z-20 pointer-events-none border-t border-dashed border-slate-400 opacity-80"
+                                  style={{ top: `${currentYPercent}%` }}
+                                ></div>
+                                
+                                {/* Point */}
+                                <div 
+                                  className="absolute z-30 pointer-events-none w-3 h-3 rounded-full -translate-x-1/2 -translate-y-1/2"
+                                  style={{ 
+                                    left: `${actualXPercent}%`, 
+                                    top: `${currentYPercent}%`,
+                                    backgroundColor: lineColor, 
+                                    boxShadow: `0 0 15px ${lineColor}`
+                                  }}
+                                ></div>
+
+                                {/* Tooltip */}
+                                <div 
+                                  className="absolute right-0 z-30 -translate-y-1/2 px-2 py-1 bg-slate-800 text-white text-[11px] rounded shadow-md border border-slate-600 pointer-events-none font-semibold mr-2"
+                                  style={{ top: `${currentYPercent}%` }}
+                                >
+                                  {hoverValue?.toFixed(2)}
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
         </div>
 
         {/* === Right Column: Asia Pacific (3/12) === */}
