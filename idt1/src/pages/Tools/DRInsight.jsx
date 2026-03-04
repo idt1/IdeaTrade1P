@@ -427,8 +427,60 @@ export default function DRInsight() {
       CASE 3 : FULL DASHBOARD (Figma Theme)
   =========================================================== */
   return (
-    <div className="w-full h-screen bg-[#0B1221] text-white p-3 animate-fade-in flex flex-col font-sans overflow-hidden">
-      
+    <div className="w-full h-screen bg-[#0B1221] text-white animate-fade-in flex font-sans overflow-hidden">
+
+      {/* === Far Left: Narrow Navigation Sidebar === */}
+      <div className="w-12 bg-[#0a0f1a] border-r border-slate-800/60 flex flex-col items-center py-3 gap-3 shrink-0">
+        {/* Status Badges */}
+        <div className="flex flex-col items-center gap-1.5 mb-1">
+          <span className="text-[7px] font-bold text-green-400 bg-green-400/10 border border-green-400/30 rounded px-1 py-0.5 tracking-wide leading-none">ONLINE</span>
+          <span className="text-[7px] font-bold text-cyan-400 bg-cyan-400/10 border border-cyan-400/30 rounded px-1 py-0.5 tracking-wide leading-none">MEMBER</span>
+        </div>
+
+        {/* Divider */}
+        <div className="w-6 h-px bg-slate-700/60 shrink-0"></div>
+
+        {/* DR Insight (active) */}
+        <button aria-label="DR Insight" onClick={() => navigate("/dr")} className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 hover:bg-cyan-500/30 transition shrink-0" title="DR Insight">
+          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        </button>
+
+        {/* Bar Chart icon */}
+        <button aria-label="Charts" onClick={() => navigate("/dashboard")} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-slate-800/60 transition shrink-0" title="Charts">
+          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+        </button>
+
+        {/* Globe icon */}
+        <button aria-label="Global Markets" onClick={() => navigate("/premium-tools")} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-slate-800/60 transition shrink-0" title="Global Markets">
+          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        </button>
+
+        {/* Search icon */}
+        <button aria-label="Search" onClick={() => navigate("/preview-projects")} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-slate-800/60 transition shrink-0" title="Search">
+          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </button>
+
+        {/* Settings icon (pushed to bottom) */}
+        <button aria-label="Settings" onClick={() => navigate("/profile")} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-slate-800/60 transition shrink-0 mt-auto" title="Settings">
+          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* === Main Content (Top Bar + Grid) === */}
+      <div className="flex-1 flex flex-col p-3 min-w-0 overflow-hidden">
+
       {/* 1. Top Bar: Indicators */}
       <div className="flex justify-center gap-6 mb-4 shrink-0">
          <div className="bg-[#111827] px-5 py-2 rounded-full text-[11px] text-slate-400 border border-slate-800 flex items-center gap-3 shadow-sm">
@@ -446,17 +498,17 @@ export default function DRInsight() {
       </div>
 
       {/* 2. Main Grid Layout (3 Columns: Left, Mid, Right) */}
-      <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
+      <div className="grid grid-cols-12 gap-3 flex-1 min-h-0">
         
         {/* === Left Column: USA, Europe, ETC (3/12) === */}
-        <div className="col-span-12 md:col-span-3 flex flex-col gap-4 h-full overflow-hidden">
+        <div className="col-span-12 md:col-span-3 flex flex-col gap-3 h-full overflow-hidden">
             {renderFigmaPanel("USA", "usa", usaStocks, "🌎", "flex-[4]")}
             {renderFigmaPanel("Europe", "europe", europeStocks, "🌍", "flex-[3]")}
             {renderFigmaPanel("ETC", "etc", etcStocks, "⚙️", "flex-[2]")}
         </div>
 
         {/* === Middle Column: 3 Charts (6/12) === */}
-        <div className="col-span-12 md:col-span-6 flex flex-col gap-4 h-full overflow-hidden">
+        <div className="col-span-12 md:col-span-6 flex flex-col gap-3 h-full overflow-hidden">
             {['chart1', 'chart2', 'chart3'].map((chartKey, index) => {
                 const stockName = chartSelections[chartKey];
                 const stockData = allStockOptions.find(s => s.dr === stockName) || {};
@@ -598,19 +650,20 @@ export default function DRInsight() {
             <div className="text-center pb-3 mb-4 border-b border-slate-800/60 shrink-0">
                 <span className="font-bold text-base text-white tracking-wide">Asia</span>
             </div>
-            <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden">
-                <div className="flex flex-col gap-4 h-full overflow-hidden">
+            <div className="grid grid-cols-2 gap-3 flex-1 overflow-hidden">
+                <div className="flex flex-col gap-3 h-full overflow-hidden">
                     {renderFigmaPanel("Japan", "Japan", japanStocks, "JP", "flex-1")}
                     {renderFigmaPanel("Singapore", "Singapore", singaporeStocks, "SG", "flex-1")}
                     {renderFigmaPanel("Vietnam", "Vietnam", vietnamStocks, "VN", "flex-1")}
                 </div>
-                <div className="flex flex-col gap-4 h-full overflow-hidden">
+                <div className="flex flex-col gap-3 h-full overflow-hidden">
                     {renderFigmaPanel("China", "China", chinaStocks, "CN", "flex-[3]")}
                     {renderFigmaPanel("Taiwan", "Taiwan", taiwanStocks, "TW", "flex-1")}
                 </div>
             </div>
         </div>
 
+      </div>
       </div>
     </div>
   );
