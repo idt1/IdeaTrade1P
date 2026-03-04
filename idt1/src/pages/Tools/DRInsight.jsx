@@ -199,13 +199,7 @@ export default function DRInsight() {
   const scrollDirection = useRef(1);
   const isPaused = useRef(false);
 
-  const [filters, setFilters] = useState({
-    usa: "", europe: "", etc: "", Japan: "", China: "", Singapore: "", Vietnam: "", Taiwan: ""
-  });
-
-  const handleFilterChange = (region, value) => {
-    setFilters(prev => ({ ...prev, [region]: value }));
-  };
+  const [globalFilter, setGlobalFilter] = useState("");
 
   const [chartSelections, setChartSelections] = useState({
     chart1: "AAPL80X",
@@ -323,47 +317,42 @@ export default function DRInsight() {
   /* ===============================
       3. RENDER HELPER (Figma Theme)
   ================================ */
-  const renderFigmaPanel = (title, filterKey, stocks, iconText = "🌐", flexClass = "flex-1") => {
-    const currentFilter = filters[filterKey] || "";
-    const filteredStocks = stocks.filter(s => s.dr.toLowerCase().includes(currentFilter.toLowerCase()));
+const renderFigmaPanel = (title, stocks, iconText = "🌐", flexClass = "flex-1") => {
+  // ✅ ใช้ globalFilter เดียว
+  const filteredStocks = stocks.filter(s => s.dr.toLowerCase().includes(globalFilter.toLowerCase()));
 
-    return (
-      <div className={`bg-[#111827] border border-slate-800/80 rounded-xl flex flex-col overflow-hidden shadow-lg min-h-0 ${flexClass}`}>
-          <div className="px-3 py-2.5 flex justify-between items-center border-b border-slate-800/60 bg-[#141b2a]">
-              <span className="font-bold text-[13px] text-white">{title}</span>
-              <span className="text-cyan-500 text-[11px] font-bold">{iconText}</span>
-          </div>
-          <div className="p-2 border-b border-slate-800/60 bg-[#0B1221]">
-              <input
-                  type="text"
-                  placeholder="Filter..."
-                  value={currentFilter}
-                  onChange={(e) => handleFilterChange(filterKey, e.target.value)}
-                  className="w-full bg-[#1a2235] border border-slate-700/50 rounded flex-1 px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-500 placeholder-slate-600"
-              />
-          </div>
-          <div className="overflow-y-auto flex-1 p-2 bg-[#0B1221]" style={scrollbarHideStyle}>
-              <div className="flex justify-between text-[9px] text-slate-500 mb-2 px-1 font-semibold uppercase tracking-wider sticky top-0 bg-[#0B1221] z-10 pb-1">
-                 <span>DR/DRx</span>
-                 <span>TradingView</span>
-              </div>
-              {filteredStocks.map((stock, idx) => (
-                  <div 
-                    key={idx} 
-                    onClick={() => handleStockClick(stock.dr)} // 🌟 NEW: กดชื่อหุ้นเพื่อเปลี่ยนกราฟที่ Active อยู่
-                    className="flex justify-between items-center text-[10px] p-1.5 hover:bg-slate-800/60 rounded cursor-pointer transition-colors group"
-                  >
-                      <div className="flex items-center gap-2">
-                          <div className={`w-1.5 h-1.5 rounded-full ${dotColors[idx % dotColors.length]}`}></div>
-                          <span className="text-slate-200 group-hover:text-white font-bold tracking-wide">{stock.dr}</span>
-                      </div>
-                      <span className="text-slate-500 truncate max-w-[80px] text-right">{stock.real}</span>
-                  </div>
-              ))}
-          </div>
-      </div>
-    );
-  };
+  return (
+    <div className={`bg-[#111827] border border-slate-800/80 rounded-xl flex flex-col overflow-hidden shadow-lg min-h-0 ${flexClass}`}>
+        <div className="px-3 py-2.5 flex justify-between items-center border-b border-slate-800/60 bg-[#141b2a]">
+            <span className="font-bold text-[13px] text-white">{title}</span>
+            <span className="text-cyan-500 text-[11px] font-bold">{iconText}</span>
+        </div>
+
+        {/* ✅ Header ล็อคด้านบน sticky - ไม่มีพื้นที่ว่าง */}
+        <div className="flex justify-between text-[9px] text-slate-500 px-2 py-1 font-semibold uppercase tracking-wider sticky top-0 bg-[#111827] border-b border-slate-800/60 z-20">
+          <span>DR/DRx</span>
+          <span>TradingView</span>
+        </div>
+
+        {/* ✅ Content เลื่อนได้ */}
+        <div className="overflow-y-auto flex-1 bg-[#0B1221] p-2" style={scrollbarHideStyle}>
+            {filteredStocks.map((stock, idx) => (
+                <div 
+                  key={idx} 
+                  onClick={() => handleStockClick(stock.dr)}
+                  className="flex justify-between items-center text-[10px] p-1.5 hover:bg-slate-800/60 rounded cursor-pointer transition-colors group"
+                >
+                    <div className="flex items-center gap-2">
+                        <div className={`w-1.5 h-1.5 rounded-full ${dotColors[idx % dotColors.length]}`}></div>
+                        <span className="text-slate-200 group-hover:text-white font-bold tracking-wide">{stock.dr}</span>
+                    </div>
+                    <span className="text-slate-500 truncate max-w-[80px] text-right">{stock.real}</span>
+                </div>
+            ))}
+        </div>
+    </div>
+  );
+};
 
   /* ==========================================================
       CASE 1 : PREVIEW VERSION (Not Member)
@@ -429,20 +418,38 @@ export default function DRInsight() {
   return (
     <div className="w-full h-screen bg-[#0B1221] text-white p-3 animate-fade-in flex flex-col font-sans overflow-hidden">
       
-      {/* 1. Top Bar: Indicators */}
-      <div className="flex justify-center gap-6 mb-4 shrink-0">
-         <div className="bg-[#111827] px-5 py-2 rounded-full text-[11px] text-slate-400 border border-slate-800 flex items-center gap-3 shadow-sm">
+      {/* 1. Top Bar: Search Filter + Market Indicators */}
+      <div className="flex items-center justify-center gap-6 mb-4 shrink-0">
+        {/* กลาง: ค้นหา + ตัวบ่งชี้ตลาด */}
+        <div className="flex justify-center items-center gap-6">
+          {/* ค้นหา - ทำให้เป็นรูป pill เหมือน market indicators */}
+          <div className="bg-[#111827] border border-slate-800 rounded-full px-4 py-2 flex items-center gap-2 shadow-sm">
+            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Filter symbol..."
+              value={globalFilter}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              className="bg-transparent text-xs text-slate-300 focus:outline-none placeholder-slate-600 w-40"
+            />
+          </div>
+
+          {/* ตัวบ่งชี้ตลาด */}
+          <div className="bg-[#111827] px-5 py-2 rounded-full text-[11px] text-slate-400 border border-slate-800 flex items-center gap-3 shadow-sm whitespace-nowrap">
             <span>ราคาน้ำมัน</span> 
             <div className="w-8 h-0.5 bg-[#3b82f6]"></div>
-         </div>
-         <div className="bg-[#111827] px-5 py-2 rounded-full text-[11px] text-slate-400 border border-slate-800 flex items-center gap-3 shadow-sm">
+          </div>
+          <div className="bg-[#111827] px-5 py-2 rounded-full text-[11px] text-slate-400 border border-slate-800 flex items-center gap-3 shadow-sm whitespace-nowrap">
             <span>PE Ratio</span> 
             <div className="w-8 h-0.5 bg-[#ef4444]"></div>
-         </div>
-         <div className="bg-[#111827] px-5 py-2 rounded-full text-[11px] text-slate-400 border border-slate-800 flex items-center gap-3 shadow-sm">
+          </div>
+          <div className="bg-[#111827] px-5 py-2 rounded-full text-[11px] text-slate-400 border border-slate-800 flex items-center gap-3 shadow-sm whitespace-nowrap">
             <span>Last</span> 
             <div className="w-8 h-0.5 bg-[#22c55e]"></div>
-         </div>
+          </div>
+        </div>
       </div>
 
       {/* 2. Main Grid Layout (3 Columns: Left, Mid, Right) */}
@@ -450,9 +457,9 @@ export default function DRInsight() {
         
         {/* === Left Column: USA, Europe, ETC (3/12) === */}
         <div className="col-span-12 md:col-span-3 flex flex-col gap-4 h-full overflow-hidden">
-            {renderFigmaPanel("USA", "usa", usaStocks, "🌎", "flex-[4]")}
-            {renderFigmaPanel("Europe", "europe", europeStocks, "🌍", "flex-[3]")}
-            {renderFigmaPanel("ETC", "etc", etcStocks, "⚙️", "flex-[2]")}
+            {renderFigmaPanel("USA", usaStocks, "🌎", "flex-[4]")}
+            {renderFigmaPanel("Europe", europeStocks, "🌍", "flex-[3]")}
+            {renderFigmaPanel("ETC", etcStocks, "⚙️", "flex-[2]")}
         </div>
 
         {/* === Middle Column: 3 Charts (6/12) === */}
@@ -479,19 +486,17 @@ export default function DRInsight() {
                     actualXPercent = (dataIndex / (data.length - 1)) * 100;
                 }
 
-                // 🌟 ตรวจสอบว่ากราฟนี้ถูกโฟกัสอยู่หรือไม่
                 const isActive = activeTargetChart === chartKey;
 
                 return (
                     <div 
                         key={chartKey} 
-                        onClick={() => setActiveTargetChart(chartKey)} // 🌟 NEW: กดตรงไหนของกล่องกราฟนี้ก็ทำให้มันกลายเป็น Active Chart ทันที
-                        className={`bg-[#111827] border ${isActive ? 'border-slate-500 shadow-[0_0_10px_rgba(100,116,139,0.3)]' : 'border-slate-800/80'} rounded-xl p-4 flex flex-col flex-1 overflow-hidden min-h-0 relative transition-all duration-200 cursor-pointer`}
+                        onClick={() => setActiveTargetChart(chartKey)}
+                        className={`bg-[#111827] border ${isActive ? 'border-cyan-500/50 shadow-[0_0_15px_rgba(34,212,238,0.2)]' : 'border-slate-800/80'} rounded-xl p-4 flex flex-col flex-1 overflow-hidden min-h-0 relative transition-all duration-200 cursor-pointer`}
                     >
                         
                         {/* Chart Header */}
-                        <div className="flex justify-between items-start shrink-0 z-40 relative">
-                            {/* Select แบบใส ซ่อนไว้ทับ Text (ยังกดเปลี่ยนจากตรงนี้ได้เหมือนเดิม) */}
+                        <div className="flex justify-between items-start shrink-0 z-40 relative mb-3">
                             <div className="relative group/select cursor-pointer flex items-baseline gap-2">
                                  <select
                                     value={stockName}
@@ -507,7 +512,6 @@ export default function DRInsight() {
                                  <span className="font-bold text-[15px] text-white tracking-wide">{stockName}</span>
                                  <span className="text-xs text-slate-500 font-medium">({stockData.name || "Company"})</span>
                                  
-                                 {/* จุดบอกสถานะ Active เล็กๆ ตรงชื่อหุ้น */}
                                  {isActive && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 ml-2 animate-pulse"></span>}
                             </div>
                             <div className="flex gap-3 text-slate-600">
@@ -518,7 +522,7 @@ export default function DRInsight() {
 
                         {/* Graph Area */}
                         <div 
-                          className="flex-1 w-full bg-[#0B1221] border border-slate-800/40 rounded-lg relative overflow-hidden flex items-end mt-3 group/chart cursor-crosshair"
+                          className="flex-1 w-full bg-[#0B1221] border border-slate-800/40 rounded-lg relative overflow-hidden flex items-end group/chart cursor-crosshair"
                           onMouseMove={(e) => {
                             const rect = e.currentTarget.getBoundingClientRect();
                             const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
@@ -600,13 +604,13 @@ export default function DRInsight() {
             </div>
             <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden">
                 <div className="flex flex-col gap-4 h-full overflow-hidden">
-                    {renderFigmaPanel("Japan", "Japan", japanStocks, "JP", "flex-1")}
-                    {renderFigmaPanel("Singapore", "Singapore", singaporeStocks, "SG", "flex-1")}
-                    {renderFigmaPanel("Vietnam", "Vietnam", vietnamStocks, "VN", "flex-1")}
+                    {renderFigmaPanel("Japan", japanStocks, "JP", "flex-1")}
+                    {renderFigmaPanel("Singapore", singaporeStocks, "SG", "flex-1")}
+                    {renderFigmaPanel("Vietnam", vietnamStocks, "VN", "flex-1")}
                 </div>
                 <div className="flex flex-col gap-4 h-full overflow-hidden">
-                    {renderFigmaPanel("China", "China", chinaStocks, "CN", "flex-[3]")}
-                    {renderFigmaPanel("Taiwan", "Taiwan", taiwanStocks, "TW", "flex-1")}
+                    {renderFigmaPanel("China", chinaStocks, "CN", "flex-[3]")}
+                    {renderFigmaPanel("Taiwan", taiwanStocks, "TW", "flex-1")}
                 </div>
             </div>
         </div>
