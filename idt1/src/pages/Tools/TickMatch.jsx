@@ -5,6 +5,10 @@ import { useNavigate } from "react-router-dom";
 import TickMatchDashboard from "./components/TickMatchDashboard.jsx";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import LinkOffOutlinedIcon from "@mui/icons-material/LinkOffOutlined";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ZoomInIcon from "@mui/icons-material/ZoomIn";
+import CloseIcon from "@mui/icons-material/Close";
 
 // Style ซ่อน Scrollbar (เหมือนต้นแบบ DR)
 const scrollbarHideStyle = {
@@ -205,6 +209,8 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "" }) => {
 
   const [hasSearched, setHasSearched] = useState(false);
   const [isSynced, setIsSynced] = useState(true);
+  const [flipCollapsed, setFlipCollapsed] = useState(false);
+  const [chartZoomOpen, setChartZoomOpen] = useState(false);
 
   const [symbol, setSymbol] = useState(defaultSymbol);
   const [showSymbolDropdown, setShowSymbolDropdown] = useState(false);
@@ -268,7 +274,7 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "" }) => {
   const buyPercent = total === 0 ? 50 : (totalBuy / total) * 100;
 
     return (
-      <div className="flex flex-col h-full bg-[#111827] border border-slate-700 rounded-lg p-3 shadow-lg overflow-y-auto hide-scrollbar relative" style={scrollbarHideStyle}>
+      <div className="flex flex-col h-full bg-[#111827] border border-slate-700 rounded-lg p-3 shadow-lg overflow-hidden relative" style={scrollbarHideStyle}>
         
         {isSyncing && (
             <div className="absolute inset-0 bg-[#111827]/60 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-lg">
@@ -277,7 +283,7 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "" }) => {
         )}
 
         {/* --- Header & Inputs --- */}
-        <div className="grid grid-cols-12 gap-2 mb-3 items-end shrink-0">
+        <div className="grid grid-cols-12 gap-2 mb-2 items-end shrink-0">
 
           {/* SYNC */}
           <div className="col-span-2">
@@ -423,12 +429,12 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "" }) => {
         </div>
 
         {/* Progress */}
-        <div className="w-full h-1 bg-red-600 rounded-full mb-3 flex overflow-hidden shrink-0">
+        <div className="w-full h-1 bg-red-600 rounded-full mb-2 flex overflow-hidden shrink-0">
             <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${buyPercent}%` }}></div>
         </div>
 
         {/* Filters */}
-        <div className="flex gap-2 mb-3">
+        <div className="flex gap-2 mb-2">
           <button className="bg-slate-700 text-white text-[10px] px-3 py-1 rounded hover:bg-slate-600">All</button>
           <button className="bg-[#1f2937] text-slate-400 border border-slate-600 text-[10px] px-3 py-1 rounded hover:text-white">Buy Only</button>
           <button className="bg-[#1f2937] text-slate-400 border border-slate-600 text-[10px] px-3 py-1 rounded hover:text-white">Sell Only</button>
@@ -436,7 +442,7 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "" }) => {
         </div>
 
         {/* --- Tick Table --- */}
-        <div className="rounded overflow-hidden border border-slate-800/50 bg-[#0B1221] shrink-0 min-h-[150px] mb-4">
+        <div className="rounded overflow-hidden border border-slate-800/50 bg-[#0B1221] shrink-0 h-[170px] overflow-y-auto mb-2" style={scrollbarHideStyle}>
            <table className="w-full text-right border-collapse">
              <thead className="bg-[#1f2937] text-slate-400 text-[10px] font-medium sticky top-0 z-10 shadow-sm">
                <tr>
@@ -468,55 +474,188 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "" }) => {
         {/* --- Extra Sections (Flip & Charts) จะโชว์เมื่อมีการค้นหาข้อมูลแล้วเท่านั้น --- */}
         {hasSearched && (
           <>
-            {/* ===== Flip Section Skeleton ===== */}
-            <div className="bg-[#0B1221] border border-slate-800/50 rounded mb-4 overflow-hidden shrink-0">
+            {/* ===== Flip Section ===== */}
+            <div className="bg-[#0B1221] border border-slate-800/50 rounded mb-2 overflow-hidden shrink-0">
 
-              <div className="bg-[#1f2937] p-2 flex justify-between items-center">
+              <button
+                onClick={() => setFlipCollapsed(!flipCollapsed)}
+                className="w-full bg-[#1f2937] p-2 flex justify-between items-center hover:bg-[#263548] transition-colors"
+              >
                 <span className="text-xs font-bold text-white">
-                  Total Flip Count: 0
+                  Total Flip Count: {data.flips.length}
                 </span>
-                <div className="flex gap-3 text-[10px]">
+                <div className="flex gap-3 items-center text-[10px]">
                   <span className="flex items-center gap-1 text-red-400">
                     <div className="w-3 h-1.5 bg-red-500"></div> Net Vol &lt; 0
                   </span>
                   <span className="flex items-center gap-1 text-green-400">
                     <div className="w-3 h-1.5 bg-green-500"></div> Net Vol &gt; 0
                   </span>
+                  {flipCollapsed
+                    ? <ExpandMoreIcon sx={{ fontSize: 16, color: "#94a3b8" }} />
+                    : <ExpandLessIcon sx={{ fontSize: 16, color: "#94a3b8" }} />
+                  }
+                </div>
+              </button>
+
+              {!flipCollapsed && (
+                <>
+                  {/* Timeline Bar */}
+                  <div className="p-2 border-b border-slate-700/50 bg-[#111827]">
+                    <div className="h-2 w-full bg-slate-800 rounded overflow-hidden relative">
+                      {data.flips.length > 0 ? (
+                        data.flips.map((flip, i) => {
+                          const posPercent = data.flips.length > 1 ? (i / (data.flips.length - 1)) * 100 : 50;
+                          const isPositive = !flip.to.includes("-");
+                          return (
+                            <div
+                              key={i}
+                              className={`absolute top-0 w-1.5 h-full rounded-full ${isPositive ? 'bg-green-500' : 'bg-red-500'}`}
+                              style={{ left: `${posPercent}%`, transform: 'translateX(-50%)' }}
+                            />
+                          );
+                        })
+                      ) : (
+                        <div className="h-full w-full bg-slate-800 animate-pulse" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Flip Table */}
+                  <div className="overflow-y-auto max-h-[100px]" style={scrollbarHideStyle}>
+                    <table className="w-full text-center border-collapse">
+                      <thead className="bg-[#1f2937] text-slate-400 text-[10px] font-medium border-t border-slate-700/50 sticky top-0">
+                        <tr>
+                          <th className="p-1.5">ครั้งที่</th>
+                          <th className="p-1.5">Time</th>
+                          <th className="p-1.5">From Acc. Vol</th>
+                          <th className="p-1.5">To Acc. Vol</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.flips.length > 0 ? (
+                          data.flips.map((flip) => (
+                            <tr key={flip.id} className="border-b border-slate-800/30 hover:bg-slate-800/50">
+                              <td className="p-1.5 text-xs text-slate-300">{flip.id}</td>
+                              <td className="p-1.5 text-xs font-mono text-yellow-400">{flip.time}</td>
+                              <td className={`p-1.5 text-xs font-mono ${flip.from.includes('-') ? 'text-red-400' : 'text-green-400'}`}>{flip.from}</td>
+                              <td className={`p-1.5 text-xs font-mono ${flip.to.includes('-') ? 'text-red-400' : 'text-green-400'}`}>{flip.to}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="4" className="p-4 text-slate-500 text-xs">
+                              No Flip Data
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* ===== Chart Section ===== */}
+            <div className="bg-[#0B1221] border border-slate-800/50 rounded shrink-0 overflow-hidden">
+              {/* Chart Header */}
+              <div className="bg-[#1f2937] px-2 py-1.5 flex justify-between items-center border-b border-slate-700/50">
+                <span className="text-xs font-bold text-white">Price Distribution Chart</span>
+                <button
+                  onClick={() => setChartZoomOpen(true)}
+                  className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-cyan-400 transition-colors"
+                  title="Zoom chart"
+                >
+                  <ZoomInIcon sx={{ fontSize: 16 }} />
+                  <span>Zoom</span>
+                </button>
+              </div>
+              {/* Chart Body */}
+              <div className="p-3 h-[160px] flex flex-col justify-center items-center">
+                {data.charts.length > 0 ? (
+                  <div className="w-full h-full flex items-end gap-1 px-2">
+                    {(() => {
+                      const maxVal = Math.max(...data.charts.map(c => c.buy + c.sell));
+                      return data.charts.map((bar, i) => {
+                        const barHeight = maxVal > 0 ? ((bar.buy + bar.sell) / maxVal) * 100 : 0;
+                        const buyRatio = (bar.buy + bar.sell) > 0 ? (bar.buy / (bar.buy + bar.sell)) * 100 : 50;
+                        return (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                            <div className="w-full flex flex-col-reverse rounded-sm overflow-hidden" style={{ height: `${barHeight}%` }}>
+                              <div className="w-full bg-green-500/70" style={{ height: `${buyRatio}%` }} />
+                              <div className="w-full bg-red-500/70" style={{ height: `${100 - buyRatio}%` }} />
+                            </div>
+                            <span className="text-[8px] text-slate-500 truncate w-full text-center">{bar.price}</span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                ) : (
+                  <>
+                    <div className="w-full h-24 bg-slate-800 rounded animate-pulse mb-4"></div>
+                    <span className="text-xs text-slate-500">Chart will appear here</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* ===== Chart Zoom Modal ===== */}
+            {chartZoomOpen && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                onClick={() => setChartZoomOpen(false)}
+              >
+                <div
+                  className="relative bg-[#0B1221] border border-slate-700 rounded-xl shadow-2xl w-[90vw] max-w-2xl p-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Modal Header */}
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-bold text-white">
+                      Price Distribution Chart — {activeSymbol || "—"}
+                    </span>
+                    <button
+                      onClick={() => setChartZoomOpen(false)}
+                      className="text-slate-400 hover:text-white transition-colors"
+                    >
+                      <CloseIcon sx={{ fontSize: 20 }} />
+                    </button>
+                  </div>
+                  {/* Legend */}
+                  <div className="flex gap-4 mb-3 text-[10px]">
+                    <span className="flex items-center gap-1 text-green-400"><div className="w-3 h-3 rounded-sm bg-green-500/70"></div> Buy Vol</span>
+                    <span className="flex items-center gap-1 text-red-400"><div className="w-3 h-3 rounded-sm bg-red-500/70"></div> Sell Vol</span>
+                  </div>
+                  {/* Modal Chart */}
+                  <div className="h-[300px] flex items-end gap-2 px-2">
+                    {data.charts.length > 0 ? (
+                      (() => {
+                        const maxVal = Math.max(...data.charts.map(c => c.buy + c.sell));
+                        return data.charts.map((bar, i) => {
+                          const barHeight = maxVal > 0 ? ((bar.buy + bar.sell) / maxVal) * 100 : 0;
+                          const buyRatio = (bar.buy + bar.sell) > 0 ? (bar.buy / (bar.buy + bar.sell)) * 100 : 50;
+                          return (
+                            <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                              <div className="w-full flex flex-col-reverse rounded overflow-hidden" style={{ height: `${barHeight}%` }}>
+                                <div className="w-full bg-green-500/80" style={{ height: `${buyRatio}%` }} />
+                                <div className="w-full bg-red-500/80" style={{ height: `${100 - buyRatio}%` }} />
+                              </div>
+                              <span className="text-[9px] text-slate-400 truncate w-full text-center">{bar.price}</span>
+                              <span className="text-[8px] text-slate-500">{bar.buy + bar.sell}</span>
+                            </div>
+                          );
+                        });
+                      })()
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center">
+                        <span className="text-sm text-slate-500">No chart data available</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              {/* Timeline Bar Placeholder */}
-              <div className="p-3 border-b border-slate-700/50 bg-[#111827]">
-                <div className="h-2 w-full bg-slate-800 rounded animate-pulse"></div>
-              </div>
-
-              {/* Empty Table */}
-              <table className="w-full text-center border-collapse">
-                <thead className="bg-[#1f2937] text-slate-400 text-[10px] font-medium border-t border-slate-700/50">
-                  <tr>
-                    <th className="p-1.5">ครั้งที่</th>
-                    <th className="p-1.5">Time</th>
-                    <th className="p-1.5">From Acc. Vol</th>
-                    <th className="p-1.5">To Acc. Vol</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td colSpan="4" className="p-6 text-slate-500 text-xs">
-                      No Flip Data
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* ===== Chart Skeleton ===== */}
-            <div className="bg-[#0B1221] border border-slate-800/50 rounded p-3 h-[200px] flex flex-col justify-center items-center">
-              <div className="w-full h-24 bg-slate-800 rounded animate-pulse mb-4"></div>
-              <span className="text-xs text-slate-500">
-                Chart will appear here
-              </span>
-            </div>
+            )}
           </>
         )}
       </div>
