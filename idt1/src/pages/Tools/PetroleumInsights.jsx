@@ -192,6 +192,12 @@ function buildStepPath(dataset, normalizeY, paddingLeft, pointGap) {
 function WaveSkeleton({ delay = 0 }) {
   return (
     <div className="w-full h-full bg-[#0f172a] rounded-lg overflow-hidden relative">
+      <style>{`
+        @keyframes shimmer {
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
       <div className="absolute inset-0 flex flex-col justify-between p-3">
         <div className="flex gap-2">
           <div className="h-2 rounded-full bg-slate-800 w-1/3" />
