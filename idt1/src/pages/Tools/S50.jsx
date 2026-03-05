@@ -8,7 +8,35 @@ const scrollbarHideStyle = {
   msOverflowStyle: 'none',
   scrollbarWidth: 'none'
 };
+// ── เพิ่มตรงนี้หลัง import ──
+function ScaledDashboardPreview({ dashboardWidth = 900, dashboardHeight = 560 }) {
+  const outerRef = useRef(null);
+  const innerRef = useRef(null);
 
+  useEffect(() => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+    const applyScale = () => {
+      const w = outer.getBoundingClientRect().width;
+      const s = w / dashboardWidth;
+      inner.style.transform = `scale(${s})`;
+      outer.style.height = `${dashboardHeight * s}px`;
+    };
+    applyScale();
+    const ro = new ResizeObserver(applyScale);
+    ro.observe(outer);
+    return () => ro.disconnect();
+  }, [dashboardWidth, dashboardHeight]);
+
+  return (
+    <div ref={outerRef} style={{ width: "100%", overflow: "hidden", position: "relative", background: "#0B1221" }}>
+      <div ref={innerRef} style={{ width: dashboardWidth, height: dashboardHeight, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
+        <S50Dashboard />
+      </div>
+    </div>
+  );
+}
 // ============================================================
 // CHART CONSTANTS & HELPERS
 // ============================================================
@@ -432,27 +460,23 @@ export default function S50() {
     </div>
   );
 
-  const dashboardPreviewJSX = (
-    <div className="relative group w-full max-w-5xl mb-16">
-      <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700"></div>
+const dashboardPreviewJSX = (
+  <div className="relative group w-full max-w-6xl mb-16">
+    <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700"></div>
 
-      <div className="relative bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
-        <div className="bg-[#0f172a] px-4 py-3 flex items-center justify-between border-b border-slate-700/50">
-          <div className="flex gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
-            <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-            <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
-          </div>
-        </div>
-
-        <div className="aspect-[16/9] w-full bg-[#0B1221] relative overflow-hidden group">
-          <div className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-[1.01] transition duration-500 ease-out">
-            <S50Dashboard />
-          </div>
+    <div className="relative bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
+      <div className="bg-[#0f172a] px-4 py-3 flex items-center border-b border-slate-700/50">
+        <div className="flex gap-2">
+          <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
+          <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+          <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
         </div>
       </div>
+      <ScaledDashboardPreview dashboardWidth={900} dashboardHeight={600} />
     </div>
-  );
+  </div>
+);
+  
 
   /* ==========================================================
     CASE 1 : PREVIEW VERSION (Not Member)
