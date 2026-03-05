@@ -55,19 +55,32 @@ const mockDatabase = {
   ],
   // ✨ เพิ่ม charts ที่จัดเรียงตามลำดับ price
   charts: [
+    { price: "219.50", buy: 5, sell: 18 },
+    { price: "220.00", buy: 8, sell: 25 },
+    { price: "220.50", buy: 10, sell: 30 },
+    { price: "221.00", buy: 6, sell: 22 },
     { price: "221.50", buy: 8, sell: 12 },
     { price: "222.00", buy: 15, sell: 20 },
     { price: "222.50", buy: 12, sell: 18 },
     { price: "223.00", buy: 22, sell: 15 },
     { price: "223.50", buy: 18, sell: 25 },
+    { price: "223.75", buy: 30, sell: 20 },
     { price: "224.00", buy: 50, sell: 15 },
+    { price: "224.25", buy: 45, sell: 10 },
     { price: "224.50", buy: 35, sell: 28 },
+    { price: "224.75", buy: 40, sell: 22 },
     { price: "225.00", buy: 35, sell: 55 },
+    { price: "225.25", buy: 20, sell: 48 },
     { price: "225.50", buy: 28, sell: 32 },
+    { price: "225.75", buy: 32, sell: 28 },
     { price: "226.00", buy: 55, sell: 20 },
+    { price: "226.25", buy: 48, sell: 15 },
     { price: "226.50", buy: 42, sell: 38 },
+    { price: "226.75", buy: 38, sell: 42 },
     { price: "227.00", buy: 15, sell: 10 },
+    { price: "227.25", buy: 18, sell: 14 },
     { price: "227.50", buy: 20, sell: 22 },
+    { price: "227.75", buy: 25, sell: 30 },
     { price: "228.00", buy: 40, sell: 40 },
     { price: "228.50", buy: 18, sell: 15 },
     { price: "229.00", buy: 5, sell: 2 },
@@ -222,6 +235,17 @@ export default function TickMatch() {
   /* ===============================
       3. COMPONENT: AnalysisPanel (เฉพาะของ TickMatch)
   ================================ */
+
+const chartTooltipStyle = {
+  contentStyle: {
+    backgroundColor: '#1e293b',
+    border: '1px solid #475569',
+    borderRadius: '8px',
+    fontSize: '12px'
+  },
+  labelStyle: { color: '#f1f5f9' }
+};
+
 const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "" }) => {
 
   const [hasSearched, setHasSearched] = useState(false);
@@ -423,7 +447,7 @@ return (
       </div>
 
       {/* --- SECTION 3: Tick Table (Scrollable) --- */}
-      <div className="rounded overflow-hidden border border-slate-800/50 bg-[#0B1221] shrink-0 h-[100px] mb-2 flex flex-col">
+      <div className="rounded overflow-hidden border border-slate-800/50 bg-[#0B1221] shrink-0 mb-2 max-h-[200px] overflow-y-auto">
         <table className="w-full text-right border-collapse">
           <thead className="bg-[#1f2937] text-slate-400 text-[10px] font-medium sticky top-0 z-10 shadow-sm">
             <tr>
@@ -434,8 +458,8 @@ return (
               <th className="p-2">Sum</th>
             </tr>
           </thead>
-          <tbody className="text-xs font-mono text-slate-300 overflow-y-auto">
-            {data.ticks.slice(0, 5).map((row, idx) => (
+          <tbody className="text-xs font-mono text-slate-300">
+            {data.ticks.slice(0, 20).map((row, idx) => (
               <tr key={idx} className="border-b border-slate-800/30 hover:bg-slate-800/50 transition-colors">
                 <td className="p-2 text-center text-slate-400">{row.time}</td>
                 <td className="p-2 text-yellow-500">{row.last}</td>
@@ -555,11 +579,28 @@ return (
             </button>
           </div>
 
-          {/* Chart Placeholder */}
-          <div className="flex-1 flex items-center justify-center bg-[#111827]">
-            <span className="text-xs text-slate-500">
-              Chart Visualization Area
-            </span>
+          {/* Chart Section */}
+          <div className="flex-1 bg-[#111827] p-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.charts} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis
+                  dataKey="price"
+                  stroke="#94a3b8"
+                  tick={{ fill: '#94a3b8', fontSize: 10 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={50}
+                />
+                <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                <Tooltip
+                  contentStyle={chartTooltipStyle.contentStyle}
+                  labelStyle={chartTooltipStyle.labelStyle}
+                />
+                <Bar dataKey="buy" stackId="a" fill="#10b981" />
+                <Bar dataKey="sell" stackId="a" fill="#ef4444" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       )}
@@ -581,10 +622,30 @@ return (
             </div>
 
             {/* Modal Content */}
-            <div className="flex-1 flex items-center justify-center bg-[#111827]">
-              <span className="text-sm text-slate-500">
-                Full Chart Visualization Area
-              </span>
+            <div className="flex-1 bg-[#111827] p-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.charts} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis
+                    dataKey="price"
+                    stroke="#94a3b8"
+                    tick={{ fill: '#94a3b8', fontSize: 11 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                  <Tooltip
+                    contentStyle={chartTooltipStyle.contentStyle}
+                    labelStyle={chartTooltipStyle.labelStyle}
+                  />
+                  <Legend
+                    wrapperStyle={{ color: '#94a3b8', fontSize: '12px' }}
+                  />
+                  <Bar dataKey="buy" stackId="a" fill="#10b981" name="Buy Volume" />
+                  <Bar dataKey="sell" stackId="a" fill="#ef4444" name="Sell Volume" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
