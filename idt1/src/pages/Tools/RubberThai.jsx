@@ -474,6 +474,34 @@ export default function RubberThai() {
     ? symbol.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)
     : 42;
 
+  function ScaledDashboardPreview({ dashboardWidth = 900, dashboardHeight = 560 }) {
+  const outerRef = useRef(null);
+  const innerRef = useRef(null);
+
+  useEffect(() => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+    const applyScale = () => {
+      const w = outer.getBoundingClientRect().width;
+      const s = w / dashboardWidth;
+      inner.style.transform = `scale(${s})`;
+      outer.style.height = `${dashboardHeight * s}px`;
+    };
+    applyScale();
+    const ro = new ResizeObserver(applyScale);
+    ro.observe(outer);
+    return () => ro.disconnect();
+  }, [dashboardWidth, dashboardHeight]);
+
+  return (
+    <div ref={outerRef} className="w-full bg-[#080c12]" style={{ overflow: "hidden", position: "relative" }}>
+      <div ref={innerRef} style={{ width: dashboardWidth, height: dashboardHeight, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
+        <RubberThaiDashboard />
+      </div>
+    </div>
+  );
+}
   /* ==========================================================
       CASE 1 & 2 : PREVIEW VERSION (Not Member / Not Entered)
   =========================================================== */
@@ -482,7 +510,7 @@ export default function RubberThai() {
       <div className="relative w-full min-h-screen text-white overflow-hidden pb-20">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
         <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
-        <div className="relative z-10 max-w-6xl mx-auto px-4 py-8 flex flex-col items-center">
+        <div className="relative z-10 max-w-5xl mx-auto px-4 py-8 flex flex-col items-center">
           <div className="text-center mb-10">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
               <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">
@@ -501,11 +529,7 @@ export default function RubberThai() {
                   <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
                 </div>
               </div>
-              <div className="aspect-[17/9] w-full bg-[#0B1221] relative overflow-hidden group">
-                <div className="w-[150%] h-[150%] origin-top-left transform scale-[0.67]">
-                  <RubberThaiDashboard />
-                </div>
-              </div>
+              <ScaledDashboardPreview dashboardWidth={1280} dashboardHeight={780} />
             </div>
           </div>
           <div className="w-full max-w-5xl mb-12">
