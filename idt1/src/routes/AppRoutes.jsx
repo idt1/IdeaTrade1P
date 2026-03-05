@@ -5,7 +5,8 @@ import Register from "@/pages/Register/Register";
 import MemberRegister from "@/pages/MemberRegister/MemberRegister";
 import Dashboard from "@/pages/Dashboard/Dashboard";
 
-// ✅ ไม่ต้อง import PremiumTools ตรงนี้แล้ว เพราะ Dashboard จะเป็นคนเรียกใช้เอง
+// ✅ นำเข้า ToolAccessGuard ที่เราสร้างไว้
+import ToolAccessGuard from "@/components/ToolAccessGuard";
 
 export default function AppRoutes() {
   return (
@@ -24,41 +25,124 @@ export default function AppRoutes() {
       {/* ถ้าอยากให้มีหน้า Premium Tools แยก */}
       <Route path="/premium-tools" element={<Dashboard initialPage="premiumtools" />} />
 
+      {/* === 🔒 Premium Tools (ครอบ Guard ไว้ทั้งหมด) === */}
+
       {/* 2. MIT */}
-      <Route path="/mit" element={<Dashboard initialPage="mit" />} />
+      <Route path="/mit" element={
+        <ToolAccessGuard toolId="mit" toolName="MIT Tool">
+          <Dashboard initialPage="mit" />
+        </ToolAccessGuard>
+      } />
       
-      {/* 3. ✅ Stock Fortune Teller (หมอดูหุ้น) */}
-      <Route path="/stock-fortune" element={<Dashboard initialPage="fortune" />} />
-      <Route path="/fortune" element={<Dashboard initialPage="fortune" />} />
+      {/* 3. Stock Fortune Teller (หมอดูหุ้น) */}
+      <Route path="/stock-fortune" element={
+        <ToolAccessGuard toolId="fortune" toolName="Stock Fortune Teller">
+          <Dashboard initialPage="fortune" />
+        </ToolAccessGuard>
+      } />
+      <Route path="/fortune" element={
+        <ToolAccessGuard toolId="fortune" toolName="Stock Fortune Teller">
+          <Dashboard initialPage="fortune" />
+        </ToolAccessGuard>
+      } />
 
-      {/* 4. ✅ เพิ่ม Route สำหรับ Tools อื่นๆ ให้ครบ */}
-      {/* (ชื่อ path ควรตรงกับที่ Sidebar ส่งมา หรือที่เราตั้งไว้ใน PROJECT_PREVIEWS) */}
-      
-      <Route path="/petroleum" element={<Dashboard initialPage="petroleum" />} />
-      <Route path="/petroleum-preview" element={<Dashboard initialPage="petroleum" />} />
+      {/* 4. Petroleum */}
+      <Route path="/petroleum" element={
+        <ToolAccessGuard toolId="petroleum" toolName="Petroleum Insights">
+          <Dashboard initialPage="petroleum" />
+        </ToolAccessGuard>
+      } />
+      <Route path="/petroleum-preview" element={
+        <ToolAccessGuard toolId="petroleum" toolName="Petroleum Insights">
+          <Dashboard initialPage="petroleum" />
+        </ToolAccessGuard>
+      } />
 
-      <Route path="/rubber" element={<Dashboard initialPage="rubber" />} />
-      <Route path="/RubberThai" element={<Dashboard initialPage="rubber" />} />
+      {/* 5. Rubber Thai */}
+      <Route path="/rubber" element={
+        <ToolAccessGuard toolId="rubber" toolName="Rubber Thai Tool">
+          <Dashboard initialPage="rubber" />
+        </ToolAccessGuard>
+      } />
+      <Route path="/RubberThai" element={
+        <ToolAccessGuard toolId="rubber" toolName="Rubber Thai Tool">
+          <Dashboard initialPage="rubber" />
+        </ToolAccessGuard>
+      } />
 
-      <Route path="/flow" element={<Dashboard initialPage="flow" />} />
-      <Route path="/FlowIntraday" element={<Dashboard initialPage="flow" />} />
+      {/* 6. Flow Intraday */}
+      <Route path="/flow" element={
+        <ToolAccessGuard toolId="flow" toolName="Flow Intraday">
+          <Dashboard initialPage="flow" />
+        </ToolAccessGuard>
+      } />
+      <Route path="/FlowIntraday" element={
+        <ToolAccessGuard toolId="flow" toolName="Flow Intraday">
+          <Dashboard initialPage="flow" />
+        </ToolAccessGuard>
+      } />
 
-      <Route path="/s50" element={<Dashboard initialPage="s50" />} />
-      <Route path="/S50" element={<Dashboard initialPage="s50" />} />
+      {/* 7. S50 */}
+      <Route path="/s50" element={
+        <ToolAccessGuard toolId="s50" toolName="S50 Analysis">
+          <Dashboard initialPage="s50" />
+        </ToolAccessGuard>
+      } />
+      <Route path="/S50" element={
+        <ToolAccessGuard toolId="s50" toolName="S50 Analysis">
+          <Dashboard initialPage="s50" />
+        </ToolAccessGuard>
+      } />
 
-      <Route path="/gold" element={<Dashboard initialPage="gold" />} />
-      <Route path="/Gold" element={<Dashboard initialPage="gold" />} />
+      {/* 8. Gold */}
+      <Route path="/gold" element={
+        <ToolAccessGuard toolId="gold" toolName="Gold Trading Tool">
+          <Dashboard initialPage="gold" />
+        </ToolAccessGuard>
+      } />
+      <Route path="/Gold" element={
+        <ToolAccessGuard toolId="gold" toolName="Gold Trading Tool">
+          <Dashboard initialPage="gold" />
+        </ToolAccessGuard>
+      } />
 
-      <Route path="/bidask" element={<Dashboard initialPage="bidask" />} />
-      <Route path="/BidAsk" element={<Dashboard initialPage="bidask" />} />
+      {/* 9. Bid Ask */}
+      <Route path="/bidask" element={
+        <ToolAccessGuard toolId="bidask" toolName="Bid/Ask Analysis">
+          <Dashboard initialPage="bidask" />
+        </ToolAccessGuard>
+      } />
+      <Route path="/BidAsk" element={
+        <ToolAccessGuard toolId="bidask" toolName="Bid/Ask Analysis">
+          <Dashboard initialPage="bidask" />
+        </ToolAccessGuard>
+      } />
 
-      <Route path="/tickmatch" element={<Dashboard initialPage="tickmatch" />} />
-      <Route path="/TickMatch" element={<Dashboard initialPage="tickmatch" />} />
+      {/* 10. Tick Match */}
+      <Route path="/tickmatch" element={
+        <ToolAccessGuard toolId="tickmatch" toolName="Tick Match">
+          <Dashboard initialPage="tickmatch" />
+        </ToolAccessGuard>
+      } />
+      <Route path="/TickMatch" element={
+        <ToolAccessGuard toolId="tickmatch" toolName="Tick Match">
+          <Dashboard initialPage="tickmatch" />
+        </ToolAccessGuard>
+      } />
 
-      <Route path="/dr" element={<Dashboard initialPage="dr" />} />
-      <Route path="/DRInsight" element={<Dashboard initialPage="dr" />} />
+      {/* 11. DR Insight */}
+      <Route path="/dr" element={
+        <ToolAccessGuard toolId="dr" toolName="DR Insight">
+          <Dashboard initialPage="dr" />
+        </ToolAccessGuard>
+      } />
+      <Route path="/DRInsight" element={
+        <ToolAccessGuard toolId="dr" toolName="DR Insight">
+          <Dashboard initialPage="dr" />
+        </ToolAccessGuard>
+      } />
 
-      {/* 5. Profile & Subscription */}
+      {/* === 🔓 Profile & Subscription (ไม่ต้องครอบ Guard) === */}
       <Route path="/profile" element={<Dashboard initialPage="profile" />} />
       <Route path="/subscription" element={<Dashboard initialPage="subscription" />} />
 

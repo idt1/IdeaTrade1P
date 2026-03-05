@@ -1,9 +1,9 @@
 // src/pages/MemberRegister/MemberRegister.jsx
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { db, auth } from "/src/firebase"; // เช็ค path ให้ตรงกับที่อยู่ไฟล์ firebase.js ของคุณ
+import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore"; // ✅ เพิ่ม Timestamp
+import { db, auth } from "/src/firebase";
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // ✅ เพิ่ม useNavigate
+import { useNavigate } from "react-router-dom";
 
 import KbankIcon from "@/assets/icons/Kbank.png";
 import CloseIcon from "@/assets/icons/Close_Circle.png";
@@ -37,12 +37,11 @@ const TOOLS = [
 
 const paymentMethods = [
   { id: "bank", label: "Bank Transfer", icon: BankBlue, activeIcon: BankGray },
-  // { id: "card", label: "Credit Card", icon: CardBlue, activeIcon: CardGray },
   { id: "promptpay", label: "PromptPay", icon: QrBlue, activeIcon: QrGray },
 ];
 
 export default function MemberRegister() {
-  const navigate = useNavigate(); // ✅ ใช้ Hook
+  const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = useState("monthly");
   const [selectedTools, setSelectedTools] = useState([]);
   const [selectedPayment, setSelectedPayment] = useState(null);
@@ -60,7 +59,7 @@ export default function MemberRegister() {
   // 🔹 Bank Account only
   const [slipImage, setSlipImage] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [isEditSummary, setIsEditSummary] = useState(false); // ✅ state สำหรับปุ่มแก้ไข
+  const [isEditSummary, setIsEditSummary] = useState(false);
 
   /* ================= FUNCTIONS ================= */
   const closeModal = () => {
@@ -76,13 +75,10 @@ export default function MemberRegister() {
       );
 
       if (exists) {
-        // ลบเฉพาะ tool + billing นั้น
         return prev.filter(
           (t) => !(t.id === id && t.billing === billingCycle)
         );
       }
-
-      // เพิ่มใหม่ตาม billing ปัจจุบัน
       return [...prev, { id, billing: billingCycle }];
     });
   };
@@ -108,7 +104,6 @@ export default function MemberRegister() {
   const totalPrice = selectedTools.reduce((sum, t) => {
     const tool = TOOLS.find(x => x.id === t.id);
     if (!tool) return sum;
-
     return sum + (t.billing === "monthly" ? tool.monthly : tool.yearly);
   }, 0);
 
@@ -117,17 +112,16 @@ export default function MemberRegister() {
       const timer = setTimeout(() => {
         handleConfirmPayment();
       }, 2000);
-
       return () => clearTimeout(timer);
     }
   }, [status, selectedPayment]);
 
-  /* ================= 🔥 HANDLE PAYMENT (รองรับ 2 ระบบ) 🔥 ================= */
+  /* ================= 🔥 HANDLE PAYMENT 🔥 ================= */
   const handleConfirmPayment = async () => {
     try {
       const currentUser = auth.currentUser;
 
-      // สร้างข้อมูลแพ็กเกจที่เพิ่งกดซื้อ
+      // 1. สร้างประวัติการซื้อ (สำหรับโชว์ในหน้า Profile)
       const newSubscriptions = selectedTools.map((t) => {
         const toolInfo = TOOLS.find((x) => x.id === t.id);
         const isYearly = t.billing === "yearly";
@@ -159,11 +153,13 @@ export default function MemberRegister() {
         
         let oldUnlockedItems = [];
         let oldSubscriptions = [];
+        let currentSubExpirations = {};
 
         if (userSnap.exists()) {
           const userData = userSnap.data();
           oldUnlockedItems = userData.unlockedItems || [];
           oldSubscriptions = userData.mySubscriptions || [];
+          currentSubExpirations = userData.subscriptions || {};
         }
 
         const updatedSubscriptions = [
@@ -172,10 +168,32 @@ export default function MemberRegister() {
         ];
         const mergedUnlockedItems = [...new Set([...oldUnlockedItems, ...newToolIds])];
 
+        // 🟢 สร้าง/อัปเดตวันหมดอายุ
+        const expirationUpdates = {};
+        
+        selectedTools.forEach((t) => {
+          const isYearly = t.billing === "yearly";
+          let expireDate = new Date();
+          
+          const existingTimestamp = currentSubExpirations[t.id];
+          if (existingTimestamp && existingTimestamp.toDate() > new Date()) {
+            expireDate = existingTimestamp.toDate();
+          }
+
+          if (isYearly) {
+            expireDate.setFullYear(expireDate.getFullYear() + 1);
+          } else {
+            expireDate.setMonth(expireDate.getMonth() + 1);
+          }
+
+          expirationUpdates[`subscriptions.${t.id}`] = Timestamp.fromDate(expireDate);
+        });
+
         await updateDoc(userRef, {
           role: "membership",
           unlockedItems: mergedUnlockedItems,
-          mySubscriptions: updatedSubscriptions 
+          mySubscriptions: updatedSubscriptions,
+          ...expirationUpdates 
         });
 
       } 
@@ -184,10 +202,11 @@ export default function MemberRegister() {
       // ---------------------------------------------------------
       else {
         const storedProfile = localStorage.getItem("userProfile");
-        let parsedProfile = storedProfile ? JSON.parse(storedProfile) : { role: "free", unlockedItems: [], mySubscriptions: [] };
+        let parsedProfile = storedProfile ? JSON.parse(storedProfile) : { role: "free", unlockedItems: [], mySubscriptions: [], subscriptions: {} };
         
         const oldSubscriptions = parsedProfile.mySubscriptions || [];
         const oldUnlockedItems = parsedProfile.unlockedItems || [];
+        const currentSubExpirations = parsedProfile.subscriptions || {};
 
         const updatedSubscriptions = [
           ...oldSubscriptions.filter(old => !newSubscriptions.find(newSub => newSub.id === old.id)),
@@ -195,20 +214,38 @@ export default function MemberRegister() {
         ];
         const mergedUnlockedItems = [...new Set([...oldUnlockedItems, ...newToolIds])];
 
+        // 🟢 สร้าง/อัปเดตวันหมดอายุสำหรับ LocalStorage
+        const updatedExpirations = { ...currentSubExpirations };
+        selectedTools.forEach((t) => {
+          const isYearly = t.billing === "yearly";
+          let expireDate = new Date();
+          
+          if (currentSubExpirations[t.id] && new Date(currentSubExpirations[t.id]) > new Date()) {
+            expireDate = new Date(currentSubExpirations[t.id]);
+          }
+
+          if (isYearly) {
+            expireDate.setFullYear(expireDate.getFullYear() + 1);
+          } else {
+            expireDate.setMonth(expireDate.getMonth() + 1);
+          }
+
+          updatedExpirations[t.id] = expireDate.toISOString(); 
+        });
+
         const updatedProfile = {
           ...parsedProfile, 
           role: "membership", 
           unlockedItems: mergedUnlockedItems, 
-          mySubscriptions: updatedSubscriptions 
+          mySubscriptions: updatedSubscriptions,
+          subscriptions: updatedExpirations
         };
 
         localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
-        
-        // ส่งสัญญาณบอกหน้าอื่นว่ามีข้อมูลใหม่ใน Demo Mode แล้ว
         window.dispatchEvent(new Event("storage"));
       }
 
-      alert("Payment Successful 🎉 (Demo/Real)");
+      alert("Payment Successful 🎉");
       setShowModal(false);
       navigate("/dashboard", { state: { goTo: "subscription" } });
 
@@ -228,10 +265,8 @@ export default function MemberRegister() {
 
   const hasMonthly = selectedTools.some(t => t.billing === "monthly");
   const hasYearly = selectedTools.some(t => t.billing === "yearly");
-  // ตัวแปรนับจำนวน
   const monthlyCount = selectedTools.filter(t => t.billing === "monthly").length;
   const yearlyCount = selectedTools.filter(t => t.billing === "yearly").length;
-  // true = เลือกแค่อย่างใดอย่างหนึ่ง
   const isSingleBilling = hasMonthly ^ hasYearly; 
 
   /* ================= UI ================= */
@@ -541,7 +576,7 @@ export default function MemberRegister() {
               onClick={() => {
                 setSelectedTools([]);
                 setSelectedPayment(null);
-                navigate("/dashboard"); // กลับหน้าหลักถ้ากดยกเลิก
+                navigate("/dashboard"); 
               }}
               className="mt-3 w-full text-sm text-[#9FB3C8] hover:text-white transition"
             >

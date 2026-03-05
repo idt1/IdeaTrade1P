@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import './Subscriptions.css';
 import { doc, getDoc } from "firebase/firestore";
 import { db, auth } from "/src/firebase"; 
-// ✅ 1. เพิ่ม import สำหรับ onAuthStateChanged
 import { onAuthStateChanged } from "firebase/auth"; 
 
 const ManageSubscription = () => {
@@ -10,22 +9,47 @@ const ManageSubscription = () => {
   const [summary, setSummary] = useState({ monthly: 0, yearly: 0 });
 
   useEffect(() => {
-    // ✅ 2. สร้างฟังก์ชันจัดรูปแบบและคำนวณยอด (ใช้ร่วมกันทั้งระบบจริงและ Demo)
-    const processAndSetSubscriptions = (savedSubs) => {
+    // ✅ รับพารามิเตอร์ 2 ตัว: ประวัติการซื้อ(savedSubs) และ วันหมดอายุ(expirations)
+    const processAndSetSubscriptions = (savedSubs, expirations = {}) => {
       const activeSubs = savedSubs.map((sub, index) => {
-        // แปลงวันที่ซื้อให้สวยงาม (กัน error กรณีไม่มีวันที่)
+        
+        // 1. วันที่ซื้อ (Purchase Date) + แสดงเวลา
         const dateObj = new Date(sub.purchaseDate || new Date());
-        const dateStr = dateObj.toLocaleDateString('en-GB', {
-          day: 'numeric', month: 'short', year: 'numeric'
+        const dateStr = dateObj.toLocaleString('en-GB', {
+          day: 'numeric', 
+          month: 'short', 
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
         });
 
-        // คำนวณราคาเป็นตัวเลขเพื่อเอาไปรวมยอด (ลบลูกน้ำและ THB ออก)
+        // 2. 🟢 วันหมดอายุ (Expire Date) + แสดงเวลา
+        let expireDateStr = "Unknown";
+        const toolExpireData = expirations[sub.id]; // ดึงข้อมูลวันหมดอายุตาม id ของ tool
+        
+        if (toolExpireData) {
+          // เช็คว่าเป็น Timestamp ของ Firebase หรือเป็น Date String ของ LocalStorage
+          const expireObj = toolExpireData.toDate ? toolExpireData.toDate() : new Date(toolExpireData);
+          
+          expireDateStr = expireObj.toLocaleString('en-GB', {
+            day: 'numeric', 
+            month: 'short', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          });
+        }
+
+        // คำนวณราคาเป็นตัวเลขเพื่อเอาไปรวมยอด
         const priceValue = parseInt(String(sub.price).replace(/,/g, '').replace(' THB', '')) || 0;
 
         return {
-          ...sub, // เอาข้อมูลเดิมมาด้วย
+          ...sub, 
           key: `sub-${index}`, 
           statusDetail: `Paid on ${dateStr}`,
+          expireDetail: `Exp: ${expireDateStr}`, // 🟢 ข้อความวันและเวลาหมดอายุ
           priceValue: priceValue 
         };
       });
@@ -44,44 +68,44 @@ const ManageSubscription = () => {
       setSummary({ monthly: totalM, yearly: totalY });
     };
 
-    // ✅ 3. ฟังก์ชันสำหรับโหลดโหมด Demo (ไม่ได้ล็อกอิน)
     const loadDemoSubscriptions = () => {
       try {
         const saved = localStorage.getItem('userProfile');
-        const savedSubs = saved ? JSON.parse(saved).mySubscriptions || [] : [];
-        processAndSetSubscriptions(savedSubs);
+        const parsed = saved ? JSON.parse(saved) : {};
+        const savedSubs = parsed.mySubscriptions || [];
+        const expirations = parsed.subscriptions || {}; // ดึงข้อมูลหมดอายุจาก LocalStorage
+        processAndSetSubscriptions(savedSubs, expirations);
       } catch (e) {
         console.error("Error loading demo subscriptions:", e);
       }
     };
 
-    // ✅ 4. ดักจับสถานะล็อกอินและดึงข้อมูลให้ถูกแหล่ง
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
         if (user) {
-          // 🔥 โหมดล็อกอินจริง: ดึงจาก Firebase
           try {
             const userRef = doc(db, "users", user.uid);
             const userSnap = await getDoc(userRef);
 
             if (userSnap.exists()) {
               const userData = userSnap.data();
-              processAndSetSubscriptions(userData.mySubscriptions || []);
+              // ส่งข้อมูล subscriptions (ที่เป็น Map) เข้าไปด้วย
+              processAndSetSubscriptions(
+                userData.mySubscriptions || [], 
+                userData.subscriptions || {}
+              );
             } else {
-              processAndSetSubscriptions([]);
+              processAndSetSubscriptions([], {});
             }
           } catch (e) {
             console.error("Error loading subscriptions from Firebase:", e);
           }
         } else {
-          // 🔥 โหมด DEMO: ดึงจาก LocalStorage
           loadDemoSubscriptions();
         }
     });
 
-    // ดักฟัง Event กรณีมีการกดซื้อ Demo จากหน้าอื่น
     window.addEventListener("storage", loadDemoSubscriptions);
 
-    // Cleanup function
     return () => {
       unsubscribe();
       window.removeEventListener("storage", loadDemoSubscriptions);
@@ -131,7 +155,6 @@ const ManageSubscription = () => {
             <div key={item.key} className="sub-card-row">
               <div className="col-name font-bold">{item.name}</div>
               
-              {/* แสดง Cycle จริงที่ดึงมา */}
               <div className="col-cycle" style={{ textTransform: 'capitalize' }}>
                 {item.cycle}
               </div>
@@ -139,9 +162,15 @@ const ManageSubscription = () => {
               <div className="col-status status-wrapper">
                 <div className="status-indicator active">
                   <CheckCircleIcon />
-                  <div>
-                    <span className="status-text">Active </span>
-                    <span className="status-date">{item.statusDetail}</span>
+                  <div className="flex flex-col">
+                    <div>
+                      <span className="status-text">Active </span>
+                      <span className="status-date text-gray-400">{item.statusDetail}</span>
+                    </div>
+                    {/* 🟢 แสดงวันหมดอายุด้านล่าง หรือด้านข้าง */}
+                    <span className="text-xs text-orange-400 mt-1 font-medium tracking-wide">
+                      {item.expireDetail}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -149,12 +178,12 @@ const ManageSubscription = () => {
               <div className="col-price font-bold">{item.price}</div>
               
               <div className="col-actions">
-                <button className="btn-action pay">
+                <button className="btn-action pay text-yellow-500 font-bold hover:text-yellow-400 transition">
                   Pay
                 </button>
               </div>
               
-              <div className="col-payment">{item.paymentMethod}</div>
+              <div className="col-payment text-gray-400 text-sm">{item.paymentMethod}</div>
             </div>
           ))}
         </div>
