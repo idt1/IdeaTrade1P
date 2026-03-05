@@ -1,5 +1,5 @@
 import React from 'react';
-import './Rocket.css';
+import './rocket.css';
 
 const Rocket = () => {
   return (

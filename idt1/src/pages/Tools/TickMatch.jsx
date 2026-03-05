@@ -435,19 +435,31 @@ return (
             </tr>
           </thead>
           <tbody className="text-xs font-mono text-slate-300 overflow-y-auto">
-            {data.ticks.slice(0, 5).map((row, idx) => (
-              <tr key={idx} className="border-b border-slate-800/30 hover:bg-slate-800/50 transition-colors">
-                <td className="p-2 text-center text-slate-400">{row.time}</td>
-                <td className="p-2 text-yellow-500">{row.last}</td>
-                <td className="p-2 font-bold text-slate-200">{row.vol}</td>
-                <td className="p-2 flex justify-center items-center">
-                  <span className={`flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold text-black ${row.type === 'B' ? 'bg-green-500' : 'bg-red-500'}`}>
-                    {row.type}
-                  </span>
+            {data.ticks.length === 0 ? (
+              <tr>
+                <td colSpan="5">
+                  <div className="flex flex-col gap-1 p-2">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="h-4 bg-slate-800/60 rounded animate-pulse"></div>
+                    ))}
+                  </div>
                 </td>
-                <td className="p-2 text-slate-500">{row.sum}</td>
               </tr>
-            ))}
+            ) : (
+              data.ticks.slice(0, 5).map((row, idx) => (
+                <tr key={idx} className="border-b border-slate-800/30 hover:bg-slate-800/50 transition-colors">
+                  <td className="p-2 text-center text-slate-400">{row.time}</td>
+                  <td className="p-2 text-yellow-500">{row.last}</td>
+                  <td className="p-2 font-bold text-slate-200">{row.vol}</td>
+                  <td className="p-2 flex justify-center items-center">
+                    <span className={`flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold text-black ${row.type === 'B' ? 'bg-green-500' : 'bg-red-500'}`}>
+                      {row.type}
+                    </span>
+                  </td>
+                  <td className="p-2 text-slate-500">{row.sum}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -555,11 +567,21 @@ return (
             </button>
           </div>
 
-          {/* Chart Placeholder */}
-          <div className="flex-1 flex items-center justify-center bg-[#111827]">
-            <span className="text-xs text-slate-500">
-              Chart Visualization Area
-            </span>
+          {/* Recharts Bar Chart */}
+          <div className="flex-1 bg-[#111827] px-1 pt-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.charts} margin={{ top: 2, right: 8, left: -24, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                <XAxis dataKey="price" tick={{ fontSize: 8, fill: '#94a3b8' }} />
+                <YAxis tick={{ fontSize: 8, fill: '#94a3b8' }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', fontSize: '10px' }}
+                  labelStyle={{ color: '#94a3b8' }}
+                />
+                <Bar dataKey="buy" name="Buy Volume" fill="#22c55e" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="sell" name="Sell Volume" fill="#ef4444" radius={[2, 2, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       )}
@@ -581,10 +603,28 @@ return (
             </div>
 
             {/* Modal Content */}
-            <div className="flex-1 flex items-center justify-center bg-[#111827]">
-              <span className="text-sm text-slate-500">
-                Full Chart Visualization Area
-              </span>
+            <div className="flex-1 bg-[#111827] p-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.charts} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                  <XAxis
+                    dataKey="price"
+                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    label={{ value: 'Price', position: 'insideBottom', offset: -10, fill: '#94a3b8', fontSize: 11 }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    label={{ value: 'Volume', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 11 }}
+                  />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', fontSize: '12px' }}
+                    labelStyle={{ color: '#94a3b8' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                  <Bar dataKey="buy" name="Buy Volume" fill="#22c55e" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="sell" name="Sell Volume" fill="#ef4444" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>

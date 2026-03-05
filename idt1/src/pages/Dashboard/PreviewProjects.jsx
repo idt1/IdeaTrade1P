@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import mitIcon from "@/assets/icons/amit.svg"; 
-import ToolsCard from "@/components/toolscard.jsx";
+import ToolsCard from "@/components/ToolsCard.jsx";
 
 import { auth, db } from "@/firebase"; 
 import { onAuthStateChanged } from "firebase/auth";
