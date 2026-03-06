@@ -271,13 +271,13 @@ export default function MemberRegister() {
 
   /* ================= UI ================= */
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0A1224] to-[#060B18] text-white flex items-center justify-center">
-      <div className="w-full max-w-[1200px] px-6 mx-auto">
-        <div className="grid grid-cols-12 gap-x-10 gap-y-6">
+    <div className="min-h-screen bg-gradient-to-b from-[#0A1224] to-[#060B18] text-white flex items-start md:items-center justify-center py-6 md:py-8">
+      <div className="w-full max-w-[1200px] px-4 md:px-6 mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 lg:gap-x-10 lg:gap-y-6">
 
         {/* LEFT */}
-        <div className="col-span-7 space-y-6">
-          <h1 className="text-4xl font-bold">Subscription & Checkout</h1>
+        <div className="lg:col-span-7 space-y-4 md:space-y-6">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">Subscription & Checkout</h1>
           <p className="text-sm text-[#9FB3C8]">
           Charged annually, Cancel anytime
           </p> 
@@ -299,7 +299,7 @@ export default function MemberRegister() {
                 <button
                   key={t}
                   onClick={() => setBillingCycle(t)}
-                  className={`flex-1 py-2 rounded-lg ${
+                  className={`flex-1 py-3 md:py-2 rounded-lg ${
                     billingCycle === t
                       ? "bg-[#0E6BA8]"
                       : "text-[#9FB3C8]"
@@ -314,7 +314,7 @@ export default function MemberRegister() {
           {/* Tools */}
           <div className="bg-[#0F1B2D] p-5 rounded-xl">
             <h2 className="text-xl font-semibold mb-4">Select Your Tools</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {TOOLS.map((tool) => {
                 const active = selectedTools.some(
                 (t) => t.id === tool.id && t.billing === billingCycle
@@ -345,7 +345,7 @@ export default function MemberRegister() {
         </div>
 
         {/* RIGHT */}
-        <div className="col-span-5 space-y-4">
+        <div className="lg:col-span-5 space-y-4">
 
           {/* Payment Method */}
           <div className="bg-[#0F1B2D] p-5 rounded-xl">
@@ -388,7 +388,7 @@ export default function MemberRegister() {
           </div>
 
           {/* Summary */}
-          <div className="bg-[#0F1B2D] p-6 rounded-xl max-h-[520px] flex flex-col">
+          <div className="bg-[#0F1B2D] p-6 rounded-xl max-h-[400px] md:max-h-[520px] flex flex-col">
             {/* Order Summary Header */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Order Summary</h2>
@@ -589,8 +589,8 @@ export default function MemberRegister() {
 
       {/* ================= MODAL ================= */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#0F1B2D] p-6 rounded-xl w-[420px] space-y-4">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+          <div className="bg-[#0F1B2D] p-6 rounded-xl w-full max-w-[420px] space-y-4 max-h-[90vh] overflow-y-auto">
 
             {/* ================= BANK ACCOUNT ================= */}
             {selectedPayment === "bank" && (
@@ -700,11 +700,11 @@ export default function MemberRegister() {
                 </h2>
 
                 {/* QR Frame */}
-                <div className="relative w-[260px] h-[260px] bg-white rounded-xl flex items-center justify-center mb-6">
+                <div className="relative w-[min(260px,80vw)] h-[min(260px,80vw)] bg-white rounded-xl flex items-center justify-center mb-6">
                   <img
                     src={PromptPayQR}
                     alt="promptpay"
-                    className="w-[220px] h-[220px] object-contain"
+                    className="w-[85%] h-[85%] object-contain"
                   />
 
                   {/* Corner */}
