@@ -1,6 +1,7 @@
 // src/pages/tools/StockFortuneTeller.jsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSubscription } from "../../context/SubscriptionContext"; // เช็ค path ให้ตรงกับโฟลเดอร์ของคุณนะครับ
 
 import StockFortuneTellerDashboard from "./components/StockFortuneTellerDashboard.jsx";
 import SearchIcon from "@mui/icons-material/Search";
@@ -609,6 +610,9 @@ export default function StockFortuneTeller() {
   const [globalHoverIndex, setGlobalHoverIndex] = useState(null);
   const chartRefs = useRef({});
 
+  // 🟢 1. เรียกใช้งาน Context วางไว้ตรงนี้เลยครับ! (ต่อท้ายบรรทัด useRef)
+  const { accessData, isFreeAccess } = useSubscription();
+
   const symbols = [
     "BANPU","BGRIM","EGCO","GPSC","GULF","OR","PTT","PTTEP",
     "PTTGC","RATCH","TOP","IVL","BBL","KBANK","KTB","SCB",
@@ -622,20 +626,39 @@ export default function StockFortuneTeller() {
   // mock data สำหรับเช็ก state ภายใน แต่เราไม่แสดง StatCard แล้ว
   const mockData = useMemo(() => generateMockData(selectedSymbol), [selectedSymbol]);
 
-  /* ===============================  MEMBER CHECK  ================================ */
+/* ===============================  MEMBER CHECK  ================================ */
   useEffect(() => {
-    try {
-      const userProfile = localStorage.getItem("userProfile");
-      if (userProfile) {
-        const user = JSON.parse(userProfile);
-        if (user.unlockedItems && user.unlockedItems.includes("fortune")) {
-          setIsMember(true);
-        }
-      }
-    } catch (error) {
-      console.error("Error checking member status:", error);
+    // กรณีที่ 1: ถ้าเป็นโหมดทดลอง (Free Access) ให้สิทธิ์ใช้งานทันที
+    if (isFreeAccess) {
+      setIsMember(true);
+      return;
     }
-  }, []);
+
+    // กรณีที่ 2: ถ้าล็อกอินแล้ว ให้เช็คว่ามีแพ็กเกจ 'fortune' หรือไม่
+    if (accessData && accessData['fortune']) {
+      const expireTimestamp = accessData['fortune'];
+      let expireDate;
+      
+      try {
+        if (typeof expireTimestamp.toDate === 'function') {
+          expireDate = expireTimestamp.toDate();
+        } else {
+          expireDate = new Date(expireTimestamp);
+        }
+      } catch (e) {
+        expireDate = new Date(0);
+      }
+
+      // เช็คว่าหมดอายุหรือยัง (เวลาแพ็กเกจ > เวลาปัจจุบัน)
+      if (expireDate.getTime() > new Date().getTime()) {
+        setIsMember(true); // ยังไม่หมดอายุ -> โชว์ปุ่ม Start Using Tool
+      } else {
+        setIsMember(false); // หมดอายุแล้ว -> โชว์ปุ่ม Join Membership
+      }
+    } else {
+      setIsMember(false); // ไม่มีแพ็กเกจเลย
+    }
+  }, [accessData, isFreeAccess]);
 
   /* ===============================  SCROLL  ================================ */
   const checkScroll = () => {
