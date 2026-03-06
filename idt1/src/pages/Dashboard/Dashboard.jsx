@@ -4,11 +4,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 /* ================= COMPONENT IMPORTS ================= */
 import Navbar from "@/layouts/Navbar.jsx";
 import Sidebar from "@/layouts/Sidebar.jsx";
-import MITLanding from "@/pages/Tools/MIT.jsx"; // ✅ Import แล้ว
+import MITLanding from "@/pages/Tools/MIT.jsx"; 
 import PreviewProjects from "@/pages/Dashboard/PreviewProjects.jsx";
 import PremiumTools from "@/pages/Dashboard/PremiumTools.jsx";
 import Profile from "@/pages/Profile/Profile.jsx";
 import ManageSubscription from "@/pages/Profile/Subscriptions";
+
+// ✅ 1. Import ตัว Guard เข้ามา
+import ToolAccessGuard from "@/components/ToolAccessGuard"; 
 
 // --- Tools Components ---
 import StockFortuneTeller from "@/pages/Tools/StockFortuneTeller";
@@ -24,58 +27,50 @@ import DRInsight from "@/pages/Tools/DRInsight";
 /* ================= CONSTANTS ================= */
 const CHART_IMAGE_URL = "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1964&auto=format&fit=crop";
 
-// ✅ 1. Mapping: จับคู่ ID -> Component ที่จะแสดงผล
-const TOOL_COMPONENTS = {
-  // MIT (เพิ่มตรงนี้เพื่อให้เรียกใช้ได้)
-  mit: MITLanding,
-  "MIT": MITLanding,
+// ✅ 2. เพิ่ม isPremium เพื่อแยกระหว่างของฟรีกับของเสียเงิน
+const TOOL_CONFIG = {
+  // 🔓 MIT (ไม่ครอบ Guard)
+  mit: { component: MITLanding, id: "mit", name: "MIT Tool", isPremium: false },
+  "MIT": { component: MITLanding, id: "mit", name: "MIT Tool", isPremium: false },
 
-  // Fortune
-  fortune: StockFortuneTeller,
-  "stock-fortune": StockFortuneTeller,
+  // 🔒 Premium Tools (ครอบ Guard ทั้งหมด 9 ตัว)
+  fortune: { component: StockFortuneTeller, id: "fortune", name: "Stock Fortune Teller", isPremium: true },
+  "stock-fortune": { component: StockFortuneTeller, id: "fortune", name: "Stock Fortune Teller", isPremium: true },
 
-  // Petroleum
-  petroleum: PetroleumInsights,
-  "petroleum-preview": PetroleumInsights,
+  petroleum: { component: PetroleumInsights, id: "petroleum", name: "Petroleum", isPremium: true },
+  "petroleum-preview": { component: PetroleumInsights, id: "petroleum", name: "Petroleum", isPremium: true },
 
-  // Rubber
-  rubber: RubberThai,
-  "RubberThai": RubberThai,
+  rubber: { component: RubberThai, id: "rubber", name: "Rubber Thai Tool", isPremium: true },
+  "RubberThai": { component: RubberThai, id: "rubber", name: "Rubber Thai Tool", isPremium: true },
 
-  // Flow
-  flow: FlowIntraday,
-  "FlowIntraday": FlowIntraday,
+  flow: { component: FlowIntraday, id: "flow", name: "Flow Intraday", isPremium: true },
+  "FlowIntraday": { component: FlowIntraday, id: "flow", name: "Flow Intraday", isPremium: true },
 
-  // S50
-  s50: S50,
-  "S50": S50,
+  s50: { component: S50, id: "s50", name: "S50 Analysis", isPremium: true },
+  "S50": { component: S50, id: "s50", name: "S50 Analysis", isPremium: true },
 
-  // Gold
-  gold: Gold,
-  "Gold": Gold,
+  gold: { component: Gold, id: "gold", name: "Gold Trading Tool", isPremium: true },
+  "Gold": { component: Gold, id: "gold", name: "Gold Trading Tool", isPremium: true },
 
-  // BidAsk
-  bidask: BidAsk,
-  "BidAsk": BidAsk,
+  bidask: { component: BidAsk, id: "bidask", name: "BidAsk Analysis", isPremium: true },
+  "BidAsk": { component: BidAsk, id: "bidask", name: "BidAsk Analysis", isPremium: true },
 
-  // TickMatch
-  tickmatch: TickMatch,
-  "TickMatch": TickMatch,
+  tickmatch: { component: TickMatch, id: "tickmatch", name: "TickMatch", isPremium: true },
+  "TickMatch": { component: TickMatch, id: "tickmatch", name: "TickMatch", isPremium: true },
 
-  // DR
-  dr: DRInsight,
-  "DRInsight": DRInsight,
+  dr: { component: DRInsight, id: "dr", name: "DR Insight", isPremium: true },
+  "DRInsight": { component: DRInsight, id: "dr", name: "DR Insight", isPremium: true },
 };
 
 const FULL_WIDTH_PAGES = []; 
 const FULL_WIDTH_PATHS = [];
 
-// ✅ 2. เพิ่ม ID ของ Tools ทั้งหมดลงในนี้ เพื่อให้แสดงผลเต็มจอ (ไม่มี Padding)
+// ดึงเฉพาะ Key มาเพื่อบอกว่าหน้าไหนห้ามมี Padding
 const NO_PADDING_PAGES = [
   "profile", 
   "subscription", 
-  "mit", // ✅ เพิ่ม MIT กลับเข้ามาใน list นี้เพื่อให้แสดงเต็มจอ
-  ...Object.keys(TOOL_COMPONENTS) 
+  "mit", 
+  ...Object.keys(TOOL_CONFIG) 
 ]; 
 
 /* ================= MAIN COMPONENT: DASHBOARD ================= */
@@ -96,8 +91,7 @@ export default function Dashboard({ initialPage }) {
     } else {
       const path = location.pathname;
       
-      // ✅ Check path mapping (เพิ่มให้ครบทุก Tools)
-      // เพิ่มเงื่อนไขสำหรับ MIT
+      // Check path mapping
       if (path === "/mit" || path === "/MIT") setActivePage("mit");
       else if (path === "/stock-fortune" || path === "/fortune") setActivePage("fortune");
       else if (path.includes("/petroleum")) setActivePage("petroleum");
@@ -148,10 +142,22 @@ export default function Dashboard({ initialPage }) {
     if (activePage === "preview-projects" || activePage === "whatsnew") return <PreviewProjects />;
     if (activePage === "premiumtools") return <PremiumTools />;
 
-    // 3. ✅ Tools Rendering
-    // เนื่องจากเราเพิ่ม MIT เข้าไปใน TOOL_COMPONENTS แล้ว มันจะถูก render ตรงนี้อัตโนมัติครับ
-    const ToolComponent = TOOL_COMPONENTS[activePage];
-    if (ToolComponent) {
+    // 3. ✅ Tools Rendering (แยกเรนเดอร์ระหว่างของฟรีกับเสียเงิน)
+    const toolConfig = TOOL_CONFIG[activePage];
+    
+    if (toolConfig) {
+      const ToolComponent = toolConfig.component;
+      
+      // ถ้าเป็น Premium Tool ให้เอา Guard มาครอบก่อน
+      if (toolConfig.isPremium) {
+        return (
+          <ToolAccessGuard toolId={toolConfig.id} toolName={toolConfig.name}>
+            <ToolComponent />
+          </ToolAccessGuard>
+        );
+      }
+      
+      // ถ้าไม่ใช่ Premium (เช่น MIT) ให้โชว์เนื้อหาปกติได้เลย
       return <ToolComponent />;
     }
 

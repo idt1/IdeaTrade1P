@@ -36,10 +36,10 @@ export default function BidAsk() {
         if (user.unlockedItems?.includes("bidask")) {
           setIsMember(true);
 
-          //const hasEntered = sessionStorage.getItem("BidAskToolEntered");
-          //if (hasEntered === "true") {
-            //setEnteredTool(true);
-          //}
+          const hasEntered = sessionStorage.getItem("BidAskToolEntered");
+          if (hasEntered === "true") {
+            setEnteredTool(true);
+          }
         }
       }
     } catch (error) {
@@ -446,16 +446,14 @@ export default function BidAsk() {
   
 /* ==========================================================
    CASE 3 : FULL PRODUCTION PETROLEUM DASHBOARD
-   ✅ เปลี่ยน: w-full min-h-screen → w-full h-screen overflow-hidden flex flex-col
 ========================================================== */
 
 return (
-  <div className="w-full h-screen overflow-hidden bg-[#0b111a] text-white px-6 py-6 flex flex-col">
-    <div className="max-w-[1800px] mx-auto flex-1 min-h-0 flex flex-col">
+  <div className="w-full min-h-screen bg-[#0b111a] text-white px-6 py-6">
+    <div className="max-w-[1800px] mx-auto">
 
-      {/* TWO PANELS
-          ✅ เปลี่ยน: grid ธรรมดา → flex-1 min-h-0 grid เพื่อให้ panel ยืดเต็มพื้นที่ */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-2 gap-6">
+      {/* TWO PANELS */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
         <ReplayPanel />
         <ReplayPanel />
@@ -666,11 +664,10 @@ useEffect(() => {
 }, [sliderValue, isSearched]);
 
   return (
-    // ✅ เพิ่ม flex flex-col h-full min-h-0
-    <div className="bg-[#111827] border border-slate-700 rounded-xl overflow-hidden flex flex-col h-full min-h-0">
+    <div className="bg-[#111827] border border-slate-700 rounded-xl overflow-hidden">
 
-      {/* HEADER — ✅ เพิ่ม shrink-0 */}
-      <div className="p-4 border-b border-slate-700 bg-[#0f172a] shrink-0">
+      {/* HEADER */}
+      <div className="p-4 border-b border-slate-700 bg-[#0f172a]">
 
         <div className="grid grid-cols-3 gap-3 mb-3 text-xs text-slate-500">
         {/* SYMBOL */}
@@ -717,7 +714,7 @@ useEffect(() => {
               isFocused || symbol ? "-top-2" : "top-2"
             }`}
           >
-            Symbol*
+            Type a Symbol...
           </label>
         </div>
 
@@ -854,8 +851,8 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* ORDER BOOK — ✅ เพิ่ม flex-1 overflow-y-auto min-h-0 */}
-      <div className="flex-1 overflow-y-auto min-h-0 bg-[#0b111a]">
+      {/* ORDER BOOK */}
+      <div className="bg-[#0b111a]">
 
         {orderBook.map((row, i) => (
           <OrderRow
@@ -868,7 +865,7 @@ useEffect(() => {
         ))}
 
         {/* TOTAL ROW */}
-         <div className="grid grid-cols-4 h-[36px] items-center border-t border-slate-700 bg-[#111827] text-[12px] font-semibold sticky bottom-0">
+         <div className="grid grid-cols-4 h-[36px] items-center border-t border-slate-700 bg-[#111827] text-[12px] font-semibold">
 
           {/* TOTAL BID */}
           <div className="text-right pr-3 text-blue-400">
@@ -889,8 +886,8 @@ useEffect(() => {
         </div>
       </div>
 
-       {/* SLIDER — ✅ เพิ่ม shrink-0 */}
-    <div className="px-4 py-3 bg-[#0f172a] border-t border-slate-700 shrink-0">
+       {/* SLIDER */}
+    <div className="px-4 py-3 bg-[#0f172a] border-t border-slate-700">
 
       <div className="flex items-center gap-4">
 
@@ -933,8 +930,8 @@ useEffect(() => {
 
     </div>
 
-      {/* STATS — ✅ เพิ่ม shrink-0 */}
-      <div className="grid grid-cols-2 gap-4 p-4 border-t border-slate-700 bg-[#0f172a] shrink-0">
+      {/* STATS */}
+      <div className="grid grid-cols-2 gap-4 p-4 border-t border-slate-700 bg-[#0f172a]">
         <StatSection title="In Range" />
         <StatSection title="Actual" />
       </div>

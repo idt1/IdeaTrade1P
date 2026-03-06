@@ -1,558 +1,225 @@
+// src/pages/tools/components/BidAskDashboard.jsx
 import { useState, useEffect, useRef } from "react";
 
-const initialOrderBook = {
-  bids: [
-    { price: 72.00, vol: 382581 },
-    { price: 71.75, vol: 436930 },
-    { price: 71.50, vol: 304457 },
-    { price: 71.25, vol: 249877 },
-    { price: 71.00, vol: 328003 },
-    { price: 70.75, vol: 194639 },
-    { price: 70.50, vol: 398519 },
-    { price: 70.25, vol: 224291 },
-    { price: 70.00, vol: 425270 },
-    { price: 69.75, vol: 277400 },
-  ],
-  asks: [
-    { price: 72.25, vol: 256749 },
-    { price: 72.00, vol: 404759 },
-    { price: 71.75, vol: 494763 },
-    { price: 71.50, vol: 178279 },
-    { price: 71.25, vol: 497474 },
-    { price: 71.00, vol: 304515 },
-    { price: 70.75, vol: 6120 },
-    { price: 70.50, vol: 439536 },
-    { price: 70.25, vol: 202477 },
-    { price: 70.00, vol: 314814 },
-  ],
-};
+/* ── helpers ── */
+function seeded(s) {
+  let x = s;
+  return () => { x = Math.sin(x) * 99999; return x - Math.floor(x); };
+}
+function randInt(min, max, rng) {
+  return Math.floor(rng() * (max - min + 1)) + min;
+}
+function makeBook(basePrice, seed) {
+  const rng = seeded(seed);
+  const step = 0.25;
+  const bids = Array.from({ length: 10 }, (_, i) => ({
+    price: +(basePrice - i * step).toFixed(2),
+    vol: randInt(250000, 600000, rng),
+  }));
+  const asks = Array.from({ length: 10 }, (_, i) => ({
+    price: +(basePrice + (i + 1) * step).toFixed(2),
+    vol: randInt(200000, 600000, rng),
+  }));
+  return { bids, asks };
+}
+function tickBook(book, rng) {
+  return {
+    bids: book.bids.map(b => ({ ...b, vol: Math.max(50000, b.vol + Math.round((rng() - 0.5) * 60000)) })),
+    asks: book.asks.map(a => ({ ...a, vol: Math.max(50000, a.vol + Math.round((rng() - 0.5) * 60000)) })),
+  };
+}
+const fmt = v => v.toLocaleString();
+const fmtM = v => (v / 1_000_000).toFixed(3) + "M";
+const BAR_MAX = 650000;
 
-const initialOrderBook2 = {
-  bids: [
-    { price: 34.00, vol: 382581 },
-    { price: 34.00, vol: 436930 },
-    { price: 71.50, vol: 304457 },
-    { price: 71.25, vol: 249877 },
-    { price: 71.00, vol: 328003 },
-    { price: 70.75, vol: 194639 },
-    { price: 70.50, vol: 398519 },
-    { price: 70.25, vol: 224291 },
-    { price: 70.00, vol: 425270 },
-    { price: 69.75, vol: 277400 },
-  ],
-  asks: [
-    { price: 34.25, vol: 256749 },
-    { price: 34.00, vol: 404759 },
-    { price: 71.75, vol: 494763 },
-    { price: 71.50, vol: 178279 },
-    { price: 71.25, vol: 497474 },
-    { price: 71.00, vol: 304515 },
-    { price: 70.75, vol: 6120 },
-    { price: 70.50, vol: 439536 },
-    { price: 70.25, vol: 202477 },
-    { price: 70.00, vol: 314814 },
-  ],
-};
+/* ── Field ── */
+function Field({ label, value, width }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 3, flex: width || 1 }}>
+      <label style={{ fontSize: 9, color: "#7a8499", letterSpacing: 0.3 }}>{label}</label>
+      <input
+        defaultValue={value}
+        style={{ width: "100%", background: "#0d1117", border: "1px solid #1e2a3a", borderRadius: 4, color: "#c9d4e8", padding: "5px 8px", fontSize: 11, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
+      />
+    </div>
+  );
+}
 
-const formatVol = (v) => v.toLocaleString();
-
-const BAR_MAX = 500000;
-
-function OrderBookPanel({
-  symbol,
-  date,
-  speed,
-  start,
-  end,
-  book,
-  time,
-  sliderVal,
-  onSliderChange,
-  sliderClass,
-  inRange,
-  actual,
-}) {
-  const maxBidVol = Math.max(...book.bids.map((b) => b.vol));
-  const maxAskVol = Math.max(...book.asks.map((a) => a.vol));
+/* ── Panel ── */
+function Panel({ cfg, book, time, slider, setSlider, sliderKey }) {
   const totalBid = book.bids.reduce((s, b) => s + b.vol, 0);
   const totalAsk = book.asks.reduce((s, a) => s + a.vol, 0);
 
   return (
-    <div style={styles.panel}>
-      {/* Header Controls */}
-      <div style={styles.controlRow}>
-        <div style={styles.field}>
-          <label style={styles.label}>Symbol *</label>
-          <input style={styles.input} defaultValue={symbol} />
+    <div style={{ background: "#0b1120", border: "1px solid #1a2235", borderRadius: 6, display: "flex", flexDirection: "column", minWidth: 0, height: "100%", overflow: "hidden" }}>
+      <style>{`
+        .s-${sliderKey}{-webkit-appearance:none;width:100%;height:3px;border-radius:2px;outline:none;cursor:pointer;background:linear-gradient(to right,#f0c040 0%,#f0c040 ${slider}%,#1e2a3a ${slider}%,#1e2a3a 100%)}
+        .s-${sliderKey}::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#f0c040;cursor:pointer}
+        .s-${sliderKey}::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#f0c040;border:none}
+      `}</style>
+
+      {/* Inputs row 1 */}
+      <div style={{ padding: "6px 8px 0", display: "flex", flexDirection: "column", gap: 5 }}>
+        <div style={{ display: "flex", gap: 5, alignItems: "flex-end" }}>
+          <Field label="Symbol *"   value={cfg.symbol}    width={0.8} />
+          <Field label="Start Date" value={cfg.startDate} width={1.2} />
+          <Field label="End Date"   value={cfg.endDate}   width={1.2} />
         </div>
-        <div style={styles.field}>
-          <label style={styles.label}>Date</label>
-          <input style={styles.input} defaultValue={date} />
-        </div>
-        <div style={styles.field}>
-          <label style={styles.label}>Speed</label>
-          <input style={styles.input} defaultValue={speed} />
+        <div style={{ display: "flex", gap: 5, alignItems: "flex-end" }}>
+          <Field label="Start Time" value={cfg.startTime} width={1.2} />
+          <Field label="End Time"   value={cfg.endTime}   width={1.1} />
+          <Field label="Speed"      value={cfg.speed}     width={0.5} />
+          <button style={{ flex: 1, background: "#4a6cf7", color: "#fff", border: "none", borderRadius: 4, padding: "4px 0", fontSize: 10, fontWeight: 700, cursor: "pointer", alignSelf: "flex-end" }}>
+            SEARCH
+          </button>
         </div>
       </div>
-      <div style={styles.controlRow2}>
-        <div style={styles.field}>
-          <label style={styles.label}>Start</label>
-          <input style={styles.input} defaultValue={start} />
-        </div>
-        <div style={styles.field}>
-          <label style={styles.label}>End</label>
-          <input style={styles.input} defaultValue={end} />
-        </div>
-        <button style={styles.searchBtn}>SEARCH</button>
+
+      {/* Time */}
+      <div style={{ background: "#060a10", margin: "5px 8px 0", borderRadius: 3, textAlign: "center", padding: "4px 0" }}>
+        <span style={{ fontSize: 16, fontWeight: 700, color: "#f0c040", fontFamily: "monospace", letterSpacing: 2 }}>{time}</span>
       </div>
 
-      {/* Time Display */}
-      <div style={styles.timeDisplay}>{time}</div>
-
-      {/* Order Book Table */}
-      <div style={styles.tableWrap}>
-        <div style={styles.tableHeader}>
-          <span style={{ flex: 1, textAlign: "right" }}>Vol BID</span>
-          <span style={{ width: 70, textAlign: "center" }}>BID</span>
-          <span style={{ width: 70, textAlign: "center" }}>ASK</span>
-          <span style={{ flex: 1, textAlign: "left" }}>Vol ASK</span>
+      {/* Order book */}
+      <div style={{ padding: "0 8px", marginTop: 4 }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", fontSize: 9, color: "#4a5568", paddingBottom: 2, borderBottom: "1px solid #1a2235" }}>
+          <div style={{ flex: 1, textAlign: "right", paddingRight: 4 }}>Vol BID</div>
+          <div style={{ width: 52, textAlign: "center", color: "#4caf78" }}>BID</div>
+          <div style={{ width: 52, textAlign: "center", color: "#e05a3a" }}>ASK</div>
+          <div style={{ flex: 1, textAlign: "left", paddingLeft: 4 }}>Vol ASK</div>
         </div>
 
         {book.bids.map((bid, i) => {
           const ask = book.asks[i];
-          const bidPct = (bid.vol / BAR_MAX) * 100;
-          const askPct = (ask.vol / BAR_MAX) * 100;
-          const isTopBid = i === 0;
-          const isTopAsk = i === 0;
-
+          const bidPct = Math.min((bid.vol / BAR_MAX) * 100, 100);
+          const askPct = Math.min((ask.vol / BAR_MAX) * 100, 100);
+          const even = i % 2 === 0;
           return (
-            <div key={i} style={styles.row}>
-              {/* BID side */}
-              <div style={styles.bidCell}>
-                <div
-                  style={{
-                    ...styles.bidBar,
-                    width: `${Math.min(bidPct, 100)}%`,
-                    background: i % 2 === 0 ? "#1a3a5c" : "#14304d",
-                  }}
-                />
-                <span style={styles.volText}>{formatVol(bid.vol)}</span>
+            <div key={i} style={{ display: "flex", alignItems: "center", height: 18, borderBottom: "1px solid #0f1520" }}>
+              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", position: "relative", height: "100%", overflow: "hidden" }}>
+                <div style={{ position: "absolute", right: 0, top: 0, height: "100%", width: `${bidPct}%`, background: even ? "#1a3a6a" : "#152f5a", transition: "width .3s" }} />
+                <span style={{ position: "relative", zIndex: 1, fontSize: 9, color: "#b0bcd4", paddingRight: 3, fontFamily: "monospace" }}>{fmt(bid.vol)}</span>
               </div>
-              <span style={{ ...styles.priceText, color: "#4caf78", width: 70, textAlign: "center" }}>
-                {bid.price.toFixed(2)}
-              </span>
-              <span style={{ ...styles.priceText, color: "#e05a3a", width: 70, textAlign: "center" }}>
-                {ask.price.toFixed(2)}
-              </span>
-              {/* ASK side */}
-              <div style={styles.askCell}>
-                <span style={styles.volText}>{formatVol(ask.vol)}</span>
-                <div
-                  style={{
-                    ...styles.askBar,
-                    width: `${Math.min(askPct, 100)}%`,
-                    background: i % 2 === 0 ? "#4a1a0e" : "#3d1509",
-                  }}
-                />
+              <div style={{ width: 52, textAlign: "center", fontSize: 10, fontWeight: 700, color: "#4caf78", fontFamily: "monospace" }}>{bid.price.toFixed(2)}</div>
+              <div style={{ width: 52, textAlign: "center", fontSize: 10, fontWeight: 700, color: "#e05a3a", fontFamily: "monospace" }}>{ask.price.toFixed(2)}</div>
+              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-start", position: "relative", height: "100%", overflow: "hidden" }}>
+                <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${askPct}%`, background: even ? "#5a1a0a" : "#4a1508", transition: "width .3s" }} />
+                <span style={{ position: "relative", zIndex: 1, fontSize: 9, color: "#b0bcd4", paddingLeft: 3, fontFamily: "monospace" }}>{fmt(ask.vol)}</span>
               </div>
             </div>
           );
         })}
 
         {/* Totals */}
-        <div style={styles.totalsRow}>
-          <span style={{ flex: 1, textAlign: "right", color: "#ccc", fontSize: 12 }}>
-            Total: {(totalBid / 1000000).toFixed(1)}M
-          </span>
-          <span style={{ width: 140 }} />
-          <span style={{ flex: 1, textAlign: "left", color: "#ccc", fontSize: 12 }}>
-            Total: {(totalAsk / 1000000).toFixed(1)}M
-          </span>
+        <div style={{ display: "flex", alignItems: "center", padding: "3px 0", borderTop: "1px solid #1a2235" }}>
+          <div style={{ flex: 1, textAlign: "right", paddingRight: 4, fontSize: 9, color: "#4a9fd4" }}>Total: {fmtM(totalBid)}</div>
+          <div style={{ width: 104 }} />
+          <div style={{ flex: 1, textAlign: "left", paddingLeft: 4, fontSize: 9, color: "#e05a3a" }}>Total: {fmtM(totalAsk)}</div>
         </div>
       </div>
-
-      {/* Chart area placeholder */}
-      <div style={styles.chartArea} />
 
       {/* Slider */}
-      <div style={styles.sliderWrap}>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={sliderVal}
-          onChange={(e) => onSliderChange(Number(e.target.value))}
-          className={sliderClass}
-        />
+      <div style={{ padding: "3px 8px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <input type="range" min={0} max={100} value={slider}
+            onChange={e => setSlider(Number(e.target.value))}
+            className={`s-${sliderKey}`} style={{ flex: 1 }} />
+          <span style={{ color: "#4a5568", fontSize: 13 }}>▶</span>
+        </div>
       </div>
 
-      {/* Footer Stats */}
-      <div style={styles.footerRow}>
-        <div style={styles.footerGroup}>
-          <span style={styles.footerLabel}>In Range</span>
-          <div style={styles.footerStats}>
-            {["OPEN", "HIGH", "LOW", "CLOSE"].map((k, i) => (
-              <div key={k} style={styles.footerStat}>
-                <span style={styles.footerKey}>{k}</span>
-                <span style={styles.footerVal}>{inRange[i]}</span>
-              </div>
-            ))}
+      {/* OHLC footer */}
+      <div style={{ display: "flex", gap: 5, padding: "0 8px 8px" }}>
+        {[{ label: "In Range", data: cfg.inRange }, { label: "Actual", data: cfg.actual }].map(({ label, data }) => (
+          <div key={label} style={{ flex: 1, background: "#060d18", border: "1px solid #1a2235", borderRadius: 4, padding: "4px 8px" }}>
+            <div style={{ fontSize: 8, color: "#4a5568", marginBottom: 3 }}>{label}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 2 }}>
+              {["OPEN", "HIGH", "LOW", "CLOSE"].map((k, i) => (
+                <div key={k} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  <span style={{ fontSize: 7, color: "#4a5568", letterSpacing: 0.3 }}>{k}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#c9d4e8", fontFamily: "monospace" }}>{data[i]}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-        <div style={styles.footerGroup}>
-          <span style={styles.footerLabel}>Actual</span>
-          <div style={styles.footerStats}>
-            {["OPEN", "HIGH", "LOW", "CLOSE"].map((k, i) => (
-              <div key={k} style={styles.footerStat}>
-                <span style={styles.footerKey}>{k}</span>
-                <span style={styles.footerVal}>{actual[i]}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );
 }
 
-export default function BidAskReplay() {
-  const [time, setTime] = useState("10:15:32");
-  const [slider1, setSlider1] = useState(20);
-  const [slider2, setSlider2] = useState(20);
+/* ── Scaled wrapper — contain fit (respects both width & height) ── */
+function ScaledPreview({ children, designW = 900, designH = 680 }) {
+  const outerRef = useRef(null);
+  const innerRef = useRef(null);
 
-  // Animate time
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTime((prev) => {
-        const [h, m, s] = prev.split(":").map(Number);
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+
+    const apply = () => {
+      const w = outer.getBoundingClientRect().width;
+      const s = w / designW;
+      inner.style.transform = `scale(${s})`;
+      inner.style.transformOrigin = "top left";
+      outer.style.height = `${designH * s}px`;
+    };
+
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(outer);
+    return () => ro.disconnect();
+  }, [designW, designH]);
+
+  return (
+    <div ref={outerRef} style={{ width: "100%", overflow: "hidden", position: "relative", background: "#070c14" }}>
+      <div ref={innerRef} style={{ width: designW, height: designH, position: "absolute", top: 0, left: 0 }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ── Main export ── */
+export default function BidAskDashboard() {
+  const [time, setTime]   = useState("10:15:50");
+  const [time2, setTime2] = useState("10:07:02");
+  const [slider1, setSlider1] = useState(33);
+  const [slider2, setSlider2] = useState(13);
+  const [book1, setBook1] = useState(() => makeBook(70.56, 11));
+  const [book2, setBook2] = useState(() => makeBook(71.36, 22));
+  const rng1 = useRef(seeded(99));
+  const rng2 = useRef(seeded(77));
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const bumpTime = p => {
+        const [h, m, s] = p.split(":").map(Number);
         let ns = s + 1, nm = m, nh = h;
         if (ns >= 60) { ns = 0; nm++; }
         if (nm >= 60) { nm = 0; nh++; }
         return `${String(nh).padStart(2,"0")}:${String(nm).padStart(2,"0")}:${String(ns).padStart(2,"0")}`;
-      });
+      };
+      setTime(p => bumpTime(p));
+      setTime2(p => bumpTime(p));
+      setBook1(b => tickBook(b, rng1.current));
+      setBook2(b => tickBook(b, rng2.current));
     }, 1000);
-    return () => clearInterval(interval);
+    return () => clearInterval(tick);
   }, []);
 
+  const cfg1 = { symbol: "OR",  startDate: "03/06/2026", endDate: "03/06/2026", startTime: "10:00 AM", endTime: "10:22 AM", speed: "1", inRange: ["71.00","73.50","70.75","72.25"], actual: ["71.00","73.50","70.75","72.25"] };
+  const cfg2 = { symbol: "AOT", startDate: "03/06/2026", endDate: "03/06/2026", startTime: "10:00 AM", endTime: "10:22 AM", speed: "1", inRange: ["71.00","73.50","70.75","72.25"], actual: ["71.00","73.50","70.75","72.25"] };
+
   return (
-    <div style={styles.root}>
-      <style>{`
-        html, body { margin: 0; padding: 0; background: #1a1d23; }
-        * { box-sizing: border-box; }
-        .bid-ask-inner {
-          zoom: 0.72;
-        }
-        input[type=range] {
-          -webkit-appearance: none;
-          width: 100%;
-          height: 4px;
-          border-radius: 2px;
-          outline: none;
-          cursor: pointer;
-        }
-        input[type=range].slider1 {
-          background: linear-gradient(to right, #f0c040 0%, #f0c040 ${slider1}%, #444 ${slider1}%, #444 100%);
-        }
-        input[type=range].slider2 {
-          background: linear-gradient(to right, #f0c040 0%, #f0c040 ${slider2}%, #444 ${slider2}%, #444 100%);
-        }
-        input[type=range]::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          width: 16px;
-          height: 16px;
-          border-radius: 50%;
-          background: #f0c040;
-          cursor: pointer;
-        }
-        input[type=range]::-moz-range-thumb {
-          width: 16px;
-          height: 16px;
-          border-radius: 50%;
-          background: #f0c040;
-          border: none;
-        }
-      `}</style>
-      <div className="bid-ask-inner">
-
-      {/* Title Bar */}
-      <div style={styles.titleBar}>
-        <div style={styles.titleLeft}>
-          <span style={styles.titleIcon}>≡</span>
-          <span style={styles.titleText}>BidAsk Replay</span>
-        </div>
-        <button style={styles.syncBtn}>⟳ Sync Panels</button>
+    <ScaledPreview designW={900} designH={510}>
+      <div style={{ width: "100%", height: "100%", background: "#070c14", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: 8, boxSizing: "border-box", fontFamily: "'Consolas','Courier New',monospace", color: "#c9d4e8" }}>
+        <style>{`::-webkit-scrollbar{display:none}`}</style>
+        <Panel cfg={cfg1} book={book1} time={time}  slider={slider1} setSlider={setSlider1} sliderKey="a" />
+        <Panel cfg={cfg2} book={book2} time={time2} slider={slider2} setSlider={setSlider2} sliderKey="b" />
       </div>
-
-      {/* Two Panels */}
-      <div style={styles.panels}>
-        <OrderBookPanel
-          symbol="DELTA"
-          date="21/01/2026"
-          speed="1"
-          start="10:00"
-          end="16:30"
-          book={initialOrderBook}
-          time={time}
-          sliderVal={slider1}
-          onSliderChange={setSlider1}
-          sliderClass="slider1"
-          inRange={["71.00", "73.50", "70.75", "72.25"]}
-          actual={["71.00", "73.50", "70.75", "--"]}
-        />
-        <OrderBookPanel
-          symbol="PTT"
-          date="25/01/2026"
-          speed="1"
-          start="10:00"
-          end="16:30"
-          book={initialOrderBook2}
-          time={time}
-          sliderVal={slider2}
-          onSliderChange={setSlider2}
-          sliderClass="slider2"
-          inRange={["34.50", "35.00", "34.25", "34.75"]}
-          actual={["34.50", "35.00", "34.25", "--"]}
-        />
-      </div>
-      </div>
-    </div>
+    </ScaledPreview>
   );
 }
-
-const styles = {
-  root: {
-    background: "#1a1d23",
-    minHeight: "100vh",
-    fontFamily: "'Consolas', 'Courier New', monospace",
-    color: "#ccc",
-    display: "flex",
-    flexDirection: "column",
-    overflow: "auto",
-  },
-  titleBar: {
-    background: "#13161b",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "8px 16px",
-    borderBottom: "1px solid #2a2e36",
-  },
-  titleLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-  titleIcon: {
-    fontSize: 18,
-    color: "#888",
-  },
-  titleText: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#e0e0e0",
-    letterSpacing: 0.5,
-  },
-  syncBtn: {
-    background: "#2a2e38",
-    border: "1px solid #3a3e48",
-    color: "#aaa",
-    padding: "4px 12px",
-    borderRadius: 4,
-    fontSize: 12,
-    cursor: "pointer",
-  },
-  panels: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 2,
-    flex: 1,
-    padding: 8,
-  },
-  panel: {
-    background: "#1e2128",
-    border: "1px solid #2a2e36",
-    borderRadius: 4,
-    display: "flex",
-    flexDirection: "column",
-    padding: 10,
-    gap: 6,
-  },
-  controlRow: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
-    gap: 6,
-    alignItems: "flex-end",
-  },
-  controlRow2: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
-    gap: 6,
-    alignItems: "flex-end",
-  },
-  field: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
-  },
-  label: {
-    fontSize: 10,
-    color: "#888",
-    letterSpacing: 0.5,
-  },
-  input: {
-    background: "#13161b",
-    border: "1px solid #2e3240",
-    borderRadius: 3,
-    color: "#e0e0e0",
-    padding: "4px 8px",
-    fontSize: 12,
-    outline: "none",
-    width: "100%",
-  },
-  searchBtn: {
-    background: "#4a6cf7",
-    color: "#fff",
-    border: "none",
-    borderRadius: 3,
-    padding: "6px 8px",
-    fontSize: 12,
-    fontWeight: "bold",
-    cursor: "pointer",
-    letterSpacing: 1,
-    alignSelf: "flex-end",
-    width: "100%",
-  },
-  timeDisplay: {
-    textAlign: "center",
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#f0c040",
-    padding: "6px 0",
-    letterSpacing: 2,
-    fontFamily: "'Consolas', monospace",
-  },
-  tableWrap: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 1,
-  },
-  tableHeader: {
-    display: "flex",
-    alignItems: "center",
-    fontSize: 11,
-    color: "#888",
-    padding: "2px 0",
-    borderBottom: "1px solid #2a2e36",
-    marginBottom: 2,
-  },
-  row: {
-    display: "flex",
-    alignItems: "center",
-    height: 22,
-    position: "relative",
-  },
-  bidCell: {
-    flex: 1,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    position: "relative",
-    height: "100%",
-    overflow: "hidden",
-  },
-  bidBar: {
-    position: "absolute",
-    right: 0,
-    top: 0,
-    height: "100%",
-    opacity: 0.9,
-    transition: "width 0.3s",
-  },
-  askCell: {
-    flex: 1,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    position: "relative",
-    height: "100%",
-    overflow: "hidden",
-  },
-  askBar: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    height: "100%",
-    opacity: 0.9,
-    transition: "width 0.3s",
-  },
-  volText: {
-    fontSize: 11,
-    color: "#c0c4cc",
-    position: "relative",
-    zIndex: 1,
-    padding: "0 4px",
-  },
-  priceText: {
-    fontSize: 12,
-    fontWeight: "bold",
-    position: "relative",
-    zIndex: 1,
-  },
-  totalsRow: {
-    display: "flex",
-    alignItems: "center",
-    fontSize: 12,
-    padding: "4px 0",
-    borderTop: "1px solid #2a2e36",
-    marginTop: 2,
-    color: "#888",
-  },
-  chartArea: {
-    height: 80,
-    background: "#13161b",
-    borderRadius: 3,
-    border: "1px solid #2a2e36",
-  },
-  sliderWrap: {
-    padding: "4px 2px",
-  },
-  slider: {
-    width: "100%",
-  },
-  footerRow: {
-    display: "flex",
-    gap: 8,
-  },
-  footerGroup: {
-    flex: 1,
-    background: "#13161b",
-    border: "1px solid #2a2e36",
-    borderRadius: 3,
-    padding: "4px 8px",
-  },
-  footerLabel: {
-    fontSize: 10,
-    color: "#666",
-    display: "block",
-    marginBottom: 4,
-  },
-  footerStats: {
-    display: "flex",
-    justifyContent: "space-between",
-  },
-  footerStat: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 1,
-  },
-  footerKey: {
-    fontSize: 9,
-    color: "#666",
-    letterSpacing: 0.5,
-  },
-  footerVal: {
-    fontSize: 12,
-    color: "#e0e0e0",
-    fontWeight: "bold",
-  },
-};

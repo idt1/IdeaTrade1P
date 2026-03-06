@@ -17,11 +17,10 @@ const CHART_CONFIG = {
   paddingRight: 60,
   paddingTop: 15,
   paddingBottom: 25,
-  pointGap: 40,
-  minWidth: 620,
 };
 
-const LABELS = Array.from({ length: 200 }, (_, i) => {
+// เพิ่มจำนวน Label เพื่อรองรับการซูมออกและเลื่อนดูข้อมูลเยอะๆ
+const LABELS = Array.from({ length: 400 }, (_, i) => {
   const d = new Date("2024-01-01");
   d.setDate(d.getDate() + i * 3);
   const dd = String(d.getDate()).padStart(2, "0");
@@ -85,7 +84,7 @@ function buildCurvePath(dataset, normalizeY, paddingLeft, pointGap) {
    DYNAMIC CHART COMPONENT (NEW STYLE)
 ========================================================== */
 
-function DynamicChart({ title, height = 240, color, gradientId, seed, points = 70, className = "", chartId, globalHoverIndex, setGlobalHoverIndex, chartRefs }) {
+function DynamicChart({ title, height = 240, color, gradientId, seed, points = 70, className = "", chartId, globalHoverIndex, setGlobalHoverIndex, chartRefs, pointGap, handleZoom }) {
   
   const [data, setData] = useState(() => generateRawSeries({ seed, points }));
 
@@ -98,7 +97,19 @@ function DynamicChart({ title, height = 240, color, gradientId, seed, points = 7
   const [dragStartX, setDragStartX] = useState(0);
   const [dragScrollLeft, setDragScrollLeft] = useState(0);
 
-  // Sync scroll แบบเป๊ะๆ และเด้งไปตำแหน่งเดียวกับเพื่อนตอนเปิดใหม่
+  // Event ดักจับ Mouse Wheel เพื่อซูมกราฟ
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      e.preventDefault(); // ป้องกันการ Scroll หน้าจอขึ้นลง
+      handleZoom(e.deltaY, e.clientX, el);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [handleZoom]);
+
+  // Sync scroll ตอนเปิดครั้งแรก
   useEffect(() => {
     if (!scrollRef.current || !data || data.length === 0) return;
     const currentRef = scrollRef.current;
@@ -118,8 +129,8 @@ function DynamicChart({ title, height = 240, color, gradientId, seed, points = 7
   const yScale = calcYScale(data);
   const normalizeY = makeNormalizeY(config, yScale);
 
-  const { paddingLeft, paddingRight, paddingTop, paddingBottom, pointGap, minWidth } = config;
-  const chartWidth = Math.max(minWidth, paddingLeft + paddingRight + (data.length - 1) * pointGap);
+  const { paddingLeft, paddingRight, paddingTop, paddingBottom } = config;
+  const chartWidth = paddingLeft + paddingRight + (data.length - 1) * pointGap;
 
   const linePath = buildCurvePath(data, normalizeY, paddingLeft, pointGap);
   const lastX = paddingLeft + (data.length - 1) * pointGap;
@@ -134,7 +145,7 @@ function DynamicChart({ title, height = 240, color, gradientId, seed, points = 7
   const syncScroll = (sourceEl) => {
     Object.values(chartRefs.current).forEach((node) => {
       if (node && node !== sourceEl) {
-        if (Math.abs(node.scrollLeft - sourceEl.scrollLeft) > 2) {
+        if (Math.abs(node.scrollLeft - sourceEl.scrollLeft) > 1) {
           node.scrollLeft = sourceEl.scrollLeft;
         }
       }
@@ -152,9 +163,7 @@ function DynamicChart({ title, height = 240, color, gradientId, seed, points = 7
     if (isDragging) {
       e.preventDefault();
       const dx = e.clientX - dragStartX;
-      const newScroll = dragScrollLeft - dx * 1.5;
-      scrollRef.current.scrollLeft = newScroll;
-      
+      scrollRef.current.scrollLeft = dragScrollLeft - dx; // ปรับความเร็ว 1:1 กับเมาส์
       syncScroll(scrollRef.current);
       setGlobalHoverIndex(null);
       return;
@@ -166,12 +175,13 @@ function DynamicChart({ title, height = 240, color, gradientId, seed, points = 7
 
   const isHovering = globalHoverIndex !== null && !isDragging && globalHoverIndex < data.length;
   const hoverX = isHovering ? paddingLeft + globalHoverIndex * pointGap : null;
+  const hoverY = isHovering ? normalizeY(data[globalHoverIndex]) : null;
 
   return (
     <div className={`bg-[#111827] border border-slate-700 rounded-xl flex flex-col overflow-hidden ${className}`}>
       
       {/* Header */}
-      <div className="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between bg-[#0f172a]">
+      <div className="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between bg-[#0f172a] shrink-0">
         <p className="text-sm text-slate-300 font-bold uppercase tracking-wide">{title}</p>
         <div className="flex items-center gap-3">
           <span className="text-sm font-bold" style={{ color }}>
@@ -184,7 +194,7 @@ function DynamicChart({ title, height = 240, color, gradientId, seed, points = 7
       </div>
 
       {/* SVG Container */}
-      <div className="relative w-full bg-[#0f172a]" style={{ height }}>
+      <div className="relative w-full flex-1 bg-[#0f172a]" style={{ height: height - 60 }}>
         <div
           ref={scrollRef}
           className={`w-full h-full relative overflow-x-auto overflow-y-hidden hide-scrollbar select-none ${isDragging ? "cursor-grabbing" : "cursor-crosshair"}`}
@@ -195,20 +205,27 @@ function DynamicChart({ title, height = 240, color, gradientId, seed, points = 7
           onMouseUp={() => setIsDragging(false)}
           onMouseMove={handleMouseMove}
         >
-          <svg width={chartWidth} height={height} className="overflow-visible pointer-events-none">
+          <svg width={Math.max(window.innerWidth, chartWidth)} height={height - 60} className="overflow-visible pointer-events-none">
             {/* Grid */}
             {[...Array(5)].map((_, i) => {
-              const y = paddingTop + (i * (height - paddingTop - paddingBottom)) / 4;
-              return <line key={i} x1={0} y1={y} x2={chartWidth} y2={y} stroke="#1e293b" strokeWidth="1" />;
+              const y = paddingTop + (i * ((height - 60) - paddingTop - paddingBottom)) / 4;
+              return <line key={i} x1={0} y1={y} x2={Math.max(window.innerWidth, chartWidth)} y2={y} stroke="#1e293b" strokeWidth="1" />;
             })}
-            <line x1={0} y1={height - paddingBottom} x2={chartWidth} y2={height - paddingBottom} stroke="#334155" strokeWidth="1.5" />
+            <line x1={0} y1={(height - 60) - paddingBottom} x2={Math.max(window.innerWidth, chartWidth)} y2={(height - 60) - paddingBottom} stroke="#334155" strokeWidth="1.5" />
 
-            {/* Labels */}
-            {data.map((_, i) => (
-              <text key={i} x={paddingLeft + i * pointGap} y={height - paddingBottom + 16} fill="#64748b" fontSize="9" textAnchor="middle">
-                {LABELS[i % LABELS.length]}
-              </text>
-            ))}
+            {/* Labels Base (คำนวณระยะห่างอัตโนมัติตามระดับการซูม) */}
+            {data.map((_, i) => {
+              const labelInterval = Math.max(1, Math.ceil(80 / pointGap));
+              if (i % labelInterval !== 0) return null;
+              return (
+                <g key={i}>
+                  <line x1={paddingLeft + i * pointGap} y1={(height - 60) - paddingBottom} x2={paddingLeft + i * pointGap} y2={(height - 60) - paddingBottom + 5} stroke="#334155" strokeWidth="1" />
+                  <text x={paddingLeft + i * pointGap} y={(height - 60) - paddingBottom + 18} fill="#64748b" fontSize="10" textAnchor="middle">
+                    {LABELS[i % LABELS.length]}
+                  </text>
+                </g>
+              );
+            })}
 
             {/* Area */}
             <defs>
@@ -218,7 +235,7 @@ function DynamicChart({ title, height = 240, color, gradientId, seed, points = 7
               </linearGradient>
             </defs>
             <path
-              d={`${linePath} L ${lastX},${height - paddingBottom} L ${paddingLeft},${height - paddingBottom} Z`}
+              d={`${linePath} L ${lastX},${(height - 60) - paddingBottom} L ${paddingLeft},${(height - 60) - paddingBottom} Z`}
               fill={`url(#${areaId})`}
             />
 
@@ -234,36 +251,26 @@ function DynamicChart({ title, height = 240, color, gradientId, seed, points = 7
 
             {/* Last Point Dot */}
             {!isHovering && (
-               <>
-                 <circle cx={lastX} cy={normalizeY(lastPt)} r="4" fill={color} stroke="#0f172a" strokeWidth="2" />
-               </>
+               <circle cx={lastX} cy={normalizeY(lastPt)} r="4" fill={color} stroke="#0f172a" strokeWidth="2" />
             )}
 
-            {/* Hover Crosshair */}
+            {/* Hover Crosshair (TradingView Style) */}
             {isHovering && (
               <g>
-                <line x1={hoverX} y1={paddingTop} x2={hoverX} y2={height - paddingBottom} stroke="#475569" strokeWidth="1" strokeDasharray="4 4" />
-                <circle cx={hoverX} cy={normalizeY(data[globalHoverIndex])} r="4" fill={color} stroke="#0f172a" strokeWidth="2" />
-                <text x={hoverX} y={normalizeY(data[globalHoverIndex]) - 10} fill={color} fontSize="11" fontWeight="700" textAnchor="middle">
-                  {data[globalHoverIndex].toFixed(2)}
-                </text>
+                <line x1={hoverX} y1={paddingTop} x2={hoverX} y2={(height - 60) - paddingBottom} stroke="#475569" strokeWidth="1" strokeDasharray="4 4" />
+                <line x1={0} y1={hoverY} x2={Math.max(window.innerWidth, chartWidth)} y2={hoverY} stroke="#475569" strokeWidth="1" strokeDasharray="4 4" />
+                <circle cx={hoverX} cy={hoverY} r="4" fill={color} stroke="#0f172a" strokeWidth="2" />
+
+                {/* X-Axis Date Badge */}
+                <g transform={`translate(${hoverX}, ${(height - 60) - paddingBottom + 12})`}>
+                  <rect x="-30" y="-8" width="60" height="18" fill="#1e293b" stroke="#475569" strokeWidth="1" rx="4" />
+                  <text x="0" y="1" fill="#ffffff" fontSize="10" textAnchor="middle" dominantBaseline="central" fontWeight="bold">
+                    {LABELS[globalHoverIndex % LABELS.length]}
+                  </text>
+                </g>
               </g>
             )}
           </svg>
-
-          {/* Floating Tooltip */}
-          {isHovering && (
-            <div
-              className="absolute top-3 z-50 flex flex-col items-center min-w-[60px] bg-[#1e293b] border border-slate-600 rounded-md p-1.5 shadow-xl pointer-events-none transition-transform duration-75"
-              style={{
-                left: `${hoverX}px`,
-                transform: globalHoverIndex > data.length - 5 ? "translateX(calc(-100% - 10px))" : "translateX(10px)",
-              }}
-            >
-              <span className="text-[10px] text-slate-400 font-medium mb-1">{LABELS[globalHoverIndex % LABELS.length]}</span>
-              <span className="text-white text-[12px] font-bold">{data[globalHoverIndex].toFixed(2)}</span>
-            </div>
-          )}
         </div>
 
         {/* Bottom Fade Overlay */}
@@ -272,24 +279,35 @@ function DynamicChart({ title, height = 240, color, gradientId, seed, points = 7
         {/* Right Axis Panel */}
         <div className="absolute right-0 top-0 w-[55px] h-full pointer-events-none bg-[#0f172a] z-10 border-l border-slate-800/50">
           <svg className="w-full h-full absolute right-0 top-0 overflow-visible pointer-events-none">
+            {/* Y-Axis Grid Values */}
             {[...Array(5)].map((_, i) => {
-              const y = paddingTop + (i * (height - paddingTop - paddingBottom)) / 4;
+              const y = paddingTop + (i * ((height - 60) - paddingTop - paddingBottom)) / 4;
               const value = yScale.max - (i * (yScale.max - yScale.min)) / 4;
               return <text key={i} x="48" y={y} fill="#64748b" fontSize="10" textAnchor="end" dominantBaseline="central">{value.toFixed(2)}</text>;
             })}
 
-            {/* Current Value Badge */}
+            {/* Current Last Value Badge */}
             {(() => {
               const badgeY = normalizeY(lastPt);
               return (
                 <g transform={`translate(6, ${badgeY})`}>
                   <rect x="0" y="-10" width="42" height="20" fill={color} rx="4" />
                   <text x="21" y="0" fill="#ffffff" fontSize="10" textAnchor="middle" dominantBaseline="central" fontWeight="bold">
-                    {lastPt.toFixed(1)}
+                    {lastPt.toFixed(2)}
                   </text>
                 </g>
               );
             })()}
+
+            {/* Hover Y-Axis Value Badge */}
+            {isHovering && (
+              <g transform={`translate(6, ${hoverY})`}>
+                <rect x="0" y="-10" width="42" height="20" fill="#1e293b" stroke="#475569" strokeWidth="1" rx="4" />
+                <text x="21" y="0" fill="#ffffff" fontSize="10" textAnchor="middle" dominantBaseline="central" fontWeight="bold">
+                  {data[globalHoverIndex].toFixed(2)}
+                </text>
+              </g>
+            )}
           </svg>
         </div>
       </div>
@@ -304,6 +322,7 @@ function DynamicChart({ title, height = 240, color, gradientId, seed, points = 7
 export default function RubberThai() {
   const navigate = useNavigate();
   const scrollContainerRef = useRef(null);
+  const chartContainerRef = useRef(null); // Ref สำหรับดึงความสูงพื้นที่ว่างทั้งหมด
 
   const [isMember, setIsMember] = useState(false);
   const [enteredTool, setEnteredTool] = useState(false);
@@ -312,9 +331,56 @@ export default function RubberThai() {
   const [symbol, setSymbol] = useState("");
   const [showSymbolDropdown, setShowSymbolDropdown] = useState(false);
   
-  // Shared Hover State
   const [globalHoverIndex, setGlobalHoverIndex] = useState(null);
   const chartRefs = useRef({});
+
+  const scrollDirection = useRef(1);
+  const isPaused = useRef(false);
+
+  // ================= ระบบ Zoom (คำนวณหา pointGap) =================
+  const [pointGap, setPointGap] = useState(40);
+  const handleZoom = useCallback((deltaY, mouseClientX, scrollEl) => {
+    setPointGap(prev => {
+      const zoomOut = deltaY > 0;
+      const scaleMultiplier = zoomOut ? 0.9 : 1.1; // ความเร็วในการซูม
+      let newGap = prev * scaleMultiplier;
+      newGap = Math.max(5, Math.min(150, newGap)); // ลิมิตซูมเข้าสุด-ออกสุด
+      
+      if (newGap === prev) return prev;
+      
+      // คำนวณให้ซูมเข้าหาตำแหน่งที่เมาส์ชี้อยู่
+      if (scrollEl) {
+        const rect = scrollEl.getBoundingClientRect();
+        const cursorX = mouseClientX - rect.left;
+        const contentX = scrollEl.scrollLeft + cursorX;
+        const ratio = newGap / prev;
+        const newContentX = contentX * ratio;
+        
+        requestAnimationFrame(() => {
+          scrollEl.scrollLeft = newContentX - cursorX;
+        });
+      }
+      return newGap;
+    });
+  }, []);
+
+  // ================= คำนวณความสูงให้เต็มจอแบบ 100% =================
+  const [chartHeight, setChartHeight] = useState(240);
+
+  useEffect(() => {
+    const calculateHeight = () => {
+      if (chartContainerRef.current) {
+        // ดึงความสูงทั้งหมดของกล่องใส่กราฟ แล้วหาร 2 หักระยะเว้นช่องว่าง (gap) ออก
+        const containerHeight = chartContainerRef.current.clientHeight;
+        setChartHeight(Math.max(150, (containerHeight - 24) / 2)); 
+      }
+    };
+
+    calculateHeight();
+    window.addEventListener("resize", calculateHeight);
+    setTimeout(calculateHeight, 100); // ดีเลย์เล็กน้อยเพื่อให้ UI เรนเดอร์เสร็จ
+    return () => window.removeEventListener("resize", calculateHeight);
+  }, [enteredTool]);
 
   const symbolList = ["STA", "NER", "TRUBB", "STGT", "24CS", "CMAN", "TEGH"];
 
@@ -350,15 +416,46 @@ export default function RubberThai() {
 
   const scroll = (direction) => {
     if (!scrollContainerRef.current) return;
+    isPaused.current = true;
     const { current } = scrollContainerRef;
     const scrollAmount = 350;
+
     if (direction === "left") {
       current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+      scrollDirection.current = -1;
     } else {
       current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+      scrollDirection.current = 1;
     }
+
     setTimeout(checkScroll, 300);
+    setTimeout(() => { isPaused.current = false; }, 500);
   };
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const speed = 1;
+    const intervalTime = 15;
+
+    const autoScrollInterval = setInterval(() => {
+      if (isPaused.current || !container) return;
+      const { scrollLeft, scrollWidth, clientWidth } = container;
+      const maxScroll = scrollWidth - clientWidth;
+
+      if (scrollDirection.current === 1 && Math.ceil(scrollLeft) >= maxScroll - 2) {
+        scrollDirection.current = -1;
+      } else if (scrollDirection.current === -1 && scrollLeft <= 2) {
+        scrollDirection.current = 1;
+      }
+
+      container.scrollLeft += (scrollDirection.current * speed);
+      checkScroll();
+    }, intervalTime);
+
+    return () => clearInterval(autoScrollInterval);
+  }, [isMember, enteredTool]);
 
   useEffect(() => {
     checkScroll();
@@ -377,6 +474,34 @@ export default function RubberThai() {
     ? symbol.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)
     : 42;
 
+  function ScaledDashboardPreview({ dashboardWidth = 900, dashboardHeight = 560 }) {
+  const outerRef = useRef(null);
+  const innerRef = useRef(null);
+
+  useEffect(() => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+    const applyScale = () => {
+      const w = outer.getBoundingClientRect().width;
+      const s = w / dashboardWidth;
+      inner.style.transform = `scale(${s})`;
+      outer.style.height = `${dashboardHeight * s}px`;
+    };
+    applyScale();
+    const ro = new ResizeObserver(applyScale);
+    ro.observe(outer);
+    return () => ro.disconnect();
+  }, [dashboardWidth, dashboardHeight]);
+
+  return (
+    <div ref={outerRef} className="w-full bg-[#080c12]" style={{ overflow: "hidden", position: "relative" }}>
+      <div ref={innerRef} style={{ width: dashboardWidth, height: dashboardHeight, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
+        <RubberThaiDashboard />
+      </div>
+    </div>
+  );
+}
   /* ==========================================================
       CASE 1 & 2 : PREVIEW VERSION (Not Member / Not Entered)
   =========================================================== */
@@ -385,7 +510,7 @@ export default function RubberThai() {
       <div className="relative w-full min-h-screen text-white overflow-hidden pb-20">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
         <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
-        <div className="relative z-10 max-w-6xl mx-auto px-4 py-8 flex flex-col items-center">
+        <div className="relative z-10 max-w-5xl mx-auto px-4 py-8 flex flex-col items-center">
           <div className="text-center mb-10">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
               <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">
@@ -404,16 +529,17 @@ export default function RubberThai() {
                   <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
                 </div>
               </div>
-              <div className="aspect-[17/9] w-full bg-[#0B1221] relative overflow-hidden group">
-                <div className="w-[150%] h-[150%] origin-top-left transform scale-[0.67]">
-                  <RubberThaiDashboard />
-                </div>
-              </div>
+              <ScaledDashboardPreview dashboardWidth={1280} dashboardHeight={780} />
             </div>
           </div>
           <div className="w-full max-w-5xl mb-12">
             <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left border-l-4 border-cyan-500 pl-4">4 Main Features</h2>
-            <div className="relative group">
+            
+            <div 
+              className="relative group"
+              onMouseEnter={() => (isPaused.current = true)}
+              onMouseLeave={() => (isPaused.current = false)}
+            >
               <button onClick={() => scroll("left")} className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 hover:text-white hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] flex items-center justify-center backdrop-blur-sm active:scale-95 ${showLeft ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`} aria-label="Scroll Left">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
               </button>
@@ -459,11 +585,12 @@ export default function RubberThai() {
       CASE 3 : FULL DASHBOARD
   ========================================================== */
   return (
-    <div className="w-full min-h-screen bg-[#0b111a] text-white px-6 py-6">
-      <div className="max-w-[1500px] mx-auto">
+    // เปลี่ยน Wrapper นอกสุดให้ความสูงเท่ากับหน้าจอ 100vh และตัดส่วนที่เกินออก
+    <div className="w-full h-screen overflow-hidden bg-[#0b111a] text-white px-6 py-6 flex flex-col">
+      <div className="w-full mx-auto flex-1 flex flex-col min-h-0">
 
         {/* ================= TOP SEARCH BAR ================= */}
-        <div className="relative flex items-center justify-between mb-6">
+        <div className="relative flex items-center justify-between mb-6 shrink-0">
           <div className="relative w-64">
             <div className="relative bg-[#111827] border border-slate-700 rounded-md px-4 py-3 flex items-center">
               <input
@@ -506,35 +633,39 @@ export default function RubberThai() {
         </div>
 
         {/* ================= DYNAMIC CHARTS ================= */}
-        <div className="grid grid-cols-1 gap-6">
-          {/* TOP LARGE CHART — changes with symbol */}
+        <div className="flex-1 grid grid-cols-1 gap-6 min-h-0" ref={chartContainerRef}>
+          {/* TOP LARGE CHART */}
           <DynamicChart
             chartId="chart-close"
             key={`top-${symbol}`}
             title={`CLOSE (${symbol || "24CS"})`}
-            height={240}
+            height={chartHeight} 
             color="#22c55e"
             gradientId="greenArea"
             seed={chartSeed + 1}
-            points={80}
+            points={300}  // <--- เพิ่มข้อมูลเป็น 300 จุด จะได้ลากดูย้อนหลังได้ไกลขึ้น
             globalHoverIndex={globalHoverIndex}
             setGlobalHoverIndex={setGlobalHoverIndex}
             chartRefs={chartRefs}
+            pointGap={pointGap}     // ส่ง State Zoom ลงไป
+            handleZoom={handleZoom} // ส่ง Function Zoom ลงไป
           />
 
-          {/* BOTTOM CHART — rubber price, different seed */}
+          {/* BOTTOM CHART */}
           <DynamicChart
             chartId="chart-rubber"
             key={`bot-${symbol}`}
             title="Rubber Thai Price"
-            height={240}
+            height={chartHeight}
             color="#facc15"
             gradientId="yellowArea"
             seed={chartSeed + 97}
-            points={80}
+            points={300}  // <--- เพิ่มข้อมูลเป็น 300 จุด จะได้ลากดูย้อนหลังได้ไกลขึ้น
             globalHoverIndex={globalHoverIndex}
             setGlobalHoverIndex={setGlobalHoverIndex}
             chartRefs={chartRefs}
+            pointGap={pointGap}     // ส่ง State Zoom ลงไป
+            handleZoom={handleZoom} // ส่ง Function Zoom ลงไป
           />
         </div>
 

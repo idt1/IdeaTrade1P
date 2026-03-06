@@ -421,8 +421,8 @@ export default function Gold() {
                 </div>
               </div>
 
-              <div className="aspect-[12.5/9] w-full bg-[#0B1221] relative overflow-hidden group">
-                  <div className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-[1.01] transition duration-500 ease-out" >
+              <div className="aspect-[3/4] md:aspect-[17/10] w-full bg-[#0B1221] relative overflow-hidden group">
+  <div className="absolute inset-0 opacity-90 group-hover:opacity-100 group-hover:scale-[1.01] transition duration-500 ease-out">
                 <GoldDashboard/>
                 </div>
               </div>
@@ -539,11 +539,12 @@ export default function Gold() {
 
   /* ==========================================================
      CASE 3 : FULL PRODUCTION GOLD DASHBOARD
+     ✅ เปลี่ยน: min-h-screen → h-screen overflow-hidden flex flex-col
   ========================================================== */
 
   return (
-    <div className="w-full min-h-screen bg-[#0b111a] text-white px-6 py-6">
-      <div className="max-w-[1700px] mx-auto">
+    <div className="w-full h-screen overflow-hidden bg-[#0b111a] text-white px-6 py-6 flex flex-col">
+      <div className="max-w-[1700px] w-full mx-auto flex-1 min-h-0 flex flex-col overflow-y-auto">
 
         {/* ================= MAIN CHART ================= */}
         <DynamicChart
@@ -555,7 +556,7 @@ export default function Gold() {
           points={100}
           basePrice={2030}
           vol={10}
-          className="mb-6"
+          className="mb-6 shrink-0"
           globalHoverIndex={globalHoverIndex}
           setGlobalHoverIndex={setGlobalHoverIndex}
           chartRefs={chartRefs}
