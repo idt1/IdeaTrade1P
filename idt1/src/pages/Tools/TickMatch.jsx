@@ -105,6 +105,62 @@ const mockDatabase = {
       { price: "198.00", buy: 10, sell: 80 }, { price: "197.50", buy: 40, sell: 40 },
     ]
   },
+  "1DIV": {
+  sumBuy: "1,354,802", 
+  sumSell: "1,111,900", 
+  netVol: "243,002",
+  
+  // 📊 Tick Data (13 รายการ - แสดงทุก transaction)
+  ticks: [
+    { time: "09:57.002", last: "12.15", vol: "1,000", type: "B", sum: "12,150" },
+    { time: "10:01.004", last: "12.15", vol: "400", type: "S", sum: "7,290" },
+    { time: "10:01.004", last: "12.15", vol: "200", type: "S", sum: "4,860" },
+    { time: "09:57.002", last: "12.15", vol: "1,000", type: "B", sum: "17,010" },
+    { time: "10:01.004", last: "12.15", vol: "400", type: "S", sum: "12,150" },
+    { time: "10:01.004", last: "12.15", vol: "200", type: "S", sum: "9,720" },
+    { time: "10:08.238", last: "12.15", vol: "800", type: "S", sum: "0" },
+    { time: "10:07.917", last: "12.10", vol: "100", type: "S", sum: "-1,210" },
+    { time: "10:07.917", last: "12.10", vol: "100", type: "S", sum: "-3,420" },
+    { time: "10:07.917", last: "12.10", vol: "400", type: "S", sum: "-7,260" },
+    { time: "10:14.151", last: "12.00", vol: "1,000", type: "S", sum: "-19,260" },
+    { time: "10:14.151", last: "12.00", vol: "400", type: "S", sum: "-24,060" },
+    { time: "10:14.151", last: "12.00", vol: "100", type: "S", sum: "-25,260" },
+  ],
+  
+  // 🔄 Flip Signal Data (5 ครั้ง - จุดที่เงินกลับทิศ)
+  flips: [
+    { id: 1, time: "10:22.787", from: "-51,045", to: "58,180" },   // กลับจาก Sell เป็น Buy
+    { id: 2, time: "10:35.724", from: "4,818", to: "-18,382" },    // กลับจาก Buy เป็น Sell
+    { id: 3, time: "10:55.770", from: "17,307", to: "-99,893" },   // กลับจาก Buy เป็น Sell (แรง)
+    { id: 4, time: "11:02.759", from: "-97,549", to: "58,061" },   // กลับจาก Sell เป็น Buy (แรง)
+    { id: 5, time: "14:05.012", from: "-1,998", to: "3,777" },     // กลับจาก Sell เป็น Buy
+  ],
+  
+  // 📈 Price-Based Distribution Chart (21 price levels)
+  charts: [
+    { price: "12.10", buy: 5200, sell: 6800 },    // ราคาสูงสุด
+    { price: "12.00", buy: 4100, sell: 5900 },
+    { price: "11.90", buy: 3800, sell: 4200 },
+    { price: "11.88", buy: 9200, sell: 12800 },
+    { price: "11.80", buy: 28000, sell: 7200 },   // Buy Volume สูงมาก
+    { price: "11.79", buy: 14200, sell: 22800 },
+    { price: "11.78", buy: 14200, sell: 4800 },
+    { price: "11.77", buy: 13800, sell: 3200 },
+    { price: "11.72", buy: 8200, sell: 30200 },   // Sell Volume สูงมาก
+    { price: "11.70", buy: 4600, sell: 19500 },
+    { price: "11.68", buy: 19600, sell: 4200 },
+    { price: "11.63", buy: 3200, sell: 16200 },
+    { price: "11.62", buy: 18200, sell: 20100 },
+    { price: "11.61", buy: 18400, sell: 6200 },
+    { price: "11.59", buy: 7200, sell: 19800 },
+    { price: "11.58", buy: 16800, sell: 8200 },
+    { price: "11.57", buy: 17500, sell: 23500 },
+    { price: "11.56", buy: 19800, sell: 12800 },
+    { price: "11.55", buy: 9800, sell: 27800 },
+    { price: "11.54", buy: 28200, sell: 18200 },  // Buy Volume สูงมาก
+    { price: "11.52", buy: 18200, sell: 4200 },   // ราคาต่ำสุด
+  ]
+},
 };
 
 export default function TickMatch() {
@@ -224,25 +280,23 @@ export default function TickMatch() {
   ================================ */
 const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "" }) => {
 
+  // ========== STATES ==========
   const [hasSearched, setHasSearched] = useState(false);
   const [isSynced, setIsSynced] = useState(true);
-
   const [symbol, setSymbol] = useState(defaultSymbol);
   const [showSymbolDropdown, setShowSymbolDropdown] = useState(false);
   const [symbolHistory, setSymbolHistory] = useState([]);
   const [filteredSymbols, setFilteredSymbols] = useState([]);
-
-  const todayMax = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(defaultDate);
   const [activeSymbol, setActiveSymbol] = useState(defaultSymbol);
   const [isSyncing, setIsSyncing] = useState(false);
-  
-   // ✨ NEW: State สำหรับเปิด/ปิด Flip Section
   const [isFlipOpen, setIsFlipOpen] = useState(true);
-
-    // ✨ NEW: State สำหรับ Chart Modal
   const [isChartModalOpen, setIsChartModalOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState("all"); // ✅ Filter state
 
+  const todayMax = new Date().toISOString().split("T")[0];
+
+  // ========== EFFECTS ==========
   useEffect(() => {
     const saved = localStorage.getItem("tickmatch_symbol_history");
     if (saved) {
@@ -255,47 +309,49 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "" }) => {
       setFilteredSymbols(symbolHistory);
       return;
     }
-
     const filtered = symbolHistory.filter((item) =>
       item.toLowerCase().includes(symbol.toLowerCase())
     );
-
     setFilteredSymbols(filtered);
   }, [symbol, symbolHistory]);
 
+  // 3️⃣ Functions
   const handleSearch = () => {
     if (!symbol.trim()) return;
-
     setIsSyncing(true);
-
     setTimeout(() => {
       setHasSearched(true); 
       setActiveSymbol(symbol.toUpperCase());
-
       const updated = [
         symbol.toUpperCase(),
         ...symbolHistory.filter((s) => s !== symbol.toUpperCase())
       ].slice(0, 10);
-
       setSymbolHistory(updated);
-      localStorage.setItem(
-        "tickmatch_symbol_history",
-        JSON.stringify(updated)
-      );
-
+      localStorage.setItem("tickmatch_symbol_history", JSON.stringify(updated));
       setIsSyncing(false);
     }, 800);
   };
 
+  // 4️⃣ ✅ ประกาศ data ก่อน
   const data = mockDatabase[activeSymbol?.toUpperCase()] || mockDatabase[""];
 
+  // 5️⃣ ✅ ใช้ data หลังจากประกาศแล้ว
+  const filteredTicks = data.ticks.filter(tick => {
+    const vol = parseInt(tick.vol.replace(/,/g, "")) || 0;
+    if (activeFilter === "buy") return tick.type === "B";
+    if (activeFilter === "sell") return tick.type === "S";
+    if (activeFilter === ">100k") return vol > 100000;
+    return true;
+  });
+
+  // 6️⃣ Calculate percentages
   const totalBuy = parseInt(data.sumBuy.replace(/,/g, "")) || 0;
   const totalSell = parseInt(data.sumSell.replace(/,/g, "")) || 0;
   const total = totalBuy + totalSell;
   const buyPercent = total === 0 ? 50 : (totalBuy / total) * 100;
 
-return (
-    <div className="flex flex-col h-full bg-[#111827] border border-slate-700 rounded-lg p-3 shadow-lg overflow-hidden" style={scrollbarHideStyle}>
+  return (
+    <div className="flex flex-col h-full bg-[#111827] border border-slate-700 rounded-lg shadow-lg overflow-hidden" style={scrollbarHideStyle}>
       
       {isSyncing && (
         <div className="absolute inset-0 bg-[#111827]/60 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-lg">
@@ -303,268 +359,370 @@ return (
         </div>
       )}
 
-      {/* --- SECTION 1: Header & Inputs (Fixed) --- */}
-      <div className="grid grid-cols-12 gap-2 mb-2 items-end shrink-0">
-        {/* SYNC Button */}
-        <div className="col-span-2">
-          <button
-            onClick={() => setIsSynced(!isSynced)}
-            className={`w-full h-[40px] flex items-center justify-center gap-2 text-sm font-semibold rounded-lg transition-all duration-200
-              ${isSynced ? "bg-[#0E3A6D] hover:bg-[#124a8a] text-white" : "bg-[#8FA3B5] hover:bg-[#7f95a8] text-white"}`}
-          >
-            {isSynced ? (
-              <>
-                <LinkOutlinedIcon sx={{ fontSize: 17, opacity: 0.95 }} />
-                SYNC
-              </>
-            ) : (
-              <>
-                <LinkOffOutlinedIcon sx={{ fontSize: 17, opacity: 0.9 }} />
-                UNSYNC
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* SYMBOL Input */}
-        <div className="col-span-4 relative">
-          <input
-            value={symbol}
-            placeholder=" "
-            onChange={(e) => {
-              setSymbol(e.target.value);
-              setShowSymbolDropdown(true);
-            }}
-            onFocus={() => setShowSymbolDropdown(true)}
-            onBlur={() => setTimeout(() => setShowSymbolDropdown(false), 150)}
-            className="peer w-full bg-[#111827] border border-slate-600 rounded-md px-3 py-2 text-white text-xs uppercase outline-none"
-          />
-          <label className="absolute left-3 px-1 text-[10px] bg-[#0f172a] text-slate-400 transition-all duration-200 pointer-events-none peer-placeholder-shown:top-2 peer-placeholder-shown:text-slate-500 peer-focus:-top-2 peer-focus:text-cyan-400 -top-2">
-            Symbol*
-          </label>
-
-          {showSymbolDropdown && filteredSymbols.length > 0 && (
-            <div className="absolute left-0 right-0 mt-1 bg-[#0f172a] border border-slate-700 rounded-md shadow-lg z-50 max-h-40 overflow-y-auto">
-              {filteredSymbols.map((item, index) => (
-                <div
-                  key={index}
-                  onClick={() => {
-                    setSymbol(item);
-                    setShowSymbolDropdown(false);
-                  }}
-                  className="px-3 py-2 text-xs text-white hover:bg-indigo-600 cursor-pointer transition"
-                >
-                  {item}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* DATE Input */}
-        <div className="col-span-3 relative">
-          <input
-            type="date"
-            value={date}
-            max={todayMax}
-            placeholder=" "
-            onChange={(e) => setDate(e.target.value)}
-            className="peer w-full bg-[#0B1221] border border-slate-600 rounded-md px-3 py-2 text-white text-xs outline-none [&::-webkit-calendar-picker-indicator]:invert"
-          />
-          <label className="absolute left-3 px-1 text-[10px] bg-[#0f172a] text-slate-400 transition-all duration-200 pointer-events-none peer-placeholder-shown:top-2 peer-placeholder-shown:text-slate-500 peer-focus:-top-2 peer-focus:text-cyan-400 -top-2">
-            Date
-          </label>
-        </div>
-
-        {/* SEARCH Button */}
-        <div className="col-span-3">
-          <button
-            onClick={handleSearch}
-            disabled={isSyncing}
-            className="w-full h-[38px] bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded transition active:scale-95 disabled:opacity-50"
-          >
-            SEARCH
-          </button>
-        </div>
-      </div>
-
-      {/* --- SECTION 2: Summary Cards (Fixed) --- */}
-      <div className="grid grid-cols-3 gap-2 mb-2 shrink-0">
-        <div className="bg-[#1e1e1e] border border-green-900/50 rounded p-2 flex flex-col relative overflow-hidden">
-          <span className="text-[10px] text-slate-400">Sum Buy</span>
-          <span className={`font-bold text-lg text-right ${activeSymbol ? 'text-green-500' : 'text-white'}`}>{data.sumBuy}</span>
-          <div className="absolute bottom-0 left-0 h-[2px] bg-green-500 w-full"></div>
-        </div>
-        <div className="bg-[#1e1e1e] border border-red-900/50 rounded p-2 flex flex-col relative overflow-hidden">
-          <span className="text-[10px] text-slate-400">Sum Sell</span>
-          <span className={`font-bold text-lg text-right ${activeSymbol ? 'text-red-500' : 'text-white'}`}>{data.sumSell}</span>
-          <div className="absolute bottom-0 left-0 h-[2px] bg-red-500 w-full"></div>
-        </div>
-        <div className="bg-[#1e1e1e] border border-slate-700/50 rounded p-2 flex flex-col relative overflow-hidden">
-          <span className="text-[10px] text-slate-400">Net Acc. Vol</span>
-          <span className={`${data.netVol === "0" ? 'text-white' : (data.netVol.includes('-') ? 'text-red-500' : 'text-green-500')} font-bold text-lg text-right`}>
-            {data.netVol}
-          </span>
-          <div className={`absolute bottom-0 left-0 h-[2px] w-full ${data.netVol === "0" ? 'bg-slate-500' : (data.netVol.includes('-') ? 'bg-red-500' : 'bg-green-500')}`}></div>
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="w-full h-1 bg-red-600 rounded-full mb-2 flex overflow-hidden shrink-0">
-        <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${buyPercent}%` }}></div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-2 mb-2 shrink-0">
-        <button className="bg-slate-700 text-white text-[10px] px-3 py-1 rounded hover:bg-slate-600">All</button>
-        <button className="bg-[#1f2937] text-slate-400 border border-slate-600 text-[10px] px-3 py-1 rounded hover:text-white">Buy Only</button>
-        <button className="bg-[#1f2937] text-slate-400 border border-slate-600 text-[10px] px-3 py-1 rounded hover:text-white">Sell Only</button>
-        <button className="bg-[#1f2937] text-slate-400 border border-slate-600 text-[10px] px-3 py-1 rounded hover:text-white">{'>'} 100K</button>
-      </div>
-
-      {/* --- SECTION 3: Tick Table (Scrollable) --- */}
-      <div className="rounded overflow-hidden border border-slate-800/50 bg-[#0B1221] shrink-0 h-[100px] mb-2 flex flex-col">
-        <table className="w-full text-right border-collapse">
-          <thead className="bg-[#1f2937] text-slate-400 text-[10px] font-medium sticky top-0 z-10 shadow-sm">
-            <tr>
-              <th className="p-2 text-center">Time</th>
-              <th className="p-2">Last</th>
-              <th className="p-2">Vol</th>
-              <th className="p-2 text-center">Type</th>
-              <th className="p-2">Sum</th>
-            </tr>
-          </thead>
-          <tbody className="text-xs font-mono text-slate-300 overflow-y-auto">
-            {data.ticks.slice(0, 5).map((row, idx) => (
-              <tr key={idx} className="border-b border-slate-800/30 hover:bg-slate-800/50 transition-colors">
-                <td className="p-2 text-center text-slate-400">{row.time}</td>
-                <td className="p-2 text-yellow-500">{row.last}</td>
-                <td className="p-2 font-bold text-slate-200">{row.vol}</td>
-                <td className="p-2 flex justify-center items-center">
-                  <span className={`flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold text-black ${row.type === 'B' ? 'bg-green-500' : 'bg-red-500'}`}>
-                    {row.type}
-                  </span>
-                </td>
-                <td className="p-2 text-slate-500">{row.sum}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* --- SECTION 4: Flip Section (Collapsible) --- */}
-      {hasSearched && (
-        <div className="bg-[#0B1221] border border-slate-800/50 rounded mb-2 overflow-hidden shrink-0 flex flex-col">
-          
-          {/* ✨ NEW: Clickable Header */}
-          <div 
-            onClick={() => setIsFlipOpen(!isFlipOpen)}
-            className="bg-[#1f2937] p-2 flex justify-between items-center cursor-pointer hover:bg-[#252d3d] transition"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-white">
-                Total Flip Count: {data.flips.length}
-              </span>
-              <div className="flex gap-3 text-[10px]">
-                <span className="flex items-center gap-1 text-red-400">
-                  <div className="w-3 h-1.5 bg-red-500"></div> Net Vol {'<'} 0
-                </span>
-                <span className="flex items-center gap-1 text-green-400">
-                  <div className="w-3 h-1.5 bg-green-500"></div> Net Vol {'>'} 0
-                </span>
-              </div>
-            </div>
-            
-            {/* ✨ NEW: Expand/Collapse Icon */}
-            <ExpandMoreIcon 
-              sx={{
-                fontSize: 20,
-                transition: 'transform 0.3s ease',
-                transform: isFlipOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
-                color: '#94a3b8'
-              }}
-            />
-          </div>
-
-          {/* ✨ NEW: Collapsible Content */}
-          {isFlipOpen && (
-            <>
-              {/* Timeline Bar */}
-              <div className="p-3 border-b border-slate-700/50 bg-[#111827] h-[50px] flex items-center">
-                <div className="w-full h-2 bg-gradient-to-r from-red-500 via-slate-600 to-green-500 rounded-full flex">
-                  {data.flips.map((flip, idx) => (
-                    <div key={idx} className="flex-1 h-full first:rounded-l-full last:rounded-r-full" />
-                  ))}
-                </div>
-              </div>
-
-              {/* Flip Table */}
-              <table className="w-full text-center border-collapse overflow-hidden">
-                <thead className="bg-[#1f2937] text-slate-400 text-[10px] font-medium border-t border-slate-700/50">
-                  <tr>
-                    <th className="p-1.5">ครั้งที่</th>
-                    <th className="p-1.5">Time</th>
-                    <th className="p-1.5">From Acc. Vol</th>
-                    <th className="p-1.5">To Acc. Vol</th>
-                  </tr>
-                </thead>
-                <tbody className="text-xs">
-                  {data.flips.length > 0 ? (
-                    data.flips.map((flip) => (
-                      <tr key={flip.id} className="border-b border-slate-800/30 hover:bg-slate-800/50 transition-colors">
-                        <td className="p-1.5 text-slate-400">{flip.id}</td>
-                        <td className="p-1.5 text-yellow-500">{flip.time}</td>
-                        <td className={`p-1.5 ${flip.from.includes('-') ? 'text-red-400' : 'text-green-400'}`}>{flip.from}</td>
-                        <td className={`p-1.5 ${flip.to.includes('-') ? 'text-red-400' : 'text-green-400'}`}>{flip.to}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="4" className="p-6 text-slate-500 text-xs">
-                        No Flip Data
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* --- SECTION 5: Chart Section (Fixed Height) --- */}
-      {hasSearched && (
-        <div className="bg-[#0B1221] border border-slate-800/50 rounded overflow-hidden shrink-0 flex flex-col h-[150px] relative">
-          
-          {/* ✨ NEW: Chart Header with Zoom Icon */}
-          <div className="bg-[#1f2937] p-2 flex justify-between items-center">
-            <div className="flex items-center gap-2 text-slate-300">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span className="text-[10px] font-semibold">Buy Volume</span>
-              <div className="w-3 h-3 rounded-full bg-red-500 ml-2"></div>
-              <span className="text-[10px] font-semibold">Sell Volume</span>
-            </div>
-            
-            {/* ✨ NEW: Zoom Button */}
+      {/* ========== FIXED HEADER SECTION ========== */}
+      <div className="shrink-0">
+        {/* --- SECTION 1: Header & Inputs --- */}
+        <div className="grid grid-cols-12 gap-2 p-3 pb-2 items-end bg-[#111827]">
+          {/* SYNC Button */}
+          <div className="col-span-2">
             <button
-              onClick={() => setIsChartModalOpen(true)}
-              className="p-1.5 hover:bg-slate-700 rounded transition"
-              title="ซูม Chart"
+              onClick={() => setIsSynced(!isSynced)}
+              className={`w-full h-[40px] flex items-center justify-center gap-2 text-sm font-semibold rounded-lg transition-all duration-200
+                ${isSynced ? "bg-[#0E3A6D] hover:bg-[#124a8a] text-white" : "bg-[#8FA3B5] hover:bg-[#7f95a8] text-white"}`}
             >
-              <SearchIcon sx={{ fontSize: 18, color: '#94a3b8' }} />
+              {isSynced ? (
+                <>
+                  <LinkOutlinedIcon sx={{ fontSize: 17, opacity: 0.95 }} />
+                  SYNC
+                </>
+              ) : (
+                <>
+                  <LinkOffOutlinedIcon sx={{ fontSize: 17, opacity: 0.9 }} />
+                  UNSYNC
+                </>
+              )}
             </button>
           </div>
 
-          {/* Chart Placeholder */}
-          <div className="flex-1 flex items-center justify-center bg-[#111827]">
-            <span className="text-xs text-slate-500">
-              Chart Visualization Area
-            </span>
+          {/* SYMBOL Input */}
+          <div className="col-span-4 relative">
+            <input
+              value={symbol}
+              placeholder=" "
+              onChange={(e) => {
+                setSymbol(e.target.value);
+                setShowSymbolDropdown(true);
+              }}
+              onFocus={() => setShowSymbolDropdown(true)}
+              onBlur={() => setTimeout(() => setShowSymbolDropdown(false), 150)}
+              className="peer w-full bg-[#111827] border border-slate-600 rounded-md px-3 py-2 text-white text-xs uppercase outline-none"
+            />
+            <label className="absolute left-3 px-1 text-[10px] bg-[#0f172a] text-slate-400 transition-all duration-200 pointer-events-none peer-placeholder-shown:top-2 peer-placeholder-shown:text-xs peer-focus:text-[10px] peer-focus:-top-2 -top-2">
+              Symbol*
+            </label>
+
+            {showSymbolDropdown && filteredSymbols.length > 0 && (
+              <div className="absolute left-0 right-0 mt-1 bg-[#0f172a] border border-slate-700 rounded-md shadow-lg z-50 max-h-40 overflow-y-auto">
+                {filteredSymbols.map((item, index) => (
+                  <div
+                    key={index}
+                    onClick={() => {
+                      setSymbol(item);
+                      setShowSymbolDropdown(false);
+                    }}
+                    className="px-3 py-2 text-xs text-white hover:bg-indigo-600 cursor-pointer transition"
+                  >
+                    {item}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* DATE Input */}
+          <div className="col-span-3 relative">
+            <input
+              type="date"
+              value={date}
+              max={todayMax}
+              placeholder=" "
+              onChange={(e) => setDate(e.target.value)}
+              className="peer w-full bg-[#0B1221] border border-slate-600 rounded-md px-3 py-2 text-white text-xs outline-none [&::-webkit-calendar-picker-indicator]:invert"
+            />
+            <label className="absolute left-3 px-1 text-[10px] bg-[#0f172a] text-slate-400 transition-all duration-200 pointer-events-none peer-placeholder-shown:top-2 peer-placeholder-shown:text-xs peer-focus:text-[10px] peer-focus:-top-2 -top-2">
+              Date
+            </label>
+          </div>
+
+          {/* SEARCH Button */}
+          <div className="col-span-3">
+            <button
+              onClick={handleSearch}
+              disabled={isSyncing}
+              className="w-full h-[38px] bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded transition active:scale-95 disabled:opacity-50"
+            >
+              SEARCH
+            </button>
           </div>
         </div>
-      )}
 
-      {/* ✨ NEW: Chart Modal (Fullscreen View) */}
+        {/* --- SECTION 2: Summary Cards --- */}
+        <div className="px-3 pb-2">
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-[#1e1e1e] border border-green-900/50 rounded p-2 flex flex-col relative overflow-hidden">
+              <span className="text-[10px] text-slate-400">Sum Buy</span>
+              <span className={`font-bold text-lg text-right ${activeSymbol ? 'text-green-500' : 'text-white'}`}>{data.sumBuy}</span>
+              <div className="absolute bottom-0 left-0 h-[2px] bg-green-500 w-full"></div>
+            </div>
+            <div className="bg-[#1e1e1e] border border-red-900/50 rounded p-2 flex flex-col relative overflow-hidden">
+              <span className="text-[10px] text-slate-400">Sum Sell</span>
+              <span className={`font-bold text-lg text-right ${activeSymbol ? 'text-red-500' : 'text-white'}`}>{data.sumSell}</span>
+              <div className="absolute bottom-0 left-0 h-[2px] bg-red-500 w-full"></div>
+            </div>
+            <div className="bg-[#1e1e1e] border border-slate-700/50 rounded p-2 flex flex-col relative overflow-hidden">
+              <span className="text-[10px] text-slate-400">Net Acc. Vol</span>
+              <span className={`${data.netVol === "0" ? 'text-white' : (data.netVol.includes('-') ? 'text-red-500' : 'text-green-500')} font-bold text-lg text-right`}>
+                {data.netVol}
+              </span>
+              <div className={`absolute bottom-0 left-0 h-[2px] w-full ${data.netVol === "0" ? 'bg-slate-500' : (data.netVol.includes('-') ? 'bg-red-500' : 'bg-green-500')}`}></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="px-3 pb-2">
+          <div className="w-full h-1 bg-red-600 rounded-full flex overflow-hidden">
+            <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${buyPercent}%` }}></div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="px-3 pb-2">
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setActiveFilter("all")}
+              className={`text-[10px] px-3 py-1 rounded transition ${
+                activeFilter === "all" 
+                  ? "bg-slate-700 text-white" 
+                  : "bg-[#1f2937] text-slate-400 border border-slate-600 hover:text-white"
+              }`}
+            >
+              All
+            </button>
+            <button 
+              onClick={() => setActiveFilter("buy")}
+              className={`text-[10px] px-3 py-1 rounded transition ${
+                activeFilter === "buy" 
+                  ? "bg-green-700 text-white" 
+                  : "bg-[#1f2937] text-slate-400 border border-slate-600 hover:text-white"
+              }`}
+            >
+              Buy Only
+            </button>
+            <button 
+              onClick={() => setActiveFilter("sell")}
+              className={`text-[10px] px-3 py-1 rounded transition ${
+                activeFilter === "sell" 
+                  ? "bg-red-700 text-white" 
+                  : "bg-[#1f2937] text-slate-400 border border-slate-600 hover:text-white"
+              }`}
+            >
+              Sell Only
+            </button>
+            <button 
+              onClick={() => setActiveFilter(">100k")}
+              className={`text-[10px] px-3 py-1 rounded transition ${
+                activeFilter === ">100k" 
+                  ? "bg-blue-700 text-white" 
+                  : "bg-[#1f2937] text-slate-400 border border-slate-600 hover:text-white"
+              }`}
+            >
+              {'>'} 100K
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ========== SCROLLABLE CONTENT AREA ========== */}
+      <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2" style={scrollbarHideStyle}>
+        
+        {/* --- SECTION 3: Tick Table (Scrollable Inside) --- */}
+        <div className="rounded overflow-hidden border border-slate-800/50 bg-[#0B1221]">
+          {/* Header - Fixed */}
+          <div className="bg-[#1f2937] grid grid-cols-5 text-slate-400 text-[10px] font-medium border-b border-slate-800 sticky top-0 z-10">
+            <div className="p-2 text-center">Time</div>
+            <div className="p-2 text-right">Last</div>
+            <div className="p-2 text-right">Vol</div>
+            <div className="p-2 text-center">Type</div>
+            <div className="p-2 text-right">Sum</div>
+          </div>
+          
+          {/* Body - Scrollable */}
+          <div className="overflow-y-auto max-h-[200px]" style={scrollbarHideStyle}>
+            {filteredTicks.length > 0 ? (
+              filteredTicks.map((row, idx) => (
+                <div 
+                  key={idx} 
+                  className="grid grid-cols-5 text-xs font-mono text-slate-300 border-b border-slate-800/30 hover:bg-slate-800/50 transition-colors"
+                >
+                  <div className="p-2 text-center text-slate-400">{row.time}</div>
+                  <div className="p-2 text-right text-yellow-500">{row.last}</div>
+                  <div className="p-2 text-right font-bold text-slate-200">{row.vol}</div>
+                  <div className="p-2 flex justify-center items-center">
+                    <span className={`flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold text-black ${row.type === 'B' ? 'bg-green-500' : 'bg-red-500'}`}>
+                      {row.type}
+                    </span>
+                  </div>
+                  <div className={`p-2 text-right ${row.sum.includes('-') ? 'text-red-400' : 'text-green-400'}`}>{row.sum}</div>
+                </div>
+              ))
+            ) : (
+              <div className="p-6 text-center text-slate-500 text-xs">
+                No tick data available
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* --- SECTION 4: Flip Section (Collapsible & Scrollable) --- */}
+        {hasSearched && (
+          <div className="bg-[#0B1221] border border-slate-800/50 rounded overflow-hidden">
+            
+            <div 
+              onClick={() => setIsFlipOpen(!isFlipOpen)}
+              className="bg-[#1f2937] p-2 flex justify-between items-center cursor-pointer hover:bg-[#252d3d] transition"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-white">
+                  Total Flip Count: {data.flips.length}
+                </span>
+                <div className="flex gap-3 text-[10px]">
+                  <span className="flex items-center gap-1 text-red-400">
+                    <div className="w-3 h-1.5 bg-red-500"></div> Net Vol {'<'} 0
+                  </span>
+                  <span className="flex items-center gap-1 text-green-400">
+                    <div className="w-3 h-1.5 bg-green-500"></div> Net Vol {'>'} 0
+                  </span>
+                </div>
+              </div>
+              
+              <ExpandMoreIcon 
+                sx={{
+                  fontSize: 20,
+                  transition: 'transform 0.3s ease',
+                  transform: isFlipOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+                  color: '#94a3b8'
+                }}
+              />
+            </div>
+
+            {isFlipOpen && (
+              <>
+                {/* Timeline Bar */}
+                <div className="p-3 border-b border-slate-700/50 bg-[#111827]">
+                  <div className="relative w-full h-2 bg-slate-700 rounded-full">
+                    {data.flips.map((flip, idx) => {
+                      const position = data.flips.length > 1 
+                        ? (idx / (data.flips.length - 1)) * 100 
+                        : 50;
+                      const isNegative = flip.to.includes('-');
+                      
+                      return (
+                        <div 
+                          key={idx}
+                          className="absolute -translate-y-1 group/marker"
+                          style={{ left: `${position}%` }}
+                        >
+                          <div className={`w-4 h-4 rounded-full border-2 border-white shadow-lg transition-transform hover:scale-125 cursor-pointer ${
+                            isNegative ? 'bg-red-500' : 'bg-green-500'
+                          }`} />
+                          
+                          {/* Tooltip on Hover */}
+                          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 opacity-0 group-hover/marker:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
+                            <div className="bg-slate-900 text-white text-[10px] px-2 py-1 rounded shadow-lg">
+                              <div>#{flip.id} - {flip.time}</div>
+                              <div className={isNegative ? 'text-red-400' : 'text-green-400'}>
+                                {flip.from} → {flip.to}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Flip Table - Scrollable */}
+                <div className="overflow-y-auto max-h-[180px]" style={scrollbarHideStyle}>
+                  <table className="w-full text-center border-collapse">
+                    <thead className="bg-[#1f2937] text-slate-400 text-[10px] font-medium sticky top-0 z-10">
+                      <tr>
+                        <th className="p-1.5">ครั้งที่</th>
+                        <th className="p-1.5">Time</th>
+                        <th className="p-1.5">From Acc. Vol</th>
+                        <th className="p-1.5">To Acc. Vol</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-xs">
+                      {data.flips.length > 0 ? (
+                        data.flips.map((flip) => (
+                          <tr key={flip.id} className="border-b border-slate-800/30 hover:bg-slate-800/50 transition-colors">
+                            <td className="p-1.5 text-slate-400">{flip.id}</td>
+                            <td className="p-1.5 text-yellow-500">{flip.time}</td>
+                            <td className={`p-1.5 ${flip.from.includes('-') ? 'text-red-400' : 'text-green-400'}`}>{flip.from}</td>
+                            <td className={`p-1.5 ${flip.to.includes('-') ? 'text-red-400' : 'text-green-400'}`}>{flip.to}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="4" className="p-6 text-slate-500 text-xs">
+                            No Flip Data
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* --- SECTION 5: Chart Section --- */}
+        {hasSearched && (
+          <div className="bg-[#0B1221] border border-slate-800/50 rounded overflow-hidden">
+            
+            <div className="bg-[#1f2937] p-2 flex justify-between items-center">
+              <div className="flex items-center gap-2 text-slate-300">
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                <span className="text-[10px] font-semibold">Buy Volume</span>
+                <div className="w-3 h-3 rounded-full bg-red-500 ml-2"></div>
+                <span className="text-[10px] font-semibold">Sell Volume</span>
+              </div>
+              
+              <button
+                onClick={() => setIsChartModalOpen(true)}
+                className="p-1.5 hover:bg-slate-700 rounded transition"
+                title="ซูม Chart"
+              >
+                <SearchIcon sx={{ fontSize: 18, color: '#94a3b8' }} />
+              </button>
+            </div>
+
+            {/* Chart */}
+            <div className="h-[200px] bg-[#111827] p-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.charts}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis 
+                    dataKey="price" 
+                    stroke="#94a3b8" 
+                    tick={{ fill: '#94a3b8', fontSize: 8 }}
+                    height={20}
+                  />
+                  <YAxis 
+                    stroke="#94a3b8" 
+                    tick={{ fill: '#94a3b8', fontSize: 8 }}
+                    width={30}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1f2937', 
+                      border: '1px solid #374151',
+                      borderRadius: '4px',
+                      fontSize: '10px'
+                    }}
+                  />
+                  <Bar dataKey="buy" fill="#10b981" />
+                  <Bar dataKey="sell" fill="#ef4444" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ✨ Chart Modal (เหมือนเดิม) */}
       {isChartModalOpen && (
         <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 rounded-lg">
           <div className="bg-[#0B1221] border border-slate-700 rounded-lg w-full max-w-4xl h-[80vh] flex flex-col">
@@ -581,10 +739,31 @@ return (
             </div>
 
             {/* Modal Content */}
-            <div className="flex-1 flex items-center justify-center bg-[#111827]">
-              <span className="text-sm text-slate-500">
-                Full Chart Visualization Area
-              </span>
+            <div className="flex-1 flex items-center justify-center bg-[#111827] p-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.charts}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis 
+                    dataKey="price" 
+                    stroke="#94a3b8" 
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                  />
+                  <YAxis 
+                    stroke="#94a3b8" 
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1f2937', 
+                      border: '1px solid #374151',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Legend />
+                  <Bar dataKey="buy" fill="#10b981" name="Buy Volume" />
+                  <Bar dataKey="sell" fill="#ef4444" name="Sell Volume" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
@@ -794,11 +973,10 @@ return (
   /* ==========================================================
       CASE 3 : FULL TICKMATCH DASHBOARD
   =========================================================== */
-  const todayStr = new Date().toISOString().split('T')[0];
+const todayStr = new Date().toISOString().split('T')[0];
 
   return (
     <div className="w-full h-screen bg-[#0B1221] text-white p-4 animate-fade-in flex flex-col gap-4 overflow-hidden">
-      
 
       {/* Main Grid Layout (2 Panels ของ TickMatch) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-hidden">
