@@ -272,27 +272,22 @@ export default function MemberRegister() {
   /* ================= UI ================= */
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0A1224] to-[#060B18] text-white flex items-center justify-center">
-      <div className="w-full max-w-[1200px] px-6 mx-auto">
-        <div className="grid grid-cols-12 gap-x-10 gap-y-6">
+      <div className="w-full max-w-[1200px] px-4 sm:px-6 md:px-8 mx-auto py-6 md:py-10">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 xl:gap-x-10">
 
         {/* LEFT */}
-        <div className="col-span-7 space-y-6">
-          <h1 className="text-4xl font-bold">Subscription & Checkout</h1>
-          <p className="text-sm text-[#9FB3C8]">
-          Charged annually, Cancel anytime
-          </p> 
+        <div className="xl:col-span-7 space-y-5 md:space-y-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl xl:text-4xl font-bold text-center xl:text-left">Subscription & Checkout</h1>
+          <p className="text-sm sm:text-base text-[#9FB3C8] text-center xl:text-left">Charged annually, Cancel anytime</p> 
 
           {/* Billing */}
           <div>
             {/* Billing Cycle */}
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
             <h2 className="text-xl font-semibold">Billing Cycle</h2>
-              <span
-                className="px-3 py-1 text-xs font-semibold rounded-full
-                          bg-emerald-500/15 text-emerald-400"
-              >
-                Only 2,083฿/m (Billed Yearly)
-              </span>
+              <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/15 text-emerald-400 whitespace-nowrap">
+              Only 2,083฿/m (Billed Yearly)
+            </span>
           </div>
             <div className="flex bg-[#0F1B2D] rounded-xl p-1 w-full">
               {["monthly", "yearly"].map((t) => (
@@ -314,7 +309,7 @@ export default function MemberRegister() {
           {/* Tools */}
           <div className="bg-[#0F1B2D] p-5 rounded-xl">
             <h2 className="text-xl font-semibold mb-4">Select Your Tools</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {TOOLS.map((tool) => {
                 const active = selectedTools.some(
                 (t) => t.id === tool.id && t.billing === billingCycle
@@ -323,12 +318,12 @@ export default function MemberRegister() {
                   <div
                     key={tool.id}
                     onClick={() => toggleTool(tool.id)}
-                    className={`cursor-pointer px-5 py-4 rounded-xl border flex items-center gap-2
-                      ${
-                        active
-                          ? "border-[#0E6BA8] bg-[#102B46]"
-                          : "border-[#1F3354] bg-[#13233A]"
-                      }`}
+                    className={`cursor-pointer px-4 md:px-5 py-4 rounded-xl border flex items-center gap-2 min-h-[72px]
+                    ${
+                      active
+                        ? "border-[#0E6BA8] bg-[#102B46]"
+                        : "border-[#1F3354] bg-[#13233A]"
+                    }`}
                   >
                     <span>{tool.name}</span>
 
@@ -345,7 +340,7 @@ export default function MemberRegister() {
         </div>
 
         {/* RIGHT */}
-        <div className="col-span-5 space-y-4">
+        <div className="xl:col-span-5 space-y-4">
 
           {/* Payment Method */}
           <div className="bg-[#0F1B2D] p-5 rounded-xl">
@@ -360,14 +355,14 @@ export default function MemberRegister() {
                     key={m.id}
                     onClick={() => setSelectedPayment(m.id)}
                     className={`
-                      h-20 rounded-xl border flex flex-col items-center justify-center gap-1
-                      transition-all duration-200
-                      ${
-                        active
-                          ? "bg-[#0B2A4E] border-[#0E6BA8]"
-                          : "bg-[#E5E7EB] border-transparent"
-                      }
-                    `}
+                    h-20 sm:h-24 rounded-xl border flex flex-col items-center justify-center gap-1
+                    transition-all duration-200
+                    ${
+                      active
+                        ? "bg-[#0B2A4E] border-[#0E6BA8]"
+                        : "bg-[#E5E7EB] border-transparent"
+                    }
+                  `}
                   >
                     <img
                       src={active ? m.activeIcon : m.icon}
@@ -388,7 +383,7 @@ export default function MemberRegister() {
           </div>
 
           {/* Summary */}
-          <div className="bg-[#0F1B2D] p-6 rounded-xl max-h-[520px] flex flex-col">
+          <div className="bg-[#0F1B2D] p-4 md:p-6 rounded-xl max-h-none xl:max-h-[520px] flex flex-col">
             {/* Order Summary Header */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Order Summary</h2>
@@ -590,7 +585,7 @@ export default function MemberRegister() {
       {/* ================= MODAL ================= */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#0F1B2D] p-6 rounded-xl w-[420px] space-y-4">
+          <div className="bg-[#0F1B2D] p-4 sm:p-6 rounded-xl w-[calc(100vw-32px)] max-w-[420px] space-y-4 max-h-[90vh] overflow-y-auto">
 
             {/* ================= BANK ACCOUNT ================= */}
             {selectedPayment === "bank" && (
@@ -700,11 +695,11 @@ export default function MemberRegister() {
                 </h2>
 
                 {/* QR Frame */}
-                <div className="relative w-[260px] h-[260px] bg-white rounded-xl flex items-center justify-center mb-6">
+                <div className="relative w-full max-w-[260px] aspect-square bg-white rounded-xl flex items-center justify-center mb-6">
                   <img
                     src={PromptPayQR}
                     alt="promptpay"
-                    className="w-[220px] h-[220px] object-contain"
+                    className="w-[85%] h-[85%] object-contain"
                   />
 
                   {/* Corner */}
