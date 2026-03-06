@@ -1,6 +1,7 @@
 // src/pages/tools/PetroleumInsights.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSubscription } from "../../context/SubscriptionContext";
 
 // นำเข้า Dashboard ตัวเต็มมาใช้แสดงในพรีวิว
 import PetroleumDashboard from "./components/PetroleumDashboard";
@@ -557,22 +558,44 @@ export default function PetroleumInsights() {
   const symbolList      = ["BBGI","BCP","BCPG","BANPU","BGRIM","EA","ESSO","GULF","IRPC","IVL","PTT","PTTEP","TOP"];
   const filteredSymbols = symbolList.filter(s => s.toLowerCase().includes(symbolQuery.toLowerCase()));
 
-  /* ===============================
-      MEMBER CHECK
-  ================================ */
+  const { accessData, isFreeAccess } = useSubscription();
+
+ /* ===============================  MEMBER CHECK  ================================ */
   useEffect(() => {
-    try {
-      const userProfile = localStorage.getItem("userProfile");
-      if (userProfile) {
-        const user = JSON.parse(userProfile);
-        if (user.unlockedItems?.includes("petroleum")) {
-          setIsMember(true);
-        }
-      }
-    } catch (error) {
-      console.error("Error checking member status:", error);
+    // 1. ถ้าเป็นโหมดทดลอง (Free Access) ให้สิทธิ์ใช้งานทันที
+    if (isFreeAccess) {
+      setIsMember(true);
+      return;
     }
-  }, []);
+
+    // 2. ⚠️ แก้คำว่า 'ชื่อแพ็กเกจ' ตรงนี้ ให้ตรงกับเครื่องมือของหน้านั้นๆ (เช่น 'gold')
+    const toolId = 'petroleum'; 
+
+    // 3. เช็คสิทธิ์จาก Firebase
+    if (accessData && accessData[toolId]) {
+      const expireTimestamp = accessData[toolId];
+      let expireDate;
+      
+      try {
+        if (typeof expireTimestamp.toDate === 'function') {
+          expireDate = expireTimestamp.toDate();
+        } else {
+          expireDate = new Date(expireTimestamp);
+        }
+      } catch (e) {
+        expireDate = new Date(0);
+      }
+
+      // เช็คว่าหมดอายุหรือยัง
+      if (expireDate.getTime() > new Date().getTime()) {
+        setIsMember(true); // ยังไม่หมดอายุ
+      } else {
+        setIsMember(false); // หมดอายุแล้ว
+      }
+    } else {
+      setIsMember(false); // ไม่มีแพ็กเกจนี้
+    }
+  }, [accessData, isFreeAccess]);
 
   /* ===============================
       SCROLL LOGIC

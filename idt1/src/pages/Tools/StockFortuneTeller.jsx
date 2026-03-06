@@ -628,15 +628,18 @@ export default function StockFortuneTeller() {
 
 /* ===============================  MEMBER CHECK  ================================ */
   useEffect(() => {
-    // กรณีที่ 1: ถ้าเป็นโหมดทดลอง (Free Access) ให้สิทธิ์ใช้งานทันที
+    // 1. ถ้าเป็นโหมดทดลอง (Free Access) ให้สิทธิ์ใช้งานทันที
     if (isFreeAccess) {
       setIsMember(true);
       return;
     }
 
-    // กรณีที่ 2: ถ้าล็อกอินแล้ว ให้เช็คว่ามีแพ็กเกจ 'fortune' หรือไม่
-    if (accessData && accessData['fortune']) {
-      const expireTimestamp = accessData['fortune'];
+    // 2. ⚠️ แก้คำว่า 'ชื่อแพ็กเกจ' ตรงนี้ ให้ตรงกับเครื่องมือของหน้านั้นๆ (เช่น 'gold')
+    const toolId = 'fortune'; 
+
+    // 3. เช็คสิทธิ์จาก Firebase
+    if (accessData && accessData[toolId]) {
+      const expireTimestamp = accessData[toolId];
       let expireDate;
       
       try {
@@ -649,14 +652,14 @@ export default function StockFortuneTeller() {
         expireDate = new Date(0);
       }
 
-      // เช็คว่าหมดอายุหรือยัง (เวลาแพ็กเกจ > เวลาปัจจุบัน)
+      // เช็คว่าหมดอายุหรือยัง
       if (expireDate.getTime() > new Date().getTime()) {
-        setIsMember(true); // ยังไม่หมดอายุ -> โชว์ปุ่ม Start Using Tool
+        setIsMember(true); // ยังไม่หมดอายุ
       } else {
-        setIsMember(false); // หมดอายุแล้ว -> โชว์ปุ่ม Join Membership
+        setIsMember(false); // หมดอายุแล้ว
       }
     } else {
-      setIsMember(false); // ไม่มีแพ็กเกจเลย
+      setIsMember(false); // ไม่มีแพ็กเกจนี้
     }
   }, [accessData, isFreeAccess]);
 

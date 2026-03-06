@@ -1,6 +1,7 @@
 // src/pages/tools/Gold.jsx
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSubscription } from "../../context/SubscriptionContext";
 
 import GoldDashboard from "./components/GoldDashboard.jsx";
 
@@ -302,20 +303,44 @@ export default function Gold() {
   const [globalHoverIndex, setGlobalHoverIndex] = useState(null);
   const chartRefs = useRef({});
 
-  /* ================= MEMBER CHECK ================= */
+  const { accessData, isFreeAccess } = useSubscription();
+
+ /* ===============================  MEMBER CHECK  ================================ */
   useEffect(() => {
-    try {
-      const userProfile = localStorage.getItem("userProfile");
-      if (userProfile) {
-        const user = JSON.parse(userProfile);
-        if (user.unlockedItems?.includes("gold")) {
-          setIsMember(true);
-        }
-      }
-    } catch (error) {
-      console.error("Error checking member status:", error);
+    // 1. ถ้าเป็นโหมดทดลอง (Free Access) ให้สิทธิ์ใช้งานทันที
+    if (isFreeAccess) {
+      setIsMember(true);
+      return;
     }
-  }, []);
+
+    // 2. ⚠️ แก้คำว่า 'ชื่อแพ็กเกจ' ตรงนี้ ให้ตรงกับเครื่องมือของหน้านั้นๆ (เช่น 'gold')
+    const toolId = 'gold'; 
+
+    // 3. เช็คสิทธิ์จาก Firebase
+    if (accessData && accessData[toolId]) {
+      const expireTimestamp = accessData[toolId];
+      let expireDate;
+      
+      try {
+        if (typeof expireTimestamp.toDate === 'function') {
+          expireDate = expireTimestamp.toDate();
+        } else {
+          expireDate = new Date(expireTimestamp);
+        }
+      } catch (e) {
+        expireDate = new Date(0);
+      }
+
+      // เช็คว่าหมดอายุหรือยัง
+      if (expireDate.getTime() > new Date().getTime()) {
+        setIsMember(true); // ยังไม่หมดอายุ
+      } else {
+        setIsMember(false); // หมดอายุแล้ว
+      }
+    } else {
+      setIsMember(false); // ไม่มีแพ็กเกจนี้
+    }
+  }, [accessData, isFreeAccess]);
 
   /* ================= SCROLL LOGIC ================= */
   const checkScroll = () => {

@@ -1,6 +1,7 @@
 // src/pages/tools/DRInsight.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSubscription } from "../../context/SubscriptionContext";
 
 import DRInsightDashboard from "./components/DRInsightDashboard.jsx";
 
@@ -250,26 +251,44 @@ useEffect(() => {
   setChartMinMax(newMinMax);
 }, [chartSelections]);
 
-  /* ===============================
-      1. MEMBER CHECK & LOGIC
-  ================================ */
+const { accessData, isFreeAccess } = useSubscription();
+
+/* ===============================  MEMBER CHECK  ================================ */
   useEffect(() => {
-    try {
-      const userProfile = localStorage.getItem("userProfile");
-      if (userProfile) {
-        const user = JSON.parse(userProfile);
-        if (user.unlockedItems && user.unlockedItems.includes("dr")) {
-          setIsMember(true);
-          const hasEntered = sessionStorage.getItem("drToolEntered");
-          if (hasEntered === "true") {
-            setEnteredTool(true);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error checking member status:", error);
+    // 1. ถ้าเป็นโหมดทดลอง (Free Access) ให้สิทธิ์ใช้งานทันที
+    if (isFreeAccess) {
+      setIsMember(true);
+      return;
     }
-  }, []);
+
+    // 2. ⚠️ แก้คำว่า 'ชื่อแพ็กเกจ' ตรงนี้ ให้ตรงกับเครื่องมือของหน้านั้นๆ (เช่น 'gold')
+    const toolId = 'dr'; 
+
+    // 3. เช็คสิทธิ์จาก Firebase
+    if (accessData && accessData[toolId]) {
+      const expireTimestamp = accessData[toolId];
+      let expireDate;
+      
+      try {
+        if (typeof expireTimestamp.toDate === 'function') {
+          expireDate = expireTimestamp.toDate();
+        } else {
+          expireDate = new Date(expireTimestamp);
+        }
+      } catch (e) {
+        expireDate = new Date(0);
+      }
+
+      // เช็คว่าหมดอายุหรือยัง
+      if (expireDate.getTime() > new Date().getTime()) {
+        setIsMember(true); // ยังไม่หมดอายุ
+      } else {
+        setIsMember(false); // หมดอายุแล้ว
+      }
+    } else {
+      setIsMember(false); // ไม่มีแพ็กเกจนี้
+    }
+  }, [accessData, isFreeAccess]);
 
   /* ===============================
       2. SCROLL LOGIC
@@ -417,7 +436,17 @@ const renderFigmaPanel = (title, stocks, iconText = "🌐", flexClass = "flex-1"
                  <button onClick={() => navigate("/member-register")} className="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 font-bold hover:shadow-lg transition">Join Membership</button>
                </>
             ) : (
-                <button onClick={() => { setEnteredTool(true); localStorage.setItem("drToolEntered", "true"); }} className="group relative inline-flex items-center justify-center px-10 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] hover:scale-105 transition-all duration-300"><span className="mr-2 text-lg">Start Using Tool</span><svg className="w-6 h-6 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg></button>
+                <button onClick={() => { 
+                  setEnteredTool(true); 
+                  localStorage.setItem("drToolEntered", "true"); 
+                }} 
+                   className="group relative inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] hover:scale-105 transition-all duration-300"
+            >
+              <span className="mr-2">Start Using Tool</span>
+              <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </button>
             )}
           </div>
         </div>

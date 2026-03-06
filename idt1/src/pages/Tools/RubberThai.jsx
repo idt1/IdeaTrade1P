@@ -1,6 +1,7 @@
 // src/pages/tools/RubberThai.jsx
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSubscription } from "../../context/SubscriptionContext";
 
 import RubberThaiDashboard from "./components/RubberThaiDashboard.jsx";
 
@@ -364,6 +365,8 @@ export default function RubberThai() {
     });
   }, []);
 
+const { accessData, isFreeAccess } = useSubscription();
+
   // ================= คำนวณความสูงให้เต็มจอแบบ 100% =================
   const [chartHeight, setChartHeight] = useState(240);
 
@@ -391,20 +394,42 @@ export default function RubberThai() {
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(true);
 
-  /* ================= MEMBER CHECK ================= */
+  /* ===============================  MEMBER CHECK  ================================ */
   useEffect(() => {
-    try {
-      const userProfile = localStorage.getItem("userProfile");
-      if (userProfile) {
-        const user = JSON.parse(userProfile);
-        if (user.unlockedItems?.includes("rubber")) {
-          setIsMember(true);
-        }
-      }
-    } catch (err) {
-      console.error(err);
+    // 1. ถ้าเป็นโหมดทดลอง (Free Access) ให้สิทธิ์ใช้งานทันที
+    if (isFreeAccess) {
+      setIsMember(true);
+      return;
     }
-  }, []);
+
+    // 2. ⚠️ แก้คำว่า 'ชื่อแพ็กเกจ' ตรงนี้ ให้ตรงกับเครื่องมือของหน้านั้นๆ (เช่น 'gold')
+    const toolId = 'rubber'; 
+
+    // 3. เช็คสิทธิ์จาก Firebase
+    if (accessData && accessData[toolId]) {
+      const expireTimestamp = accessData[toolId];
+      let expireDate;
+      
+      try {
+        if (typeof expireTimestamp.toDate === 'function') {
+          expireDate = expireTimestamp.toDate();
+        } else {
+          expireDate = new Date(expireTimestamp);
+        }
+      } catch (e) {
+        expireDate = new Date(0);
+      }
+
+      // เช็คว่าหมดอายุหรือยัง
+      if (expireDate.getTime() > new Date().getTime()) {
+        setIsMember(true); // ยังไม่หมดอายุ
+      } else {
+        setIsMember(false); // หมดอายุแล้ว
+      }
+    } else {
+      setIsMember(false); // ไม่มีแพ็กเกจนี้
+    }
+  }, [accessData, isFreeAccess]);
 
   /* ================= SCROLL LOGIC ================= */
   const checkScroll = () => {
