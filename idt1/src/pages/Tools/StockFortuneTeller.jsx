@@ -678,6 +678,67 @@ function ChartRenderer({ type, chartId, globalHoverIndex, setGlobalHoverIndex, c
   );
 }
 
+function EmptyChartPanel({ title, value, onChange }) {
+  return (
+    <div className="bg-[#1c2024] border border-slate-700/60 rounded-xl p-4 h-[280px] flex flex-col">
+      <div className="mb-3 flex justify-between items-center">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="bg-[#343a40] text-white text-xs border border-slate-600 rounded-md px-3 py-1.5 focus:outline-none focus:border-cyan-500"
+        >
+          <option>Last</option>
+          <option>%Short</option>
+          <option>PredictTrend</option>
+          <option>Peak</option>
+          <option>Shareholder</option>
+          <option>Manager</option>
+        </select>
+
+        {value === "Manager" ? (
+          <span className="text-[10px] text-[#00e676] ml-auto cursor-pointer">Show/Hide All</span>
+        ) : (
+          <span className="text-xs text-slate-400">{title}</span>
+        )}
+      </div>
+
+      <div className="relative flex-1 rounded-lg bg-[#111418] border border-slate-800 overflow-hidden">
+        <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+          {[0.2, 0.4, 0.6, 0.8].map((y, i) => (
+            <line
+              key={`h-${i}`}
+              x1="0"
+              y1={`${y * 100}%`}
+              x2="100%"
+              y2={`${y * 100}%`}
+              stroke="#2a2e39"
+              strokeWidth="1"
+            />
+          ))}
+
+          {[0.2, 0.4, 0.6, 0.8].map((x, i) => (
+            <line
+              key={`v-${i}`}
+              x1={`${x * 100}%`}
+              y1="0"
+              x2={`${x * 100}%`}
+              y2="100%"
+              stroke="#2a2e39"
+              strokeWidth="1"
+            />
+          ))}
+        </svg>
+
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-white text-base md:text-lg font-medium tracking-wide">
+            Please select symbol
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ============================================================
 // MAIN EXPORT
 // ============================================================
@@ -718,6 +779,7 @@ export default function StockFortuneTeller() {
   const [selectedSymbol, setSelectedSymbol] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [globalHoverIndex, setGlobalHoverIndex] = useState(null);
+  const [dataVersion, setDataVersion] = useState(0);
   const chartRefs = useRef({});
 
   // ── Toast ──
@@ -993,7 +1055,17 @@ export default function StockFortuneTeller() {
                   ? filteredSymbols.map((item, index) => (
                       <div
                         key={index}
-                        onMouseDown={() => { setSymbol(item); setSelectedSymbol(item); setShowDropdown(false); }}
+                        onMouseDown={() => {
+                        setSymbol(item);
+                        setShowDropdown(false);
+                        setRefreshing(true);
+
+                        setTimeout(() => {
+                          setSelectedSymbol(item);
+                          setDataVersion((prev) => prev + 1);
+                          setRefreshing(false);
+                        }, 700);
+                      }}
                         className="px-4 py-2.5 text-sm text-slate-300 hover:bg-cyan-500/20 hover:text-white cursor-pointer transition"
                       >
                         {item}
@@ -1016,10 +1088,16 @@ export default function StockFortuneTeller() {
 
             <button
               onClick={() => {
-                setSymbol(""); setSelectedSymbol(""); setShowDropdown(false);
-                setRefreshing(true);
-                setTimeout(() => { setRefreshing(false); searchInputRef.current?.focus(); }, 500);
-              }}
+              if (!selectedSymbol) return;
+
+              setRefreshing(true);
+              setGlobalHoverIndex(null);
+
+              setTimeout(() => {
+                setDataVersion((prev) => prev + 1);
+                setRefreshing(false);
+              }, 700);
+            }}
               className="w-10 h-10 bg-[#0f172a] border border-slate-700 rounded-lg flex items-center justify-center hover:border-cyan-500 hover:text-cyan-400 transition"
               title="Refresh"
             >
@@ -1037,23 +1115,7 @@ export default function StockFortuneTeller() {
         </div>
 
         {/* CHART GRID หรือ Skeleton */}
-        {selectedSymbol ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(filters).map(([key, value]) => (
-              <ChartCard
-                key={key}
-                chartId={key}
-                title={key}
-                type={value}
-                globalHoverIndex={globalHoverIndex}
-                setGlobalHoverIndex={setGlobalHoverIndex}
-                chartRefs={chartRefs}
-                selectedSymbol={selectedSymbol}
-                onChange={(newValue) => setFilters({ ...filters, [key]: newValue })}
-              />
-            ))}
-          </div>
-        ) : (
+        {refreshing ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Object.entries(filters).map(([key, value], cardIdx) => (
               <div key={key} className="bg-[#111827] rounded-xl border border-slate-700/60 p-4 h-[280px]">
@@ -1074,6 +1136,34 @@ export default function StockFortuneTeller() {
                 </div>
                 <WaveSkeleton delay={cardIdx * 0.2} />
               </div>
+            ))}
+          </div>
+        ) : selectedSymbol ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Object.entries(filters).map(([key, value]) => (
+              <ChartCard
+              key={`${key}-${dataVersion}`}
+              chartId={key}
+              title={key}
+              type={value}
+              globalHoverIndex={globalHoverIndex}
+              setGlobalHoverIndex={setGlobalHoverIndex}
+              chartRefs={chartRefs}
+              selectedSymbol={selectedSymbol}
+              dataVersion={dataVersion}
+              onChange={(newValue) => setFilters({ ...filters, [key]: newValue })}
+            />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Object.entries(filters).map(([key, value]) => (
+              <EmptyChartPanel
+                key={key}
+                title={key}
+                value={value}
+                onChange={(newValue) => setFilters({ ...filters, [key]: newValue })}
+              />
             ))}
           </div>
         )}
