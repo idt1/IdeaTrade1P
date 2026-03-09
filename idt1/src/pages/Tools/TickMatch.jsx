@@ -241,7 +241,7 @@ function FullscreenSymbolInput({ value, onChange }) {
 
   return (
     <div ref={ref} className="relative flex items-center">
-      <div className={`flex items-center gap-2 bg-[#1a2235] border rounded-lg px-3 py-1.5 w-56 transition-all ${
+      <div className={`relative flex items-center gap-2 bg-[#1a2235] border rounded-lg px-3 py-1.5 w-56 transition-all ${
         open ? "border-cyan-500/60" : "border-slate-700 hover:border-slate-500"
       }`}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" className="flex-shrink-0">
@@ -259,12 +259,13 @@ function FullscreenSymbolInput({ value, onChange }) {
           placeholder="พิมพ์ชื่อหุ้น..."
           className={`flex-1 bg-transparent text-sm outline-none placeholder-slate-600 ${
             value && !open ? "font-bold text-white" : "text-white"
-          }`}
+          } ${query ? "pr-6" : ""}`}
         />
         {query && (
           <button 
             onMouseDown={() => commit("")} 
-            className="text-slate-600 hover:text-slate-300 text-xs flex-shrink-0"
+            className="absolute right-3 text-slate-600 hover:text-slate-300 text-sm flex-shrink-0 transition-colors"
+            style={{ pointerEvents: "auto" }}
           >
             ✕
           </button>
