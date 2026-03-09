@@ -873,22 +873,24 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* ORDER BOOK — ✅ เพิ่ม flex-1 overflow-y-auto min-h-0 */}
-      <div className="flex-1 overflow-y-auto min-h-0 bg-[#0b111a]">
+            {/* ORDER BOOK — ✅ Restructured: scrollable rows + fixed total */}
+      <div className="flex-1 min-h-0 flex flex-col bg-[#0b111a]">
+        
+        {/* Scrollable Order Rows */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {orderBook.map((row, i) => (
+            <OrderRow
+              key={i}
+              bidVol={row.bidVol.toLocaleString()}
+              bid={row.bid}
+              ask={row.ask}
+              askVol={row.askVol.toLocaleString()}
+            />
+          ))}
+        </div>
 
-        {orderBook.map((row, i) => (
-          <OrderRow
-            key={i}
-            bidVol={row.bidVol.toLocaleString()}
-            bid={row.bid}
-            ask={row.ask}
-            askVol={row.askVol.toLocaleString()}
-          />
-        ))}
-
-        {/* TOTAL ROW */}
-         <div className="grid grid-cols-4 h-[36px] items-center border-t border-slate-700 bg-[#111827] text-[12px] font-semibold sticky bottom-0">
-
+        {/* TOTAL ROW - Fixed at bottom */}
+        <div className="shrink-0 grid grid-cols-4 h-[36px] items-center border-t border-slate-700 bg-[#111827] text-[12px] font-semibold">
           {/* TOTAL BID */}
           <div className="text-right pr-3 text-blue-400">
             Total: {totalBid.toLocaleString()}
@@ -904,8 +906,8 @@ useEffect(() => {
           <div className="text-left pl-3 text-red-400">
             Total: {totalAsk.toLocaleString()}
           </div>
-
         </div>
+
       </div>
 
        {/* SLIDER — ✅ เพิ่ม shrink-0 */}
