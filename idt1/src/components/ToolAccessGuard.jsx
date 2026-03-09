@@ -1,78 +1,71 @@
-import React, { useState, useEffect } from 'react'; // 🟢 1. เพิ่ม useEffect เข้ามาตรงนี้
+import React, { useState, useEffect } from 'react';
 import { useSubscription } from '../context/SubscriptionContext';
 import WarningPopup from './WarningPopup';
 import ExpiredPopup from './ExpiredPopup';
 
 const ToolAccessGuard = ({ toolId, toolName, children }) => {
-  // ดึง isFreeAccess เพิ่มเข้ามาจาก Context
   const { accessData, loading, isFreeAccess } = useSubscription();
   const [showWarning, setShowWarning] = useState(true);
+  const [showExpired, setShowExpired] = useState(true);
 
-  // 🌟 2. จุดสำคัญที่เพิ่มเข้ามา: สั่งให้รีเซ็ต Popup เตือนทุกครั้งที่เปลี่ยนหน้า (เปลี่ยน toolId)
   useEffect(() => {
     setShowWarning(true);
+    setShowExpired(true);
   }, [toolId]);
 
   if (loading) {
     return <div className="h-screen flex items-center justify-center text-white">Loading data...</div>;
   }
 
-  // จุดสำคัญ: ถ้าเป็นโหมด Free Access (ยังไม่ได้ล็อกอิน) ปล่อยผ่านให้ดูเนื้อหาได้เลย!
   if (isFreeAccess) {
     return <>{children}</>;
   }
 
   const expireTimestamp = accessData[toolId];
+  
+  // ย้ายการคำนวณวันหมดอายุมาไว้ด้านบน เพื่อใช้เช็คเงื่อนไข
+  let daysLeft = 0;
+  let formattedDate = "No active plan";
 
-  // 1. ถ้าไม่มีแพ็กเกจเลย ให้ขึ้นหน้าล็อค
-  if (!expireTimestamp) {
-    return (
-      <div className="relative h-screen overflow-hidden">
-        <div className="pointer-events-none select-none blur-sm opacity-50 h-full">
-           {children}
-        </div>
-        <ExpiredPopup toolName={toolName} expireDateStr="No active plan" />
-      </div>
-    );
-  }
-
-  // 2. โค้ดส่วนที่แก้จอขาว: เช็คประเภทของข้อมูลวันที่ให้ปลอดภัย
-  let expireDate;
-  try {
-    if (typeof expireTimestamp.toDate === 'function') {
-      // ถ้าเป็น Timestamp จาก Firebase
-      expireDate = expireTimestamp.toDate();
-    } else {
-      // ถ้าเป็น String หรือ Date ปกติ (เช่น จาก LocalStorage)
-      expireDate = new Date(expireTimestamp);
+  if (expireTimestamp) {
+    let expireDate;
+    try {
+      expireDate = typeof expireTimestamp.toDate === 'function' ? expireTimestamp.toDate() : new Date(expireTimestamp);
+    } catch (error) {
+      expireDate = new Date(0); 
     }
-  } catch (error) {
-    console.error("Error parsing date in Guard:", error);
-    expireDate = new Date(0); // ถ้าแปลงวันที่ไม่ได้ ให้มองว่าหมดอายุไปแล้ว
+    const today = new Date();
+    const timeDiff = expireDate.getTime() - today.getTime();
+    daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
+    
+    formattedDate = expireDate.toLocaleDateString('en-GB', { 
+      day: 'numeric', month: 'short', year: 'numeric' 
+    });
   }
 
-  // 3. คำนวณวันคงเหลือ
-  const today = new Date();
-  const timeDiff = expireDate.getTime() - today.getTime();
-  const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
+  // 🔴 เช็คว่า "ไม่เคยมีแพ็กเกจ" หรือ "หมดอายุแล้ว"
+  if (!expireTimestamp || daysLeft <= 0) {
+    // ถ้ายูสเซอร์กดปิด Popup (showExpired = false) ให้แสดงเนื้อหาปกติ (ไม่เบลอ)
+    if (!showExpired) {
+      return <>{children}</>;
+    }
 
-  const formattedDate = expireDate.toLocaleDateString('en-GB', { 
-    day: 'numeric', month: 'short', year: 'numeric' 
-  });
-
-  // 4. กรณี "หมดอายุแล้ว"
-  if (daysLeft <= 0) {
+    // ถ้ายังไม่กดปิด ให้โชว์หน้าจอเบลอ + Popup หมดอายุ
     return (
       <div className="relative h-screen overflow-hidden">
         <div className="pointer-events-none select-none blur-sm opacity-50 h-full">
            {children}
         </div>
-        <ExpiredPopup toolName={toolName} expireDateStr={formattedDate} />
+        <ExpiredPopup 
+          toolName={toolName} 
+          expireDateStr={formattedDate} 
+          onClose={() => setShowExpired(false)} 
+        />
       </div>
     );
   }
 
-  // 5. กรณี "ใกล้หมดอายุ"
+  // 🟡 กรณี "ใกล้หมดอายุ" (1-3 วัน)
   const isExpiringSoon = daysLeft > 0 && daysLeft <= 3;
 
   return (
