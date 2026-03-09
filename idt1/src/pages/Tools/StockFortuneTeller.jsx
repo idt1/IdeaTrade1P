@@ -1072,7 +1072,12 @@ export default function StockFortuneTeller() {
                   </select>
                   <span className="text-xs text-slate-400">{key}</span>
                 </div>
-                <WaveSkeleton delay={cardIdx * 0.2} />
+                <div className="relative">
+                  <WaveSkeleton delay={cardIdx * 0.2} />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[18px] text-white font-medium z-10 pointer-events-none tracking-[0.5px]">
+                    Please select symbol
+                  </div>
+                </div>
               </div>
             ))}
           </div>
