@@ -1,5 +1,5 @@
 // src/pages/tools/TickMatch.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "../../context/SubscriptionContext";
 
@@ -18,6 +18,19 @@ const scrollbarHideStyle = {
   msOverflowStyle: "none",
   scrollbarWidth: "none",
 };
+
+const STOCK_LIST = [
+  "PTT","TOP","DELTA","AOT","ADVANC","SCB","KBANK","BBL","KTB","BAY",
+  "CPALL","CPN","CRC","HMPRO","BJC","IVL","SCC","SCCC","TISCO","KKP",
+  "MINT","ERW","CENTEL","AWC","DUSIT","TRUE","DTAC","JAS","THCOM","INTUCH",
+  "PTTEP","PTTGC","IRPC","BCP","ESSO","SPRC","GULF","GPSC","RATCH","EGCO",
+  "WHA","AMATA","STA","TFG","NRF","GFPT","CPF","TU","ICHI",
+  "OSP","OISHI","SAPPE","MALEE","CBG","KCE","HANA","SVI","ADVICE",
+  "BDMS","BH","BCH","CHG","RJH","VIBHA","PRINC","PR9","PHOL","NKI",
+  "BTS","BEM","SINO","STEC","ITD","SEAFCO","PYLON","SYNTEC","NWR","CK",
+  "MTC","SAWAD","TIDLOR","AEON","KTC","THANI","SELIC","ASK","MACO","VGI",
+  "1DIV","PQS","JMART","JMT","SINGER","PLANB","MAJOR","RS","WORK",
+];
 
 /* ===============================
     TICKMATCH DATA MOCKUP
@@ -163,6 +176,86 @@ const mockDatabase = {
   ]
 },
 };
+
+// ─── FULLSCREEN SYMBOL INPUT ─────────────────────────────────
+function FullscreenSymbolInput({ value, onChange }) {
+  const [query, setQuery] = useState(value || "");
+  const [open,  setOpen]  = useState(false);
+  const [hiIdx, setHiIdx] = useState(-1);
+  const committed = useRef(value || "");
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (value === "" && committed.current !== "") { setQuery(""); committed.current = ""; }
+  }, [value]);
+
+  const filtered = useMemo(() => {
+    if (!query) return STOCK_LIST.slice(0, 10);
+    const q = query.toUpperCase();
+    const starts   = STOCK_LIST.filter((s) => s.startsWith(q));
+    const contains = STOCK_LIST.filter((s) => !s.startsWith(q) && s.includes(q));
+    return [...starts, ...contains].slice(0, 9);
+  }, [query]);
+
+  const commit = useCallback((sym) => {
+    const v = sym.toUpperCase();
+    setQuery(v); committed.current = v; onChange(v); setOpen(false); setHiIdx(-1);
+  }, [onChange]);
+
+  const handleKey = (e) => {
+    if (e.key === "Escape")    { setOpen(false); return; }
+    if (e.key === "ArrowDown") { e.preventDefault(); setOpen(true); setHiIdx((h) => Math.min(h + 1, filtered.length - 1)); return; }
+    if (e.key === "ArrowUp")   { e.preventDefault(); setHiIdx((h) => Math.max(h - 1, -1)); return; }
+    if (e.key === "Tab")       { if (filtered.length > 0) { e.preventDefault(); commit(filtered[0]); } return; }
+    if (e.key === "Enter")     { if (hiIdx >= 0 && filtered[hiIdx]) commit(filtered[hiIdx]); else if (query.trim()) commit(query.trim()); }
+  };
+
+  useEffect(() => {
+    const fn = (e) => { if (!ref.current?.contains(e.target)) { setOpen(false); setQuery(committed.current); } };
+    document.addEventListener("mousedown", fn);
+    return () => document.removeEventListener("mousedown", fn);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative flex items-center">
+      <div className={`flex items-center gap-2 bg-[#1a2235] border rounded-lg px-3 py-1.5 w-56 transition-all ${open ? "border-cyan-500/60" : "border-slate-700 hover:border-slate-500"}`}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" className="flex-shrink-0">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input
+          value={query}
+          onChange={(e) => { setQuery(e.target.value.toUpperCase()); setOpen(true); setHiIdx(-1); }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={handleKey}
+          placeholder="พิมพ์ชื่อหุ้น..."
+          className={`flex-1 bg-transparent text-sm outline-none placeholder-slate-600 ${value && !open ? "font-bold text-white" : "text-white"}`}
+        />
+        {query && (
+          <button onMouseDown={() => commit("")} className="text-slate-600 hover:text-slate-300 text-xs flex-shrink-0">✕</button>
+        )}
+      </div>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-2 w-56 bg-[#0d1526] border border-slate-600/60 rounded-xl shadow-2xl z-[200] overflow-hidden">
+          <div className="max-h-64 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+            {filtered.length === 0 ? (
+              <div className="px-3 py-3 text-slate-600 text-[11px] text-center">ไม่พบ — กด Enter เพื่อใช้ "{query}"</div>
+            ) : filtered.map((sym, idx) => {
+              const isHi = idx === hiIdx;
+              return (
+                <div key={sym} onMouseDown={() => commit(sym)} onMouseEnter={() => setHiIdx(idx)}
+                  className={`px-4 py-2.5 cursor-pointer text-sm font-bold tracking-wider transition-all
+                    ${isHi ? "bg-cyan-500/15 border-l-2 border-cyan-400 text-white" : "border-l-2 border-transparent text-slate-300 hover:bg-slate-800/40"}`}>
+                  {sym}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function TickMatch() {
   const navigate = useNavigate();
@@ -311,6 +404,7 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "" }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isFlipOpen, setIsFlipOpen] = useState(true);
   const [isChartModalOpen, setIsChartModalOpen] = useState(false);
+  const [chartRefreshKey, setChartRefreshKey] = useState(0);
   const [activeFilter, setActiveFilter] = useState("all"); // ✅ Filter state
 
   const todayMax = new Date().toISOString().split("T")[0];
@@ -333,6 +427,15 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "" }) => {
     );
     setFilteredSymbols(filtered);
   }, [symbol, symbolHistory]);
+
+  // ESC key handler to close fullscreen modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isChartModalOpen) setIsChartModalOpen(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isChartModalOpen]);
 
   // 3️⃣ Functions
   const handleSearch = () => {
@@ -741,49 +844,58 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "" }) => {
         )}
       </div>
 
-      {/* ✨ Chart Modal (เหมือนเดิม) */}
+      {/* ── Fullscreen Chart Modal ── */}
       {isChartModalOpen && (
-        <div className="fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4 rounded-lg">
-          <div className="bg-[#0B1221] border border-slate-700 rounded-lg w-full max-w-4xl h-[80vh] flex flex-col">
-            
-            {/* Modal Header */}
-            <div className="bg-[#1f2937] p-3 flex justify-between items-center border-b border-slate-700">
-              <span className="text-sm font-bold text-white">Price-Based Distribution Chart</span>
-              <button
-                onClick={() => setIsChartModalOpen(false)}
-                className="p-1 hover:bg-slate-700 rounded transition text-slate-300"
-              >
-                <CloseIcon sx={{ fontSize: 20 }} />
-              </button>
-            </div>
+        <div className="fixed inset-0 bg-[#0d1117] z-[999] flex flex-col">
+          {/* Header */}
+          <div className="flex items-center gap-3 px-4 py-3 bg-[#0d1117] border-b border-slate-800 flex-shrink-0">
+            <button
+              onClick={() => setIsChartModalOpen(false)}
+              className="flex items-center gap-1.5 bg-[#1f2937] hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-xs text-slate-300 hover:text-white transition-all flex-shrink-0"
+            >
+              ← กลับ/ปิด
+            </button>
+            <button
+              onClick={() => setChartRefreshKey((k) => k + 1)}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-400 text-white transition-all flex-shrink-0"
+            >
+              🔄
+            </button>
+            <FullscreenSymbolInput
+              value={activeSymbol}
+              onChange={(v) => { setSymbol(v); setActiveSymbol(v); setHasSearched(true); }}
+            />
+            <h2 className="flex-1 text-center text-lg font-bold text-white tracking-widest uppercase">
+              {activeSymbol}
+            </h2>
+          </div>
 
-            {/* Modal Content */}
-            <div className="flex-1 flex items-center justify-center bg-[#111827] p-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.charts}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis 
-                    dataKey="price" 
-                    stroke="#94a3b8" 
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
-                  />
-                  <YAxis 
-                    stroke="#94a3b8" 
-                    tick={{ fill: '#94a3b8', fontSize: 12 }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1f2937', 
-                      border: '1px solid #374151',
-                      borderRadius: '8px'
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="buy" fill="#10b981" name="Buy Volume" />
-                  <Bar dataKey="sell" fill="#ef4444" name="Sell Volume" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+          {/* Chart Area */}
+          <div key={chartRefreshKey} className="flex-1 min-h-0 bg-[#0d1117] p-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.charts}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis
+                  dataKey="price"
+                  stroke="#94a3b8"
+                  tick={{ fill: '#94a3b8', fontSize: 12 }}
+                />
+                <YAxis
+                  stroke="#94a3b8"
+                  tick={{ fill: '#94a3b8', fontSize: 12 }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1f2937',
+                    border: '1px solid #374151',
+                    borderRadius: '8px'
+                  }}
+                />
+                <Legend />
+                <Bar dataKey="buy" fill="#10b981" name="Buy Volume" />
+                <Bar dataKey="sell" fill="#ef4444" name="Sell Volume" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       )}
