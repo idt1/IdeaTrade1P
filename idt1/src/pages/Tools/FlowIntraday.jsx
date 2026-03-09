@@ -519,21 +519,34 @@ function FullscreenSymbolInput({ value, onChange }) {
 
   return (
     <div ref={ref} className="relative flex items-center">
-      <div className={`flex items-center gap-2 bg-[#1a2235] border rounded-lg px-3 py-1.5 w-56 transition-all ${open ? "border-cyan-500/60" : "border-slate-700 hover:border-slate-500"}`}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" className="flex-shrink-0">
-          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-        </svg>
-        <input
-          value={query}
-          onChange={(e) => { setQuery(e.target.value.toUpperCase()); setOpen(true); setHiIdx(-1); }}
-          onFocus={() => setOpen(true)}
-          onKeyDown={handleKey}
-          placeholder="พิมพ์ชื่อหุ้น..."
-          className={`flex-1 bg-transparent text-sm outline-none placeholder-slate-600 ${value && !open ? "font-bold text-white" : "text-white"}`}
-        />
-        {query && (
-          <button onMouseDown={() => commit("")} className="text-slate-600 hover:text-slate-300 text-xs flex-shrink-0">✕</button>
-        )}
+      {/* ✅ เพิ่ม relative wrapper */}
+      <div className="relative w-56">
+        <div className={`flex items-center gap-2 bg-[#1a2235] border rounded-lg px-3 py-1.5 transition-all ${
+          open ? "border-cyan-500/60" : "border-slate-700 hover:border-slate-500"
+        }`}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" className="flex-shrink-0">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            value={query}
+            onChange={(e) => { setQuery(e.target.value.toUpperCase()); setOpen(true); setHiIdx(-1); }}
+            onFocus={() => setOpen(true)}
+            onKeyDown={handleKey}
+            placeholder="พิมพ์ชื่อหุ้น..."
+            className={`flex-1 bg-transparent text-sm outline-none placeholder-slate-600 pr-6 ${
+              value && !open ? "font-bold text-white" : "text-white"
+            }`}
+          />
+          {/* ✅ ปุ่ม ✕ ใช้ absolute positioning */}
+          {query && (
+            <button 
+              onMouseDown={() => commit("")} 
+              className="absolute right-3 text-slate-600 hover:text-slate-300 text-sm transition-colors flex-shrink-0"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {open && (
