@@ -465,6 +465,88 @@ function ChartRenderer({ dataKey, isStep, globalHoverIndex, setGlobalHoverIndex,
   );
 }
 
+function EmptyChartCard({ title, message = "Please select symbol and oil types" }) {
+  return (
+    <div className="bg-[#111827] border border-slate-700 rounded-2xl p-5 h-[280px]">
+      <p className="text-xs text-slate-400 mb-4">{title}</p>
+
+      <div className="relative w-full h-[210px] bg-[#0b1018] rounded-xl overflow-hidden border border-slate-800">
+        <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+          {[0.2, 0.4, 0.6, 0.8].map((y, i) => (
+            <line
+              key={`h-${i}`}
+              x1="0"
+              y1={`${y * 100}%`}
+              x2="100%"
+              y2={`${y * 100}%`}
+              stroke="#243244"
+              strokeWidth="1"
+            />
+          ))}
+
+          {[0.2, 0.4, 0.6, 0.8].map((x, i) => (
+            <line
+              key={`v-${i}`}
+              x1={`${x * 100}%`}
+              y1="0"
+              x2={`${x * 100}%`}
+              y2="100%"
+              stroke="#243244"
+              strokeWidth="1"
+            />
+          ))}
+        </svg>
+
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-white text-base md:text-lg font-semibold text-center px-4">
+            {message}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyClosePriceCard({ message = "Please select symbol" }) {
+  return (
+    <div className="bg-[#111827] border border-slate-700 rounded-xl p-6 h-[280px] relative overflow-hidden">
+      <div className="relative w-full h-full rounded-xl bg-[#0b1018] border border-slate-800 overflow-hidden">
+        <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+          {[0.2, 0.4, 0.6, 0.8].map((y, i) => (
+            <line
+              key={`h-${i}`}
+              x1="0"
+              y1={`${y * 100}%`}
+              x2="100%"
+              y2={`${y * 100}%`}
+              stroke="#243244"
+              strokeWidth="1"
+            />
+          ))}
+
+          {[0.2, 0.4, 0.6, 0.8].map((x, i) => (
+            <line
+              key={`v-${i}`}
+              x1={`${x * 100}%`}
+              y1="0"
+              x2={`${x * 100}%`}
+              y2="100%"
+              stroke="#243244"
+              strokeWidth="1"
+            />
+          ))}
+        </svg>
+
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-white text-lg md:text-xl font-semibold text-center px-4">
+            {message}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ============================================================
 // PremiumChart
 // ============================================================
@@ -862,89 +944,154 @@ export default function PetroleumInsights() {
                 {showOilDropdown && (
                   <div className="absolute mt-2 w-full bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl max-h-[350px] overflow-y-auto z-50 p-2">
                     {OIL_TYPES_LIST.map((ot) => {
-                      const isSelected = selectedOilTypes.includes(ot);
-                      return (
+                    const isSelected = selectedOilTypes.includes(ot);
+
+                    return (
+                      <div
+                        key={ot}
+                        onClick={() => {
+                          if (refreshing) return;
+
+                          setRefreshing(true);
+                          setGlobalHoverIndex(null);
+
+                          const nextSelectedOilTypes = isSelected
+                            ? selectedOilTypes.filter((t) => t !== ot)
+                            : [...selectedOilTypes, ot];
+
+                          setTimeout(() => {
+                            setSelectedOilTypes(nextSelectedOilTypes);
+                            setDataVersion((prev) => prev + 1);
+                            setRefreshing(false);
+                          }, 700);
+                        }}
+                        className={`px-3 py-2.5 rounded-lg text-sm flex items-center gap-3 transition-colors mb-1 ${
+                          refreshing
+                            ? "opacity-50 cursor-not-allowed"
+                            : isSelected
+                            ? "bg-[#1e293b] text-white cursor-pointer"
+                            : "text-slate-400 hover:bg-[#162032] hover:text-slate-200 cursor-pointer"
+                        }`}
+                      >
                         <div
-                          key={ot}
-                          onClick={() => {
-                            if (isSelected) {
-                              setSelectedOilTypes(selectedOilTypes.filter(t => t !== ot));
-                            } else {
-                              setSelectedOilTypes([...selectedOilTypes, ot]);
-                            }
-                          }}
-                          className={`px-3 py-2.5 rounded-lg text-sm cursor-pointer flex items-center gap-3 transition-colors mb-1 ${isSelected ? 'bg-[#1e293b] text-white' : 'text-slate-400 hover:bg-[#162032] hover:text-slate-200'}`}
+                          className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                            isSelected ? "border-cyan-500 bg-cyan-500" : "border-slate-500"
+                          }`}
                         >
-                          <div className={
-                            `w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'border-cyan-500 bg-cyan-500' : 'border-slate-500'}` 
-                          }>
-                            {isSelected && <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {isSelected && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[selectedOilTypes.indexOf(ot) % COLORS.length] }} />}
-                            {ot}
-                          </div>
+                          {isSelected && (
+                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                            </svg>
+                          )}
                         </div>
-                      );
-                    })}
+
+                        <div className="flex items-center gap-2">
+                          {isSelected && (
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: COLORS[OIL_TYPES_LIST.indexOf(ot) % COLORS.length] }}
+                            />
+                          )}
+                          {ot}
+                        </div>
+                      </div>
+                    );
+                  })}
                   </div>
                 )}
               </div>
             </div>
 
             <div className="flex gap-2"> 
-              {"3M","6M","1Y","YTD","MAX"}.map(p => (
-                <button key={p} onClick={() => setPeriod(p)}
-                  className={`px-3 py-1 text-xs rounded-md border transition-colors ${period === p ? "bg-[#1f2937] border-cyan-400 text-cyan-400" : "border-slate-700 text-slate-400 hover:border-cyan-400 hover:text-cyan-400"}`}> 
-                  {p}
-                </button>
-              ))}
+              {["3M", "6M", "1Y", "YTD", "MAX"].map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1 text-xs rounded-md border transition-colors ${
+                  period === p
+                    ? "bg-[#1f2937] border-cyan-400 text-cyan-400"
+                    : "border-slate-700 text-slate-400 hover:border-cyan-400 hover:text-cyan-400"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
             </div>
           </div>
 
-          {refreshing ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
-              {skeletonCards.map((card) => (
-                <div key={card.key} className="bg-[#111827] rounded-xl border border-slate-700/60 p-4 h-[280px]"> 
-                  <div className="mb-3 flex justify-between items-center">
-                    <span className="text-xs text-slate-400">{card.title}</span>
-                  </div>
-                  <WaveSkeleton delay={card.delay} />
+         {refreshing ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {skeletonCards.map((card) => (
+              <div key={card.key} className="bg-[#111827] rounded-xl border border-slate-700/60 p-4 h-[280px]">
+                <div className="mb-3 flex justify-between items-center">
+                  <span className="text-xs text-slate-400">{card.title}</span>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> 
-              {symbol
-                ? <ClosePriceBig key={`close-price-${dataVersion}`} globalHoverIndex={globalHoverIndex} symbolProp={symbol} oilTypesProp={selectedOilTypes} />
-                : <SkeletonBig />
-              }
+                <WaveSkeleton delay={card.delay} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {symbol ? (
+              <ClosePriceBig
+                key={`close-price-${dataVersion}`}
+                globalHoverIndex={globalHoverIndex}
+                symbolProp={symbol}
+                oilTypesProp={selectedOilTypes}
+              />
+            ) : (
+              <EmptyClosePriceCard message="Please select symbol" />
+            )}
 
-              {(symbol && selectedOilTypes.length > 0)
-                ? <PremiumChart key={`exrefin-${dataVersion}`} title="EX-REFIN" dataKey="ExRefin" isStep={false} chartId="exrefin" {...sharedChartProps} />
-                : <div className="bg-[#111827] border border-slate-700 rounded-2xl p-5 h-[280px]">
-                    <div className="h-2 rounded-full bg-slate-800 w-24 mb-4" />
-                    <WaveSkeleton delay={0} />
-                  </div>
-              }
+            {symbol && selectedOilTypes.length > 0 ? (
+              <PremiumChart
+                key={`exrefin-${dataVersion}`}
+                title="EX-REFIN"
+                dataKey="ExRefin"
+                isStep={false}
+                chartId="exrefin"
+                {...sharedChartProps}
+              />
+            ) : (
+              <EmptyChartCard
+                title="EX-REFIN"
+                message={!symbol ? "Please select symbol" : "Please select oil types"}
+              />
+            )}
 
-              {(symbol && selectedOilTypes.length > 0)
-                ? <PremiumChart key={`mktmargin-${dataVersion}`} title="Marketing Margin" dataKey="MktMargin" isStep={false} chartId="mktmargin" {...sharedChartProps} />
-                : <div className="bg-[#111827] border border-slate-700 rounded-2xl p-5 h-[280px]">
-                    <div className="h-2 rounded-full bg-slate-800 w-24 mb-4" />
-                    <WaveSkeleton delay={0.2} />
-                  </div>
-              }
+            {symbol && selectedOilTypes.length > 0 ? (
+              <PremiumChart
+                key={`mktmargin-${dataVersion}`}
+                title="Marketing Margin"
+                dataKey="MktMargin"
+                isStep={false}
+                chartId="mktmargin"
+                {...sharedChartProps}
+              />
+            ) : (
+              <EmptyChartCard
+                title="Marketing Margin"
+                message={!symbol ? "Please select symbol" : "Please select oil types"}
+              />
+            )}
 
-              {(symbol && selectedOilTypes.length > 0)
-                ? <PremiumChart key={`oilfund-${dataVersion}`} title="Oil Fund" dataKey="OilFund" isStep={true} chartId="oilfund" {...sharedChartProps} />
-                : <div className="bg-[#111827] border border-slate-700 rounded-2xl p-5 h-[280px]">
-                    <div className="h-2 rounded-full bg-slate-800 w-24 mb-4" />
-                    <WaveSkeleton delay={0.4} />
-                  </div>
-              }
-            </div>
-          )}
+            {symbol && selectedOilTypes.length > 0 ? (
+              <PremiumChart
+                key={`oilfund-${dataVersion}`}
+                title="Oil Fund"
+                dataKey="OilFund"
+                isStep={true}
+                chartId="oilfund"
+                {...sharedChartProps}
+              />
+            ) : (
+              <EmptyChartCard
+                title="Oil Fund"
+                message={!symbol ? "Please select symbol" : "Please select oil types"}
+              />
+            )}
+          </div>
+        )}
         </div>
       </div>
     );
