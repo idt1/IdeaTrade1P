@@ -11,19 +11,25 @@ export default function ToolsCard({
 
   if (!project) return null;
 
-  const isUnlocked =
-    !project.premium || isMember || unlockedList.includes(project.id);
+  // 🔥 หัวใจสำคัญ: เช็คสิทธิ์การปลดล็อกรายเครื่องมือ
+  // isUnlocked จะเป็น true ก็ต่อเมื่อ:
+  // 1. เป็นเครื่องมือฟรี (ไม่ premium)
+  // 2. มีชื่ออยู่ใน unlockedList (ผ่านการเช็ควันหมดอายุจากหน้าหลักแล้ว)
+  // 3. หรือค่า isMember ที่ส่งตรงมาจากหน้าหลักเป็น true
+  const isUnlocked = !project.premium || unlockedList.includes(project.id) || isMember;
 
   /* ===== Card Background ===== */
+  // ใช้สีเดิมของคุณ: ทอง [#403000] เมื่อปลดล็อกแล้ว, เทา [#666666] เมื่อยังไม่ปลดล็อกหรือหมดอายุ
   const cardBackground =
     project.premium && isUnlocked
       ? "bg-[#403000]"
       : "bg-[#666666]";
 
   /* ===== Icon Style ===== */
+  // ใช้สีทอง [#cca300] เฉพาะเมื่อเป็น premium และยังไม่หมดอายุ (isUnlocked)
   const iconStyle = project.external
     ? "bg-sky-600 border-sky-500"
-    : project.premium
+    : project.premium && isUnlocked
       ? "bg-[#cca300] border-[#b38f00]"
       : "bg-gray-500 border-gray-400";
 
@@ -86,10 +92,6 @@ export default function ToolsCard({
 
         <h3 className="text-xl font-bold text-white">
           {project.name}
-          {project.premium && (
-            <span className="text-[#cca300] text-sm ml-2">
-            </span>
-          )}
         </h3>
       </div>
 
@@ -108,9 +110,9 @@ export default function ToolsCard({
           ${
             project.external
               ? "bg-sky-600 hover:bg-sky-500 text-white"
-              : project.premium
-                ? "bg-[#cca300] hover:bg-[#b38f00] text-white"
-                : "bg-gray-600 hover:bg-gray-500 text-white"
+              : isUnlocked // ✅ ปุ่มจะเป็นสีทอง/สีหลัก เฉพาะเมื่อยังไม่หมดอายุเท่านั้น
+                ? (project.premium ? "bg-[#cca300] hover:bg-[#b38f00] text-white" : "bg-gray-600 hover:bg-gray-500 text-white")
+                : "bg-gray-700 hover:bg-gray-800 text-gray-400" // สีปุ่มเมื่อล็อค/หมดอายุ
           }
         `}
       >

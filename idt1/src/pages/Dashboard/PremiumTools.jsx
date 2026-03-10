@@ -1,13 +1,15 @@
+// src/pages/dashboard/PremiumTools.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import ToolsCard from "@/components/toolscard.jsx"; // ตรวจสอบชื่อไฟล์ให้ตรงกับ components ของคุณ
+// ⚠️ ตรวจสอบชื่อไฟล์ component ของคุณอีกครั้ง (ToolsCard หรือ ToolCard)
+import ToolsCard from "@/components/ToolsCard.jsx"; 
 
 import { auth, db } from "@/firebase"; 
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
 /* =======================
-   Data Configuration
+    Data Configuration
 ======================= */
 const projects = [
   { id: "stock-mover", name: "Stock Mover", desc: "Real-time screener for stocks with high volatility and momentum.", external: true, url: "https://stockmover.com" },
@@ -27,38 +29,43 @@ const projects = [
 export default function PremiumTools() {
   const navigate = useNavigate();
   const [unlockedList, setUnlockedList] = useState([]);
+  const [isGlobalMember, setIsGlobalMember] = useState(false); // เพิ่ม State สำหรับเช็ค Role โดยตรง
   
-  // กรองเฉพาะเครื่องมือที่เป็น Premium เพื่อแสดงในหน้านี้
   const premiumTools = projects.filter((tool) => tool.premium);
 
   /* ===== Load user profile & Check Subscriptions ===== */
   useEffect(() => {
-    /**
-     * 🔥 ลอจิกสำคัญ: กรอง ID ของเครื่องมือที่ "ยังไม่หมดอายุ" เท่านั้น
-     */
     const getActiveToolIds = (userData) => {
       const now = new Date();
       const activeIds = [];
 
-      // 1. ตรวจสอบจาก Object "subscriptions" (โครงสร้าง: { toolId: timestamp })
+      // 1. ตรวจสอบ Role (เหมือน Sidebar)
+      const hasGlobalRole = userData.role === "member" || userData.role === "membership";
+      setIsGlobalMember(hasGlobalRole);
+
+      // ถ้าเป็น Global Member ให้ถือว่าปลดล็อค Premium ทุกตัว
+      if (hasGlobalRole) {
+        return premiumTools.map(t => t.id);
+      }
+
+      // 2. ตรวจสอบจาก Object "subscriptions" (เช็ควันหมดอายุรายตัว)
       if (userData.subscriptions) {
         Object.entries(userData.subscriptions).forEach(([toolId, expTimestamp]) => {
-          // รองรับทั้ง Firestore Timestamp (.toDate()) และ ISO String
           const expDate = expTimestamp?.toDate ? expTimestamp.toDate() : new Date(expTimestamp);
-          
-          // ถ้าเวลาปัจจุบันยังไม่ถึงเวลาหมดอายุ (ยังมีสิทธิ์ใช้งาน)
           if (expDate > now) {
             activeIds.push(toolId);
           }
         });
       }
 
-      // 2. ตรวจสอบจาก "unlockedItems" (กรณีแอดมินปลดล็อกให้ถาวร)
+      // 3. ตรวจสอบจาก "unlockedItems" (กรณีแอดมินปลดล็อคให้ถาวร)
       if (Array.isArray(userData.unlockedItems)) {
-        userData.unlockedItems.forEach(id => activeIds.push(id));
+        userData.unlockedItems.forEach(id => {
+          if (!activeIds.includes(id)) activeIds.push(id);
+        });
       }
       
-      return [...new Set(activeIds)]; // คืนค่าเฉพาะ ID ที่ไม่ซ้ำกัน
+      return activeIds;
     };
 
     const processUserData = (userData) => {
@@ -72,10 +79,10 @@ export default function PremiumTools() {
         processUserData(JSON.parse(saved));
       } else {
         setUnlockedList([]);
+        setIsGlobalMember(false);
       }
     };
 
-    // ติดตามสถานะ Login และดึงข้อมูลจริงจาก Firebase
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
@@ -85,7 +92,6 @@ export default function PremiumTools() {
           if (userSnap.exists()) {
             const data = userSnap.data();
             processUserData(data);
-            // อัปเดต LocalStorage สำรองไว้เพื่อให้ Sidebar Tab อื่นๆ เห็นด้วย
             localStorage.setItem("userProfile", JSON.stringify(data));
           }
         } catch (err) {
@@ -97,9 +103,7 @@ export default function PremiumTools() {
       }
     });
 
-    // ดักจับการเปลี่ยนแปลงจากหน้าอื่นๆ
     window.addEventListener("storage", loadDemoProfile);
-
     return () => {
       unsubscribe();
       window.removeEventListener("storage", loadDemoProfile);
@@ -131,14 +135,14 @@ export default function PremiumTools() {
       {/* ===== Grid Section ===== */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {premiumTools.map((tool) => {
-          // 🔥 ตรวจสอบว่า ID ของ Tool นี้อยู่ในรายการที่ "ยังไม่หมดอายุ" หรือไม่
-          const hasAccess = unlockedList.includes(tool.id);
+          // เช็คสิทธิ์: เป็น Global Member หรือ มี ID อยู่ใน List ที่ยังไม่หมดอายุ
+          const hasAccess = isGlobalMember || unlockedList.includes(tool.id);
 
           return (
             <ToolsCard
               key={tool.id}
               project={tool}
-              // ✅ ส่งสถานะ "เข้าถึงได้จริง" ไปที่ Card เพื่อเปลี่ยนสีการ์ด (ทอง/เทา)
+              // ส่ง hasAccess ไปเป็น isMember เพื่อให้การ์ดเปลี่ยนสี (ทอง/เทา)
               isMember={hasAccess} 
               unlockedList={unlockedList}
             />
