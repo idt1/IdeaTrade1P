@@ -23,7 +23,6 @@ const ToolAccessGuard = ({ toolId, toolName, children }) => {
 
   const expireTimestamp = accessData[toolId];
   
-  // ย้ายการคำนวณวันหมดอายุมาไว้ด้านบน เพื่อใช้เช็คเงื่อนไข
   let daysLeft = 0;
   let formattedDate = "No active plan";
 
@@ -43,8 +42,14 @@ const ToolAccessGuard = ({ toolId, toolName, children }) => {
     });
   }
 
-  // 🔴 เช็คว่า "ไม่เคยมีแพ็กเกจ" หรือ "หมดอายุแล้ว"
-  if (!expireTimestamp || daysLeft <= 0) {
+  // ⚪ 1. กรณี "ไม่เคยมีแพ็กเกจนี้เลย"
+  // ปล่อยให้แสดงเนื้อหาไปเลย (เพราะหน้าหลักอย่าง DRInsight.jsx จะเป็นคนเอาหน้าจอ Preview มาครอบทับบล็อกไว้อยู่แล้ว)
+  if (!expireTimestamp) {
+    return <>{children}</>;
+  }
+
+  // 🔴 2. กรณี "เคยซื้อแพ็กเกจ แต่หมดอายุแล้ว"
+  if (daysLeft <= 0) {
     // ถ้ายูสเซอร์กดปิด Popup (showExpired = false) ให้แสดงเนื้อหาปกติ (ไม่เบลอ)
     if (!showExpired) {
       return <>{children}</>;
@@ -65,7 +70,7 @@ const ToolAccessGuard = ({ toolId, toolName, children }) => {
     );
   }
 
-  // 🟡 กรณี "ใกล้หมดอายุ" (1-3 วัน)
+  // 🟡 3. กรณี "ใกล้หมดอายุ" (1-3 วัน)
   const isExpiringSoon = daysLeft > 0 && daysLeft <= 3;
 
   return (

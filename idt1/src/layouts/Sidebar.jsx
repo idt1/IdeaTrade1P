@@ -138,21 +138,16 @@ export default function Sidebar({
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [tooltipState, setTooltipState] = useState({ visible: false, top: 0, text: "" });
 
-  // ✅ ใช้ onAuthStateChanged เพื่อให้เมนูเปลี่ยนทันทีที่สถานะล็อกอินเปลี่ยน
-useEffect(() => {
-    // ฟังก์ชันสำหรับโหลดโหมด Demo จาก LocalStorage
+  useEffect(() => {
+    // ฟังก์ชันสำหรับโหลดโหมด Demo (เผื่อการทดสอบผ่าน LocalStorage)
     const loadDemoProfile = () => {
       const saved = localStorage.getItem("userProfile");
       if (saved) {
         const userData = JSON.parse(saved);
-        const subscriptions = userData.mySubscriptions || [];
-        const unlockedFromSubs = subscriptions.map(sub => sub.id); 
-        const explicitUnlocked = userData.unlockedItems || [];
-        const combinedUnlocked = [...new Set([...explicitUnlocked, ...unlockedFromSubs])];
-        
-        const hasAccess = userData.role === "member" || userData.role === "membership" || combinedUnlocked.length > 0;
+        const unlocked = userData.unlockedItems || [];
+        const hasAccess = userData.role === "member" || userData.role === "membership" || unlocked.length > 0;
         setIsMember(hasAccess);
-        setUnlockedList(combinedUnlocked);
+        setUnlockedList(unlocked);
       } else {
         setIsMember(false);
         setUnlockedList([]);
@@ -163,32 +158,49 @@ useEffect(() => {
       if (user) {
         setIsLoggedIn(true);
         try {
-          // ดึงจาก Firebase (รหัสเหมือนเดิม)
           const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
 
           if (userSnap.exists()) {
             const userData = userSnap.data();
-            const subscriptions = userData.mySubscriptions || [];
-            const unlockedFromSubs = subscriptions.map(sub => sub.id); 
-            const explicitUnlocked = userData.unlockedItems || [];
-            const combinedUnlocked = [...new Set([...explicitUnlocked, ...unlockedFromSubs])];
-            const hasAccess = userData.role === "member" || userData.role === "membership" || combinedUnlocked.length > 0;
+            const unlockedItems = userData.unlockedItems || [];
+            const subscriptionsMap = userData.subscriptions || {}; // โหลด Map วันหมดอายุ
+            const now = new Date();
+            const validUnlockedList = [];
+
+            // 🔥 ลูปเช็คทุกรายการที่เคยซื้อว่าหมดอายุหรือยัง
+            unlockedItems.forEach((itemId) => {
+              const expireData = subscriptionsMap[itemId];
+              
+              if (expireData) {
+                // แปลง Firebase Timestamp หรือวันที่ ให้เป็น JS Date
+                const expDate = expireData.toDate ? expireData.toDate() : new Date(expireData);
+                
+                // ถ้ายาวกว่าเวลาปัจจุบัน แสดงว่ายัง "ไม่หมดอายุ"
+                if (expDate > now) {
+                  validUnlockedList.push(itemId);
+                }
+              } else {
+                // ถ้าโปรเจกต์ไหนไม่มีวันที่กำหนดใน subscriptions ถือว่าถาวร
+                validUnlockedList.push(itemId);
+              }
+            });
+
+            // เช็คสถานะ Member โดยอิงจาก Role หรือมีแพ็กเกจที่ยังไม่หมดอายุเหลืออยู่
+            const hasAccess = userData.role === "member" || userData.role === "membership" || validUnlockedList.length > 0;
 
             setIsMember(hasAccess);
-            setUnlockedList(combinedUnlocked);
+            setUnlockedList(validUnlockedList); // เก็บเฉพาะอันที่ยังไม่หมดอายุเข้า State
           }
         } catch (error) {
           console.error("Error fetching Firestore:", error);
         }
       } else {
-        // 🔥 ถ้าไม่ได้ล็อกอิน ให้เข้าสู่โหมด DEMO (อ่านจาก LocalStorage) 🔥
         setIsLoggedIn(false);
         loadDemoProfile(); 
       }
     });
 
-    // ดักฟังการจำลองจ่ายเงินในโหมด Demo
     window.addEventListener("storage", loadDemoProfile);
 
     return () => {
@@ -205,11 +217,10 @@ useEffect(() => {
     setShowLogoutModal(true);
   };
 
-  // ✅ อัปเดตฟังก์ชัน Logout ให้เตะออกจาก Firebase ด้วย
   const confirmSignOut = async () => {
     try {
-      await signOut(auth); // สั่งออกจากระบบ Firebase
-      localStorage.removeItem("userProfile"); // ล้างข้อมูลส่วนตัว
+      await signOut(auth); 
+      localStorage.removeItem("userProfile"); 
       setIsLoggedIn(false); 
       setIsMember(false);
       setShowLogoutModal(false);
@@ -221,6 +232,7 @@ useEffect(() => {
 
   const handleNavigation = (id, projectItem = null) => {
     if (PROJECT_PREVIEWS[id]) {
+        // เช็คจาก State ใหม่ที่กรองของหมดอายุทิ้งไปแล้ว
         const isUnlocked = unlockedList.includes(id);
         if (!isUnlocked) {
             const previewPage = PROJECT_PREVIEWS[id];

@@ -135,11 +135,18 @@ const Profile = () => {
       </div>
 
       {activeTab === 'Profile' && (
-        <div className="profile-layout fade-in">
+        <div className="profile-layout fade-in" style={{ display: 'block' }}>
           
           {/* --- LEFT COLUMN: Form --- */}
-          <div className="card form-card">
-            <h2 className="card-header">My Account Information</h2>
+          <div className="card form-card" style={{ maxWidth: '800px' }}>
+            
+            {/* ปรับให้ Header ใช้ Flexbox ดันข้อความไปซ้ายสุดและขวาสุด */}
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, padding: 0, border: 'none' }}>My Account Information</h2>
+              <span className="last-login-text" style={{ fontSize: '0.9rem', color: '#9ca3af', fontWeight: 'normal' }}>
+                Last Login: {userData.lastLogin}
+              </span>
+            </div>
             
             <div className="form-content">
               <div className="form-row two-cols">
@@ -204,23 +211,6 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* --- RIGHT COLUMN: Profile Summary --- */}
-          <div className="sidebar-column">
-            <div className="card profile-summary-card">
-              <div className="avatar-circle">
-                <UserIconLarge />
-              </div>
-              <h3 className="user-fullname">
-                {userData.firstName || userData.lastName 
-                  ? `${userData.firstName} ${userData.lastName}` 
-                  : "Idea Trade User"}
-              </h3>
-              <div className="verified-badge">
-                <CheckCircleIcon /> Account Verified
-              </div>
-              <p className="last-login-text">Last Login: {userData.lastLogin}</p>
-            </div>
-          </div>
         </div>
       )}
 
@@ -242,7 +232,5 @@ const Profile = () => {
 const UserIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:8}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
 const CodeIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:8}}><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>;
 const LockIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:6}}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
-const CheckCircleIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="#10b981" stroke="none"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm-1.25 17.292l-4.5-4.5 1.762-1.762 2.738 2.735 7.738-7.738 1.762 1.762-9.5 9.5z"/></svg>;
-const UserIconLarge = () => <svg width="40" height="40" viewBox="0 0 24 24" fill="#fff" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
 
 export default Profile;

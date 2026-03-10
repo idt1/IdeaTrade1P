@@ -1,6 +1,11 @@
 import React from 'react';
 
-const ExpiredPopup = ({ toolName, expireDateStr, onClose }) => {
+// ✅ เพิ่ม hasPurchased เข้ามาเช็ค ถ้าไม่ส่งมาจะให้ค่าเริ่มต้นเป็น true ไว้ก่อน
+const ExpiredPopup = ({ toolName, expireDateStr, hasPurchased = true, onClose }) => {
+  
+  // 🔥 ถ้าไม่เคยซื้อเลย ให้ return null (Popup จะไม่แสดงขึ้นมาเลย)
+  if (!hasPurchased) return null;
+
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-md">
       
@@ -39,7 +44,6 @@ const ExpiredPopup = ({ toolName, expireDateStr, onClose }) => {
           </p>
         </div>
 
-        {/* ❌ ย้ายปุ่มกากบาทมาไว้ตรงนี้ (ล่างสุด) พร้อมเพิ่ม z-50 และ p-2 ให้กดง่ายขึ้น */}
         <button 
           onClick={onClose} 
           className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors duration-200 z-50 p-2 cursor-pointer"
