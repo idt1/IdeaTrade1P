@@ -24,7 +24,6 @@ const LEFT_TICKS = [
   { time:"11:38:15", last:"72.56", vol:"1,425",  type:"B", sum:"103,398,437" },
 ];
 
-// ─── exact data from screenshot (right panel) ─────────────────────────────
 const RIGHT_TICKS = [
   { time:"10:00:15", last:"70.57", vol:"16,125", type:"B", sum:"1,137,908,283" },
   { time:"10:02:15", last:"71.14", vol:"16,746", type:"B", sum:"1,191,232,309" },
@@ -73,8 +72,9 @@ function Panel({ ticks, sumBuy, sumSell, netVol, netPos, date, filter, setFilter
         padding: "8px 10px",
         display: "flex",
         alignItems: "flex-end",
-        gap: 8,
+        gap: 6,
         borderBottom: "1px solid #23293a",
+        flexWrap: "wrap",
       }}>
         <div style={{
           background: "#6d28d9",
@@ -90,6 +90,7 @@ function Panel({ ticks, sumBuy, sumSell, netVol, netPos, date, filter, setFilter
           alignSelf: "flex-end",
           marginBottom: 2,
           letterSpacing: 0.5,
+          flexShrink: 0,
         }}>
           <span style={{
             width: 5, height: 5, borderRadius: "50%",
@@ -99,7 +100,7 @@ function Panel({ ticks, sumBuy, sumSell, netVol, netPos, date, filter, setFilter
           SYNC
         </div>
 
-        <div style={{ display:"flex", flexDirection:"column", gap:2, flex:1 }}>
+        <div style={{ display:"flex", flexDirection:"column", gap:2, flex:"1 1 80px", minWidth: 60 }}>
           <label style={{ fontSize:10, color:"#4b5675", letterSpacing:"0.5px", textTransform:"uppercase" }}>Symbol *</label>
           <input defaultValue="DELTA" style={{
             background: "#0a0d16",
@@ -107,14 +108,14 @@ function Panel({ ticks, sumBuy, sumSell, netVol, netPos, date, filter, setFilter
             borderRadius: 3,
             color: "#d1d9e6",
             fontFamily: "'Courier New', monospace",
-            fontSize: 13,
-            padding: "5px 8px",
+            fontSize: 12,
+            padding: "5px 6px",
             outline: "none",
             width: "100%",
           }}/>
         </div>
 
-        <div style={{ display:"flex", flexDirection:"column", gap:2, flex:1 }}>
+        <div style={{ display:"flex", flexDirection:"column", gap:2, flex:"1 1 80px", minWidth: 60 }}>
           <label style={{ fontSize:10, color:"#4b5675", letterSpacing:"0.5px", textTransform:"uppercase" }}>Date</label>
           <input defaultValue={date} style={{
             background: "#0a0d16",
@@ -122,8 +123,8 @@ function Panel({ ticks, sumBuy, sumSell, netVol, netPos, date, filter, setFilter
             borderRadius: 3,
             color: "#d1d9e6",
             fontFamily: "'Courier New', monospace",
-            fontSize: 13,
-            padding: "5px 8px",
+            fontSize: 12,
+            padding: "5px 6px",
             outline: "none",
             width: "100%",
           }}/>
@@ -137,46 +138,52 @@ function Panel({ ticks, sumBuy, sumSell, netVol, netPos, date, filter, setFilter
           fontFamily: "inherit",
           fontSize: 12,
           fontWeight: 700,
-          padding: "6px 18px",
+          padding: "6px 14px",
           cursor: "pointer",
           letterSpacing: 1.5,
           alignSelf: "flex-end",
+          flexShrink: 0,
+          whiteSpace: "nowrap",
         }}>SEARCH</button>
       </div>
 
       {/* ── Stats boxes ── */}
       <div style={{ display:"flex" }}>
         <div style={{
-          flex:1, padding:"5px 10px 7px",
+          flex:1, padding:"5px 8px 7px",
           borderRight:"1px solid #23293a",
           borderBottom:"3px solid #16a34a",
           background:"#111a15",
+          minWidth: 0,
         }}>
-          <div style={{ fontSize:10, color:"#5a6a82", marginBottom:2 }}>Sum Buy</div>
-          <div style={{ fontFamily:"'Courier New', monospace", fontSize:16, fontWeight:700, color:"#4ade80" }}>
+          <div style={{ fontSize:9, color:"#5a6a82", marginBottom:2 }}>Sum Buy</div>
+          <div style={{ fontFamily:"'Courier New', monospace", fontSize:13, fontWeight:700, color:"#4ade80", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
             {sumBuy}
           </div>
         </div>
         <div style={{
-          flex:1, padding:"5px 10px 7px",
+          flex:1, padding:"5px 8px 7px",
           borderRight:"1px solid #23293a",
           borderBottom:"3px solid #dc2626",
           background:"#18100f",
+          minWidth: 0,
         }}>
-          <div style={{ fontSize:10, color:"#5a6a82", marginBottom:2 }}>Sum Sell</div>
-          <div style={{ fontFamily:"'Courier New', monospace", fontSize:16, fontWeight:700, color:"#f87171" }}>
+          <div style={{ fontSize:9, color:"#5a6a82", marginBottom:2 }}>Sum Sell</div>
+          <div style={{ fontFamily:"'Courier New', monospace", fontSize:13, fontWeight:700, color:"#f87171", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
             {sumSell}
           </div>
         </div>
         <div style={{
-          flex:1, padding:"5px 10px 7px",
+          flex:1, padding:"5px 8px 7px",
           borderBottom:"3px solid #b45309",
           background:"#16140f",
+          minWidth: 0,
         }}>
-          <div style={{ fontSize:10, color:"#5a6a82", marginBottom:2 }}>Net Acc. Vol</div>
+          <div style={{ fontSize:9, color:"#5a6a82", marginBottom:2 }}>Net Acc. Vol</div>
           <div style={{
-            fontFamily:"'Courier New', monospace", fontSize:16, fontWeight:700,
+            fontFamily:"'Courier New', monospace", fontSize:13, fontWeight:700,
             color: netPos ? "#4ade80" : "#f87171",
+            overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
           }}>
             {netVol}
           </div>
@@ -186,16 +193,17 @@ function Panel({ ticks, sumBuy, sumSell, netVol, netPos, date, filter, setFilter
       {/* ── Filter tabs ── */}
       <div style={{
         background:"#0d1018",
-        padding:"5px 8px",
+        padding:"5px 6px",
         display:"flex",
-        gap:5,
+        gap:4,
         borderBottom:"1px solid #23293a",
         borderTop:"1px solid #23293a",
+        flexWrap:"wrap",
       }}>
-        {[["all","All"],["buy","Buy Only"],["sell","Sell Only"],["big","> 100K (Big Lot)"]].map(([k,label]) => (
+        {[["all","All"],["buy","Buy"],["sell","Sell"],["big",">100K"]].map(([k,label]) => (
           <button key={k} onClick={() => setFilter(k)} style={{
-            padding:"2px 10px",
-            fontSize:11,
+            padding:"2px 8px",
+            fontSize:10,
             fontWeight:600,
             fontFamily:"inherit",
             background: filter===k ? "#172554" : "transparent",
@@ -204,6 +212,7 @@ function Panel({ ticks, sumBuy, sumSell, netVol, netPos, date, filter, setFilter
             color: filter===k ? "#60a5fa" : "#4b5675",
             cursor:"pointer",
             transition:"all 0.1s",
+            whiteSpace:"nowrap",
           }}>{label}</button>
         ))}
       </div>
@@ -211,13 +220,13 @@ function Panel({ ticks, sumBuy, sumSell, netVol, netPos, date, filter, setFilter
       {/* ── Table header ── */}
       <div style={{
         display:"grid",
-        gridTemplateColumns:"90px 70px 80px 50px 1fr",
-        padding:"5px 8px",
+        gridTemplateColumns:"80px 60px 70px 44px 1fr",
+        padding:"5px 6px",
         background:"#0d1018",
         borderBottom:"1px solid #23293a",
       }}>
         {[["Time","left"],["Last","right"],["Vol","right"],["Type","center"],["Sum","right"]].map(([h,align]) => (
-          <div key={h} style={{ fontSize:11, color:"#4b5675", fontWeight:600, textAlign:align, letterSpacing:"0.4px" }}>
+          <div key={h} style={{ fontSize:10, color:"#4b5675", fontWeight:600, textAlign:align, letterSpacing:"0.4px" }}>
             {h}
           </div>
         ))}
@@ -227,36 +236,35 @@ function Panel({ ticks, sumBuy, sumSell, netVol, netPos, date, filter, setFilter
       <div style={{ overflowY:"auto", flex:1 }}>
         {filtered.map((t, i) => {
           const isBuy = t.type === "B";
-          // screenshot has a very subtle olive/warm tint on alternating rows
           const bg = i % 2 === 0 ? "#111620" : "#0e1219";
           return (
             <div key={i} style={{
               display:"grid",
-              gridTemplateColumns:"90px 70px 80px 50px 1fr",
-              padding:"3px 8px",
+              gridTemplateColumns:"80px 60px 70px 44px 1fr",
+              padding:"3px 6px",
               background: bg,
               borderBottom:"1px solid #181d2a",
               alignItems:"center",
             }}>
-              <span style={{ fontFamily:"'Courier New',monospace", fontSize:11, color:"#d4a84b" }}>
+              <span style={{ fontFamily:"'Courier New',monospace", fontSize:10, color:"#d4a84b" }}>
                 {t.time}
               </span>
-              <span style={{ fontFamily:"'Courier New',monospace", fontSize:12, color:"#d1d9e6", textAlign:"right" }}>
+              <span style={{ fontFamily:"'Courier New',monospace", fontSize:11, color:"#d1d9e6", textAlign:"right" }}>
                 {t.last}
               </span>
-              <span style={{ fontFamily:"'Courier New',monospace", fontSize:12, color:"#d1d9e6", textAlign:"right" }}>
+              <span style={{ fontFamily:"'Courier New',monospace", fontSize:11, color:"#d1d9e6", textAlign:"right" }}>
                 {t.vol}
               </span>
               <div style={{ display:"flex", justifyContent:"center" }}>
                 <span style={{
                   display:"inline-flex", alignItems:"center", justifyContent:"center",
-                  width:18, height:18, borderRadius:3,
-                  fontSize:11, fontWeight:700,
+                  width:16, height:16, borderRadius:3,
+                  fontSize:10, fontWeight:700,
                   background: isBuy ? "#14532d" : "#7f1d1d",
                   color: isBuy ? "#4ade80" : "#f87171",
                 }}>{t.type}</span>
               </div>
-              <span style={{ fontFamily:"'Courier New',monospace", fontSize:11, color:"#8899aa", textAlign:"right" }}>
+              <span style={{ fontFamily:"'Courier New',monospace", fontSize:10, color:"#8899aa", textAlign:"right", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                 {t.sum}
               </span>
             </div>
@@ -270,6 +278,8 @@ function Panel({ ticks, sumBuy, sumSell, netVol, netPos, date, filter, setFilter
 export default function TickMatchAnalysis() {
   const [filter1, setFilter1] = useState("all");
   const [filter2, setFilter2] = useState("all");
+  // Mobile tab: show panel 1 or panel 2
+  const [activeTab, setActiveTab] = useState(0);
 
   return (
     <>
@@ -282,8 +292,57 @@ export default function TickMatchAnalysis() {
         div[style*="overflowY"]::-webkit-scrollbar { width:3px; }
         div[style*="overflowY"]::-webkit-scrollbar-track { background:#0a0d16; }
         div[style*="overflowY"]::-webkit-scrollbar-thumb { background:#2a3347; border-radius:2px; }
-        div[style*="gridTemplateColumns"]:not([style*="padding:\"5px 8px\""]):hover {
-          background: #1a2236 !important;
+
+        /* Desktop: show both panels side by side */
+        .panels-wrapper {
+          display: flex;
+          gap: 12px;
+          flex: 1;
+          min-height: 0;
+        }
+        .panel-desktop { display: flex; flex: 1; min-width: 0; }
+        .mobile-tabs   { display: none; }
+
+        /* Mobile: tab switcher, show one panel at a time */
+        @media (max-width: 767px) {
+          .panels-wrapper {
+            flex-direction: column;
+            gap: 0;
+            overflow: hidden;
+          }
+          .panel-desktop {
+            display: none;
+          }
+          .panel-desktop.active {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+          }
+          .mobile-tabs {
+            display: flex;
+            flex-shrink: 0;
+            background: #10131c;
+            border-bottom: 1px solid #23293a;
+          }
+          .mobile-tab-btn {
+            flex: 1;
+            padding: 8px 4px;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: 'Barlow Condensed', sans-serif;
+            letter-spacing: 0.5px;
+            background: transparent;
+            border: none;
+            color: #4b5675;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.15s;
+          }
+          .mobile-tab-btn.active {
+            color: #60a5fa;
+            border-bottom-color: #2563eb;
+            background: #0d1018;
+          }
         }
       `}</style>
 
@@ -294,55 +353,74 @@ export default function TickMatchAnalysis() {
         color: "#c8d6e5",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "16px",
+        padding: "12px",
         overflow: "hidden",
       }}>
         <div style={{
           width: "100%",
           maxWidth: 1300,
+          margin: "0 auto",
           display: "flex",
           flexDirection: "column",
-          height: "calc(100vh - 32px)",
-          flex: 1, // บังคับให้ดันเนื้อหาจนสุดความสูงที่มี
+          height: "calc(100vh - 24px)",
+          flex: 1,
           minHeight: 0,
         }}>
 
           {/* Title */}
           <div style={{
-            fontSize: 17,
+            fontSize: 16,
             fontWeight: 700,
             color: "#e2e8f0",
-            marginBottom: 10,
+            marginBottom: 8,
             letterSpacing: 0.5,
             flexShrink: 0,
           }}>
             TickMatch Analysis
           </div>
 
-          {/* Two panels — fill remaining height */}
-          <div style={{ display:"flex", gap:12, flex:1, minHeight:0 }}>
-            <Panel
-              ticks={LEFT_TICKS}
-              sumBuy="12,500,400"
-              sumSell="8,200,100"
-              netVol="+4,300,300"
-              netPos={true}
-              date="20/01/2026"
-              filter={filter1}
-              setFilter={setFilter1}
-            />
-            <Panel
-              ticks={RIGHT_TICKS}
-              sumBuy="5,100,000"
-              sumSell="6,200,000"
-              netVol="-1,100,000"
-              netPos={false}
-              date="19/01/2026"
-              filter={filter2}
-              setFilter={setFilter2}
-            />
+          {/* Mobile tab switcher */}
+          <div className="mobile-tabs">
+            <button
+              className={`mobile-tab-btn ${activeTab === 0 ? "active" : ""}`}
+              onClick={() => setActiveTab(0)}
+            >
+              Panel 1 — DELTA
+            </button>
+            <button
+              className={`mobile-tab-btn ${activeTab === 1 ? "active" : ""}`}
+              onClick={() => setActiveTab(1)}
+            >
+              Panel 2 — DELTA
+            </button>
+          </div>
+
+          {/* Two panels */}
+          <div className="panels-wrapper">
+            <div className={`panel-desktop ${activeTab === 0 ? "active" : ""}`}>
+              <Panel
+                ticks={LEFT_TICKS}
+                sumBuy="12,500,400"
+                sumSell="8,200,100"
+                netVol="+4,300,300"
+                netPos={true}
+                date="20/01/2026"
+                filter={filter1}
+                setFilter={setFilter1}
+              />
+            </div>
+            <div className={`panel-desktop ${activeTab === 1 ? "active" : ""}`}>
+              <Panel
+                ticks={RIGHT_TICKS}
+                sumBuy="5,100,000"
+                sumSell="6,200,000"
+                netVol="-1,100,000"
+                netPos={false}
+                date="19/01/2026"
+                filter={filter2}
+                setFilter={setFilter2}
+              />
+            </div>
           </div>
 
         </div>
