@@ -97,7 +97,6 @@ export default function PreviewProjects() {
   const [unlockedList, setUnlockedList] = useState([]);
 
 /* ===== Load user profile ===== */
-/* ===== Load user profile ===== */
   useEffect(() => {
     // ฟังก์ชันสำหรับโหลดโหมด Demo จาก LocalStorage
     const loadDemoProfile = () => {
@@ -173,57 +172,55 @@ export default function PreviewProjects() {
   };
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-10 md:space-y-12">
 
       {/* ===== MIT SECTION ===== */}
       <section>
-        <h1 className="text-3xl font-bold text-white mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-white mb-5 md:mb-6">
           Accessible Beta Tools
         </h1>
 
-        <div className="bg-[#263C4F] rounded-2xl p-6 md:p-8">
+        <div className="bg-[#263C4F] rounded-2xl p-5 md:p-8">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-            <div className="flex gap-4 w-full">
-              {/* Icon */}
-              <div className="w-12 h-12 rounded-xl bg-[#1B2E3E] flex items-center justify-center shrink-0">
-                <img src={mitIcon} alt="MIT" className="w-7 h-7" />
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4 md:gap-6">
+            {/* Icon */}
+            <div className="w-12 h-12 rounded-xl bg-[#1B2E3E] flex items-center justify-center shrink-0">
+              <img src={mitIcon} alt="MIT" className="w-7 h-7" />
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 w-full">
+              {/* Title & Button Row */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h2 className="text-xl md:text-2xl font-semibold text-white">
+                  MIT : Multi-Agent Intelligent Analyst
+                </h2>
+
+                <button
+                  onClick={handleOpenMIT}
+                  className="bg-[#0B78B8] hover:bg-[#0E8ED8]
+                           px-5 py-2.5 sm:py-2 rounded-lg sm:rounded-full
+                           text-white text-sm font-semibold
+                           transition flex items-center justify-center gap-2 shrink-0 w-full sm:w-auto"
+                >
+                  <img src={mitIcon} className="w-4 h-4" alt="icon" />
+                  Open MIT
+                </button>
               </div>
 
-              {/* Content */}
-              <div className="flex-1 w-full">
-                {/* Title Row */}
-                <div className="flex items-center justify-between gap-4 flex-wrap">
-                  <h2 className="text-xl md:text-2xl font-semibold text-white">
-                    MIT : Multi-Agent Intelligent Analyst
-                  </h2>
-
-                  <button
-                    onClick={handleOpenMIT}
-                    className="bg-[#0B78B8] hover:bg-[#0E8ED8]
-                             px-5 py-2 rounded-full
-                             text-white text-sm font-semibold
-                             transition flex items-center gap-2 shrink-0"
-                  >
-                    <img src={mitIcon} className="w-4 h-4" alt="icon" />
-                    Open MIT
-                  </button>
-                </div>
-
-                {/* Description */}
-                <p className="text-sm text-slate-300 mt-2 leading-relaxed w-full">
-                  Experience the next level of trading with our Multi-Agent LLM system
-                  that simulates a professional institutional research team. By assigning
-                  specific roles to multiple AI agents, the system engages in rigorous
-                  data debates to eliminate bias, providing you with the most objective
-                  and high-probability trading insights available.
-                </p>
-              </div>
+              {/* Description */}
+              <p className="text-sm text-slate-300 mt-3 md:mt-2 leading-relaxed w-full">
+                Experience the next level of trading with our Multi-Agent LLM system
+                that simulates a professional institutional research team. By assigning
+                specific roles to multiple AI agents, the system engages in rigorous
+                data debates to eliminate bias, providing you with the most objective
+                and high-probability trading insights available.
+              </p>
             </div>
           </div>
 
           {/* Feature Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 md:mt-8">
             {[
               {
                 title: "Role-Based AI Analysis",
@@ -244,12 +241,12 @@ export default function PreviewProjects() {
             ].map((item, idx) => (
               <div
                 key={idx}
-                className="bg-[#1B2E3E] rounded-xl p-5 border border-white/5"
+                className="bg-[#1B2E3E] rounded-xl p-4 md:p-5 border border-white/5 flex flex-col h-full"
               >
                 <h3 className="font-semibold text-sm text-white mb-2">
                   {item.title}
                 </h3>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed flex-grow">
                   {item.desc}
                 </p>
               </div>
@@ -260,11 +257,11 @@ export default function PreviewProjects() {
 
       {/* ===== OTHER PROJECTS ===== */}
       <section>
-        <h2 className="text-2xl font-semibold text-white mb-6">
+        <h2 className="text-xl md:text-2xl font-semibold text-white mb-5 md:mb-6">
           Other Project
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {projects.map((project) => (
           <ToolsCard
             key={project.id}
