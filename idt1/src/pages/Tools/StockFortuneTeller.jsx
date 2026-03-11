@@ -401,101 +401,156 @@ function WaveSkeleton({ delay = 0 }) {
     </div>
   );
 }
+function SeriesLegend({ names, colors, hiddenSet, isolatedIdx, allHidden, onToggleAll, onClickItem }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 px-1">
+      <button
+        onClick={onToggleAll}
+        className={`text-[10px] px-2 py-0.5 rounded border transition-all ${
+          allHidden
+            ? "border-slate-600 text-slate-500 bg-slate-800/50"
+            : "border-slate-600 text-slate-400 hover:text-white hover:border-slate-400"
+        }`}
+      >
+        {allHidden ? "show all" : "hide all"}
+      </button>
+      {names.map((name, idx) => {
+        const isHidden = hiddenSet.has(idx);
+        const isIsolated = isolatedIdx === idx;
+        return (
+          <button
+            key={idx}
+            onClick={() => onClickItem(idx)}
+            className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded border transition-all ${
+              isHidden
+                ? "border-slate-700 text-slate-600 bg-slate-800/30 opacity-50"
+                : isIsolated
+                ? "border-opacity-100 text-white"
+                : "text-slate-300 hover:text-white"
+            }`}
+            style={{
+              borderColor: isHidden ? "transparent" : colors[idx],
+              backgroundColor: isIsolated ? `${colors[idx]}22` : undefined,
+            }}
+          >
+            <span className="w-2 h-2 rounded-full flex-shrink-0"
+              style={{ backgroundColor: isHidden ? "#475569" : colors[idx] }} />
+            {name}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+// ============================================================
+// ChartCard
+// ============================================================
+function ChartCard({ title, type, onChange, chartId, globalHoverIndex, setGlobalHoverIndex, chartRefs, selectedSymbol }) {
+  // 🌟 ค่าเริ่มต้นเป็น false เพื่อให้ซ่อนชื่อทั้งหมดตอนโหลดเข้ามาใหม่
+  const [showLabels,  setShowLabels]  = useState(false);
+  const [hiddenSet,   setHiddenSet]   = useState(() => new Set());
+  const [isolatedIdx, setIsolatedIdx] = useState(null);
+  const [allHidden,   setAllHidden]   = useState(false);
 
-function ChartCard({
-  title, type, onChange, chartId, globalHoverIndex, setGlobalHoverIndex, chartRefs, selectedSymbol,
-}) {
-  const [showLabels, setShowLabels] = useState(true);
-  const showToggle = type === "Shareholder" || type === "Manager";
+  const seriesCount = type === "Manager" ? 5 : 1;
+  const showToggle  = type === "Shareholder" || type === "Manager" || type === "%Short";
+
+  // Reset when chart type changes
+  useEffect(() => { setHiddenSet(new Set()); setIsolatedIdx(null); setAllHidden(false); setShowLabels(false); }, [type]);
+
+  const handleToggleAll = () => {
+    if (allHidden) {
+      setHiddenSet(new Set());
+      setIsolatedIdx(null);
+      setAllHidden(false);
+    } else {
+      setHiddenSet(new Set([...Array(seriesCount).keys()]));
+      setIsolatedIdx(null);
+      setAllHidden(true);
+    }
+  };
+
+  const handleClickItem = (idx) => {
+    if (hiddenSet.has(idx)) {
+      setHiddenSet((prev) => { const n = new Set(prev); n.delete(idx); return n; });
+      if (allHidden) setAllHidden(false);
+      return;
+    }
+    if (isolatedIdx === idx) setIsolatedIdx(null);
+    else setIsolatedIdx(idx);
+  };
+
+  const cardHeight = 280;
 
   return (
-    <div className="bg-[#111827] rounded-xl border border-slate-700 p-4 h-[280px] flex flex-col">
+    <div className="bg-[#111827] rounded-xl border border-slate-700 p-4 flex flex-col" style={{ height: cardHeight }}>
       {/* Header */}
-      <div className="mb-3 flex justify-between items-center">
-        <select
-          value={type}
-          onChange={(e) => onChange(e.target.value)}
-          className="bg-[#1f2937] text-xs border border-slate-600 rounded-md px-2 py-1 focus:outline-none focus:border-cyan-500"
-        >
-          <option>Last</option>
-          <option>%Short</option>
-          <option>PredictTrend</option>
-          <option>Peak</option>
-          <option>Shareholder</option>
-          <option>Manager</option>
+      <div className="mb-2 flex justify-between items-center flex-shrink-0 z-10">
+        <select value={type} onChange={(e) => onChange(e.target.value)}
+          className="bg-[#1f2937] text-xs border border-slate-600 rounded-md px-2 py-1 focus:outline-none focus:border-cyan-500">
+          <option>Last</option><option>%Short</option><option>PredictTrend</option><option>Peak</option><option>Shareholder</option><option>Manager</option>
         </select>
-
         <div className="flex items-center gap-2">
           {showToggle && (
-            <button
-              onClick={() => setShowLabels((v) => !v)}
-              className={[
-                "flex items-center gap-1.5 px-2.5 py-1 rounded-full",
-                "text-[10px] font-semibold border transition-all duration-200",
-                showLabels
-                  ? "bg-cyan-500/15 border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/25"
-                  : "bg-slate-800/70 border-slate-600/50 text-slate-500 hover:text-slate-300",
-              ].join(" ")}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24"
-                fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                {showLabels ? (
-                  <>
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                    <line x1="1" y1="1" x2="23" y2="23" />
-                  </>
-                ) : (
-                  <>
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </>
-                )}
+            <button onClick={() => setShowLabels((v) => !v)}
+              className={["flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-all duration-200",
+                showLabels ? "bg-cyan-500/15 border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/25" : "bg-slate-800/70 border-slate-600/50 text-slate-500 hover:text-slate-300"].join(" ")}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                {showLabels ? (<><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></>) : (<><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>)}
               </svg>
-              <span>{showLabels ? "hide" : "show"}</span>
+              <span>{showLabels ? "hide labels" : "show labels"}</span>
             </button>
           )}
           <span className="text-xs text-slate-400">{title}</span>
         </div>
       </div>
 
-      {/* Chart area — ลบ toggle button ออกจากตรงนี้แล้ว */}
-      <div className="flex-1 relative" style={{ minHeight: 0 }}>
+      {/* Chart area */}
+      <div className="relative flex-1" style={{ minHeight: 0 }}>
         <div className="absolute inset-0 rounded-lg overflow-hidden bg-[#0f172a]">
           <ChartRenderer
-            type={type}
-            chartId={chartId}
-            globalHoverIndex={globalHoverIndex}
-            setGlobalHoverIndex={setGlobalHoverIndex}
-            chartRefs={chartRefs}
-            selectedSymbol={selectedSymbol}
-            showLabels={showLabels}
+            type={type} chartId={chartId}
+            globalHoverIndex={globalHoverIndex} setGlobalHoverIndex={setGlobalHoverIndex}
+            chartRefs={chartRefs} selectedSymbol={selectedSymbol}
+            showLabels={showLabels} hiddenSet={hiddenSet} isolatedIdx={isolatedIdx}
           />
         </div>
       </div>
     </div>
   );
 }
+
 // ============================================================
 // ChartRenderer
 // ============================================================
-function ChartRenderer({ type, chartId, globalHoverIndex, setGlobalHoverIndex, chartRefs, selectedSymbol, showLabels = false }) {
+function ChartRenderer({ type, chartId, globalHoverIndex, setGlobalHoverIndex, chartRefs, selectedSymbol, showLabels=false, hiddenSet=new Set(), isolatedIdx=null }) {
   const scrollRef = useRef(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStartX, setDragStartX] = useState(0);
-  const [dragScrollLeft, setDragScrollLeft] = useState(0);
+  const [isDragging,      setIsDragging]      = useState(false);
+  const hasDragged = useRef(false); // 🌟 ใช้แยกแยะระหว่างลากกราฟกับการคลิกเส้น
+  const [dragStartX,      setDragStartX]      = useState(0);
+  const [dragScrollLeft,  setDragScrollLeft]  = useState(0);
+
+  // 🌟 State ควบคุมการแสดงชื่อแบบแยกเส้น (อิสระ)
+  const [visibleLabels, setVisibleLabels] = useState({});
+
+  // ถ้ายูสเซอร์กดปุ่ม showLabels รวมด้านบน ให้รีเซ็ตค่าที่กดแบบแยกเส้น
+  useEffect(() => {
+    setVisibleLabels({});
+  }, [showLabels, type, selectedSymbol]);
+
+  const toggleLabelName = (id) => {
+    setVisibleLabels((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const currentData = useMemo(() => generateMockData(selectedSymbol), [selectedSymbol]);
-
   const primaryData = getPrimaryData(type, currentData);
-  const yScale = calcYScale(getAllDataForScale(type, currentData));
-  const normalizeY = makeNormalizeY(CHART_CONFIG, yScale);
+  const yScale      = calcYScale(getAllDataForScale(type, currentData));
+  const normalizeY  = makeNormalizeY(CHART_CONFIG, yScale);
 
   const { paddingLeft, paddingRight, paddingTop, paddingBottom, pointGap, height, minWidth } = CHART_CONFIG;
   const chartWidth = Math.max(minWidth, paddingLeft + paddingRight + (primaryData.length - 1) * pointGap);
-
-  const curve = (data) => buildCurvePath(data, normalizeY, paddingLeft, pointGap);
-  const step = (data) => buildStepPath(data, normalizeY, paddingLeft, pointGap);
+  const curve = (d) => buildCurvePath(d, normalizeY, paddingLeft, pointGap);
+  const step  = (d) => buildStepPath(d, normalizeY, paddingLeft, pointGap);
 
   useEffect(() => {
     if (!scrollRef.current) return;
@@ -504,340 +559,279 @@ function ChartRenderer({ type, chartId, globalHoverIndex, setGlobalHoverIndex, c
     return () => { delete chartRefs.current[chartId]; };
   }, [chartId, type, chartRefs]);
 
-  const syncScroll = (sourceEl) => {
-    Object.values(chartRefs.current).forEach((node) => {
-      if (node && node !== sourceEl && Math.abs(node.scrollLeft - sourceEl.scrollLeft) > 1)
-        node.scrollLeft = sourceEl.scrollLeft;
-    });
-  };
+  const syncScroll = (src) => Object.values(chartRefs.current).forEach((n) => { if (n && n !== src && Math.abs(n.scrollLeft - src.scrollLeft) > 1) n.scrollLeft = src.scrollLeft; });
 
-  const handleMouseDown = (e) => {
-    setIsDragging(true);
-    setDragStartX(e.pageX - scrollRef.current.offsetLeft);
-    setDragScrollLeft(scrollRef.current.scrollLeft);
-    setGlobalHoverIndex(null);
-  };
-
+  const handleMouseDown = (e) => { setIsDragging(true); hasDragged.current = false; setDragStartX(e.pageX - scrollRef.current.offsetLeft); setDragScrollLeft(scrollRef.current.scrollLeft); setGlobalHoverIndex(null); };
   const handleMouseMove = (e) => {
-    if (isDragging) {
-      e.preventDefault();
-      const x = e.pageX - scrollRef.current.offsetLeft;
-      scrollRef.current.scrollLeft = dragScrollLeft - (x - dragStartX) * 1.5;
-      setGlobalHoverIndex(null);
-      return;
-    }
+    if (isDragging) { hasDragged.current = true; e.preventDefault(); scrollRef.current.scrollLeft = dragScrollLeft - (e.pageX - scrollRef.current.offsetLeft - dragStartX) * 1.5; setGlobalHoverIndex(null); return; }
     const rect = scrollRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left + scrollRef.current.scrollLeft;
-    const index = Math.max(0, Math.min(Math.round((mouseX - paddingLeft) / pointGap), primaryData.length - 1));
-    setGlobalHoverIndex(index);
+    const idx  = Math.max(0, Math.min(Math.round((e.clientX - rect.left + scrollRef.current.scrollLeft - paddingLeft) / pointGap), primaryData.length - 1));
+    setGlobalHoverIndex(idx);
   };
 
   const isHovering = globalHoverIndex !== null && !isDragging;
-  const hoverX = isHovering ? paddingLeft + globalHoverIndex * pointGap : null;
+  const hoverX     = isHovering ? paddingLeft + globalHoverIndex * pointGap : null;
+
+  // Opacity for Manager series
+  const mOpacity = (idx) => {
+    if (hiddenSet.has(idx)) return 0;
+    if (isolatedIdx === null) return 1;
+    return isolatedIdx === idx ? 1 : 0.1;
+  };
 
   return (
     <div className="relative w-full h-full group bg-[#0f172a] rounded-lg">
-      <div
-        ref={scrollRef}
+      <div ref={scrollRef}
         className={`w-full h-full relative overflow-x-auto overflow-y-hidden hide-scrollbar select-none ${isDragging ? "cursor-grabbing" : "cursor-crosshair"}`}
-        style={{ msOverflowStyle: "none", scrollbarWidth: "none" }}
+        style={{ msOverflowStyle:"none", scrollbarWidth:"none" }}
         onScroll={(e) => syncScroll(e.target)}
         onMouseDown={handleMouseDown}
         onMouseLeave={() => { setIsDragging(false); setGlobalHoverIndex(null); }}
         onMouseUp={() => setIsDragging(false)}
-        onMouseMove={handleMouseMove}
-      >
+        onMouseMove={handleMouseMove}>
+
         <svg width={chartWidth} height={height} className="overflow-visible pointer-events-none">
-          {[...Array(5)].map((_, i) => {
-            const y = paddingTop + (i * (height - paddingTop - paddingBottom)) / 4;
-            return <line key={i} x1={0} y1={y} x2={chartWidth} y2={y} stroke="#1e293b" strokeWidth="1" />;
-          })}
-          <line x1={0} y1={height - paddingBottom} x2={chartWidth} y2={height - paddingBottom} stroke="#334155" strokeWidth="1.5" />
+          {/* Grid */}
+          {[...Array(5)].map((_,i) => { const y = paddingTop + i*(height-paddingTop-paddingBottom)/4; return <line key={i} x1={0} y1={y} x2={chartWidth} y2={y} stroke="#1e293b" strokeWidth="1"/>; })}
+          <line x1={0} y1={height-paddingBottom} x2={chartWidth} y2={height-paddingBottom} stroke="#334155" strokeWidth="1.5"/>
+          
+          {/* X labels */}
+          {primaryData.map((_,i) => <text key={i} x={paddingLeft+i*pointGap} y={height-paddingBottom+14} fill="#475569" fontSize="8" textAnchor="middle">{LABELS[i]}</text>)}
 
-          {primaryData.map((_, i) => (
-            <text
-              key={i}
-              x={paddingLeft + i * pointGap}
-              y={height - paddingBottom + 14}
-              fill="#475569"
-              fontSize="8"
-              textAnchor="middle"
-            >
-            {LABELS[i]}
-            </text>
-          ))}
-
-          {type === "%Short" && (
+          {/* 🌟 %Short */}
+          {type==="%Short" && (
             <>
-              <path d={curve(currentData["%ShortA"])} fill="none" stroke="#0ea5e9" strokeWidth="2" />
-              <path d={curve(currentData["%ShortB"])} fill="none" stroke="#f97316" strokeWidth="2" />
+              <g>
+                <path d={curve(currentData["%ShortA"])} fill="none" stroke="#0ea5e9" strokeWidth="2"/>
+                {/* 🌟 เส้นล่องหนไว้ให้คลิกง่ายๆ */}
+                <path d={curve(currentData["%ShortA"])} fill="none" stroke="transparent" strokeWidth="24" style={{ cursor: "pointer", pointerEvents: "stroke" }} onClick={(e) => { if(hasDragged.current) return; e.stopPropagation(); toggleLabelName('short-A'); }} />
+              </g>
+              <g>
+                <path d={curve(currentData["%ShortB"])} fill="none" stroke="#f97316" strokeWidth="2"/>
+                <path d={curve(currentData["%ShortB"])} fill="none" stroke="transparent" strokeWidth="24" style={{ cursor: "pointer", pointerEvents: "stroke" }} onClick={(e) => { if(hasDragged.current) return; e.stopPropagation(); toggleLabelName('short-B'); }} />
+              </g>
             </>
           )}
 
-          {(type === "Last" || type === "Peak") && (() => {
-            const data = currentData[type];
-            const color = getLineColor(type);
-            const areaId = `area-${type}-${chartId}`;
-            const lastX = paddingLeft + (data.length - 1) * pointGap;
+          {/* Last / Peak */}
+          {(type==="Last"||type==="Peak") && (() => { const data=currentData[type]; const color=getLineColor(type); const areaId=`area-${type}-${chartId}`; const lx=paddingLeft+(data.length-1)*pointGap; return (<><defs><linearGradient id={areaId} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={color} stopOpacity="0.25"/><stop offset="100%" stopColor={color} stopOpacity="0"/></linearGradient></defs><path d={`${curve(data)} L ${lx},${height-paddingBottom} L ${paddingLeft},${height-paddingBottom} Z`} fill={`url(#${areaId})`}/><path d={curve(data)} fill="none" stroke={color} strokeWidth="2.5"/></>); })()}
+
+          {/* PredictTrend */}
+          {type==="PredictTrend" && <path d={curve(currentData.PredictTrend)} fill="none" stroke={getLineColor(type)} strokeWidth="2.5"/>}
+
+          {/* 🌟 Shareholder */}
+          {type==="Shareholder" && (
+            <g>
+              <path d={step(currentData.Shareholder)} fill="none" stroke={getLineColor(type)} strokeWidth="2.5"/>
+              <path d={step(currentData.Shareholder)} fill="none" stroke="transparent" strokeWidth="24" style={{ cursor: "pointer", pointerEvents: "stroke" }} onClick={(e) => { if(hasDragged.current) return; e.stopPropagation(); toggleLabelName('sh'); }} />
+            </g>
+          )}
+
+          {/* 🌟 Manager */}
+          {type==="Manager" && currentData.Manager.map((data,idx) => {
+            const op = mOpacity(idx); if (op===0) return null;
             return (
-              <>
-                <defs>
-                  <linearGradient id={areaId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-                    <stop offset="100%" stopColor={color} stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                <path d={`${curve(data)} L ${lastX},${height - paddingBottom} L ${paddingLeft},${height - paddingBottom} Z`} fill={`url(#${areaId})`} />
-                <path d={curve(data)} fill="none" stroke={color} strokeWidth="2.5" />
-              </>
+              <g key={idx}>
+                <path d={step(data)} fill="none" stroke={MANAGER_COLORS[idx]} strokeWidth={isolatedIdx===idx?2.5:2} strokeOpacity={op} style={{transition:"stroke-opacity 0.2s,stroke-width 0.2s"}}/>
+                <path d={step(data)} fill="none" stroke="transparent" strokeWidth="24" style={{ cursor: "pointer", pointerEvents: "stroke" }} onClick={(e) => { if(hasDragged.current) return; e.stopPropagation(); toggleLabelName(`mgr-${idx}`); }} />
+              </g>
             );
-          })()}
+          })}
 
-          {type === "PredictTrend" && (
-            <path d={curve(currentData.PredictTrend)} fill="none" stroke={getLineColor(type)} strokeWidth="2.5" />
-          )}
-
-          
-           {type === "Shareholder" && (
-            <path d={step(currentData.Shareholder)} fill="none" stroke={getLineColor(type)} strokeWidth="2.5" />
-          )}
-
-          {type === "Manager" &&
-            currentData.Manager.map((data, idx) => (
-              <path key={idx} d={step(data)} fill="none" stroke={MANAGER_COLORS[idx]} strokeWidth="2" />
-            ))}
-
+          {/* Hover crosshair */}
           {isHovering && (
             <g>
-              <line x1={hoverX} y1={paddingTop} x2={hoverX} y2={height - paddingBottom} stroke="#475569" strokeWidth="1" strokeDasharray="4 4" />
-              {type === "%Short" && (
-                <>
-                  <circle cx={hoverX} cy={normalizeY(currentData["%ShortA"][globalHoverIndex])} r="4" fill="#0ea5e9" stroke="#0f172a" strokeWidth="2" />
-                  <circle cx={hoverX} cy={normalizeY(currentData["%ShortB"][globalHoverIndex])} r="4" fill="#f97316" stroke="#0f172a" strokeWidth="2" />
-                  <text x={hoverX} y={normalizeY(currentData["%ShortA"][globalHoverIndex]) - 9} fill="#0ea5e9" fontSize="10" fontWeight="700" textAnchor="middle">
-                    {currentData["%ShortA"][globalHoverIndex].toFixed(2)}
-                  </text>
-                  <text x={hoverX} y={normalizeY(currentData["%ShortB"][globalHoverIndex]) - 9} fill="#f97316" fontSize="10" fontWeight="700" textAnchor="middle">
-                    {currentData["%ShortB"][globalHoverIndex].toFixed(2)}
-                  </text>
-                </>
-              )}
-              {type === "Manager" &&
-                currentData.Manager.map((data, idx) => (
-                  <g key={idx}>
-                    <circle cx={hoverX} cy={normalizeY(data[globalHoverIndex])} r="3.5" fill={MANAGER_COLORS[idx]} stroke="#0f172a" strokeWidth="1.5" />
-                    <text x={hoverX} y={normalizeY(data[globalHoverIndex]) - 7} fill={MANAGER_COLORS[idx]} fontSize="9" fontWeight="700" textAnchor="middle">
-                      {data[globalHoverIndex].toFixed(2)}
-                    </text>
-                  </g>
-                ))}
-              {type !== "%Short" && type !== "Manager" && (
-                <g>
-                  <circle cx={hoverX} cy={normalizeY(primaryData[globalHoverIndex])} r="4" fill={getLineColor(type)} stroke="#0f172a" strokeWidth="2" />
-                  <text x={hoverX} y={normalizeY(primaryData[globalHoverIndex]) - 9} fill={getLineColor(type)} fontSize="11" fontWeight="700" textAnchor="middle">
-                    {primaryData[globalHoverIndex].toFixed(2)}
-                  </text>
-                </g>
-              )}
+              <line x1={hoverX} y1={paddingTop} x2={hoverX} y2={height-paddingBottom} stroke="#475569" strokeWidth="1" strokeDasharray="4 4"/>
+              {type==="%Short" && (<>
+                <circle cx={hoverX} cy={normalizeY(currentData["%ShortA"][globalHoverIndex])} r="4" fill="#0ea5e9" stroke="#0f172a" strokeWidth="2"/>
+                <circle cx={hoverX} cy={normalizeY(currentData["%ShortB"][globalHoverIndex])} r="4" fill="#f97316" stroke="#0f172a" strokeWidth="2"/>
+                <text x={hoverX} y={normalizeY(currentData["%ShortA"][globalHoverIndex])-9} fill="#0ea5e9" fontSize="10" fontWeight="700" textAnchor="middle">{currentData["%ShortA"][globalHoverIndex].toFixed(2)}</text>
+                <text x={hoverX} y={normalizeY(currentData["%ShortB"][globalHoverIndex])-9} fill="#f97316" fontSize="10" fontWeight="700" textAnchor="middle">{currentData["%ShortB"][globalHoverIndex].toFixed(2)}</text>
+              </>)}
+              {type==="Manager" && currentData.Manager.map((data,idx) => {
+                if (mOpacity(idx)===0) return null;
+                return (<g key={idx}>
+                  <circle cx={hoverX} cy={normalizeY(data[globalHoverIndex])} r="3.5" fill={MANAGER_COLORS[idx]} stroke="#0f172a" strokeWidth="1.5"/>
+                  <text x={hoverX} y={normalizeY(data[globalHoverIndex])-7} fill={MANAGER_COLORS[idx]} fontSize="9" fontWeight="700" textAnchor="middle">{data[globalHoverIndex]>0?`+${data[globalHoverIndex].toFixed(2)}`:data[globalHoverIndex].toFixed(2)}</text>
+                </g>);
+              })}
+              {type!=="%Short"&&type!=="Manager" && (<g>
+                <circle cx={hoverX} cy={normalizeY(primaryData[globalHoverIndex])} r="4" fill={getLineColor(type)} stroke="#0f172a" strokeWidth="2"/>
+                <text x={hoverX} y={normalizeY(primaryData[globalHoverIndex])-9} fill={getLineColor(type)} fontSize="11" fontWeight="700" textAnchor="middle">{primaryData[globalHoverIndex].toFixed(2)}</text>
+              </g>)}
             </g>
           )}
         </svg>
 
+        {/* Tooltip popup */}
         {isHovering && (
-          <div
-            className="absolute top-2 z-50 flex flex-col items-center min-w-[60px] bg-[#1e293b] border border-slate-600 rounded-md p-1.5 shadow-xl pointer-events-none transition-transform duration-75"
-            style={{
-              left: `${hoverX}px`,
-              transform: globalHoverIndex > primaryData.length - 5 ? "translateX(calc(-100% - 10px))" : "translateX(10px)",
-            }}
-          >
+          <div className="absolute top-2 z-50 flex flex-col items-center min-w-[60px] bg-[#1e293b] border border-slate-600 rounded-md p-1.5 shadow-xl pointer-events-none"
+            style={{ left:`${hoverX}px`, transform: globalHoverIndex>primaryData.length-5?"translateX(calc(-100% - 10px))":"translateX(10px)" }}>
             <span className="text-[10px] text-slate-400 font-medium mb-1">{LABELS[globalHoverIndex]}</span>
             <div className="flex flex-col items-center gap-0.5">
-              {type === "%Short" && (
-                <>
-                  <span className="text-[#0ea5e9] text-[11px] font-bold">{currentData["%ShortA"][globalHoverIndex].toFixed(2)}</span>
-                  <span className="text-[#f97316] text-[11px] font-bold">{currentData["%ShortB"][globalHoverIndex].toFixed(2)}</span>
-                </>
-              )}
-              {type === "Manager" &&
-                currentData.Manager.map((data, idx) => (
-                  <span key={idx} style={{ color: MANAGER_COLORS[idx] }} className="text-[11px] font-bold">
-                    {data[globalHoverIndex] > 0 ? `+${data[globalHoverIndex].toFixed(2)}` : data[globalHoverIndex].toFixed(2)}
-                  </span>
-                ))}
-              {type !== "%Short" && type !== "Manager" && (
-                <span className="text-white text-[12px] font-bold">{primaryData[globalHoverIndex].toFixed(2)}</span>
-              )}
+              {type==="%Short" && (<><span className="text-[#0ea5e9] text-[11px] font-bold">{currentData["%ShortA"][globalHoverIndex].toFixed(2)}</span><span className="text-[#f97316] text-[11px] font-bold">{currentData["%ShortB"][globalHoverIndex].toFixed(2)}</span></>)}
+              {type==="Manager" && currentData.Manager.map((data,idx) => { if(mOpacity(idx)===0) return null; return <span key={idx} style={{color:MANAGER_COLORS[idx]}} className="text-[11px] font-bold">{data[globalHoverIndex]>0?`+${data[globalHoverIndex].toFixed(2)}`:data[globalHoverIndex].toFixed(2)}</span>; })}
+              {type!=="%Short"&&type!=="Manager" && <span className="text-white text-[12px] font-bold">{primaryData[globalHoverIndex].toFixed(2)}</span>}
             </div>
           </div>
         )}
       </div>
 
-      <div className="absolute inset-y-0 left-0 right-[55px] bg-gradient-to-t from-[#0f172a]/90 via-transparent to-transparent pointer-events-none" style={{ top: "75%" }} />
+      <div className="absolute inset-y-0 left-0 right-[55px] bg-gradient-to-t from-[#0f172a]/90 via-transparent to-transparent pointer-events-none" style={{top:"75%"}}/>
 
-      <div className="absolute right-0 top-0 w-[55px] h-full pointer-events-none bg-[#0f172a] z-10 border-l border-slate-800/50">
-        <svg className="w-full h-full absolute right-0 top-0 overflow-visible pointer-events-none">
-          {[...Array(5)].map((_, i) => {
-            const y = paddingTop + (i * (height - paddingTop - paddingBottom)) / 4;
-            const value = yScale.max - (i * (yScale.max - yScale.min)) / 4;
-            if (type === "Manager") {
-              const tooClose = currentData.Manager.some(
-                (data) => Math.abs(normalizeY(data[data.length - 1]) - y) < 12
-              );
-              if (tooClose) return null;
-            }
+      {/* Right Y-axis */}
+      <div className="absolute right-0 top-0 w-[55px] h-full bg-[#0f172a] z-10 border-l border-slate-800/50">
+        <svg className="w-full h-full absolute right-0 top-0 overflow-visible">
+          {[...Array(5)].map((_,i) => {
+  const y = paddingTop + i*(height-paddingTop-paddingBottom)/4;
+  const value = yScale.max - i*(yScale.max-yScale.min)/4;
+  if (type === "%Short") {
+    const lastB = currentData["%ShortB"][currentData["%ShortB"].length-1];
+    if (Math.abs(normalizeY(lastB)-y) < 12) return null;
+  }
+  if (type === "Manager") {
+    const tooClose = currentData.Manager.some((data,idx) =>
+      mOpacity(idx) > 0 && Math.abs(normalizeY(data[data.length-1])-y) < 12
+    );
+    if (tooClose) return null;
+  }
+  return (
+    <text key={i} x="48" y={y} fill="#64748b" fontSize="10"
+      textAnchor="end" dominantBaseline="central"
+      style={{ pointerEvents: "none" }}>
+      {value.toFixed(2)}
+    </text>
+  );
+})}
+
+          {/* 🌟 Shareholder tag */}
+          {type==="Shareholder" && (() => {
+            const lastVal = currentData.Shareholder[currentData.Shareholder.length-1];
+            const isLabelVisible = showLabels ? visibleLabels['sh'] !== false : !!visibleLabels['sh'];
+            const nameStr = isLabelVisible ? (SHAREHOLDER_NAMES[selectedSymbol]??selectedSymbol) : "";
+            const nameW = nameStr ? nameStr.length*6+15 : 0; const numW = 42; const tagW = nameW+numW;
+            const tx = 6-(tagW>42?tagW-42:0);
             return (
-              <text key={i} x="48" y={y} fill="#64748b" fontSize="10" textAnchor="end" dominantBaseline="central">
-                {value.toFixed(2)}
-              </text>
-            );
-          })}
-
-          {/* ---------------- SHAREHOLDER (แกน Y) ---------------- */}
-          {type === "Shareholder" && (() => {
-            const lastVal = currentData.Shareholder[currentData.Shareholder.length - 1];
-            const nameStr = showLabels ? (SHAREHOLDER_NAMES[selectedSymbol] ?? selectedSymbol) : "";
-            const numStr = lastVal.toFixed(2);
-            
-            // คำนวณความกว้างกล่องให้ยืดหดตามตัวอักษร
-            const nameW = nameStr ? nameStr.length * 6 + 15 : 0;
-            const numW = 42;
-            const tagW = nameW + numW;
-            const translateX = 6 - (tagW > 42 ? tagW - 42 : 0);
-
-            return (
-              <g transform={`translate(${translateX}, ${normalizeY(lastVal)})`}>
-                <rect x="0" y="-10" width={tagW} height="20" fill="#ef4444" rx="4" />
-                
-                {nameStr && (
-                  <>
-                    <text x={nameW / 2} y="0" fill="#ffffff" fontSize="9" textAnchor="middle" dominantBaseline="central" fontWeight="bold">
-                      {nameStr}
-                    </text>
-                    {/* เส้นคั่นระหว่างชื่อกับตัวเลข */}
-                    <line x1={nameW} y1="-10" x2={nameW} y2="10" stroke="#000000" strokeOpacity="0.15" strokeWidth="2" />
-                  </>
-                )}
-                
-                <text x={nameW + numW / 2} y="0" fill="#ffffff" fontSize="11" textAnchor="middle" dominantBaseline="central" fontWeight="bold">
-                  {numStr}
-                </text>
+              <g transform={`translate(${tx},${normalizeY(lastVal)})`} style={{ cursor: "pointer", pointerEvents: "auto" }} onClick={(e) => { if(hasDragged.current) return; e.stopPropagation(); toggleLabelName('sh'); }}>
+                <rect x="0" y="-10" width={tagW} height="20" fill="#ef4444" rx="4"/>
+                {nameStr && (<><text x={nameW/2} y="0" fill="#fff" fontSize="9" textAnchor="middle" dominantBaseline="central" fontWeight="bold">{nameStr}</text><line x1={nameW} y1="-10" x2={nameW} y2="10" stroke="#000" strokeOpacity="0.15" strokeWidth="2"/></>)}
+                <text x={nameW+numW/2} y="0" fill="#fff" fontSize="11" textAnchor="middle" dominantBaseline="central" fontWeight="bold">{lastVal.toFixed(2)}</text>
               </g>
             );
           })()}
 
-          {/* ---------------- MANAGER (แกน Y) ---------------- */}
-          {type === "Manager" && (() => {
-            const TAG_H = 20;
-            const MIN_GAP = TAG_H + 2;
-
-            const tags = currentData.Manager.map((data, idx) => {
-              const lastVal = data[data.length - 1];
-              return {
-                idx,
-                idealY: normalizeY(lastVal),
-                realY: normalizeY(lastVal),
-                color: MANAGER_COLORS[idx],
-                numStr: lastVal > 0 ? `+${lastVal.toFixed(2)}` : lastVal.toFixed(2),
-                nameStr: showLabels ? MANAGER_NAMES[idx] : "",
-              };
-            }).sort((a, b) => a.idealY - b.idealY);
-
-            // กันป้ายซ้อนทับกัน
-            for (let i = 1; i < tags.length; i++) {
-              if (tags[i].idealY - tags[i - 1].idealY < MIN_GAP)
-                tags[i].idealY = tags[i - 1].idealY + MIN_GAP;
-            }
-
-            return tags.map(({ idx, idealY, realY, color, numStr, nameStr }) => {
-              const shifted = Math.abs(idealY - realY) > 1;
-              
-              const nameW = nameStr ? nameStr.length * 6 + 15 : 0;
-              const numW = 42;
-              const TAG_W = nameW + numW;
-              const translateX = 6 - (TAG_W > 42 ? TAG_W - 42 : 0);
-
+          {/* 🌟 Manager tags */}
+          {type==="Manager" && (() => {
+            const TAG_H=20; const MIN_GAP=TAG_H+2;
+            const tags = currentData.Manager.map((data,idx) => {
+              if (mOpacity(idx)===0) return null;
+              const lastVal = data[data.length-1];
+              const isLabelVisible = showLabels ? visibleLabels[`mgr-${idx}`] !== false : !!visibleLabels[`mgr-${idx}`];
+              return { idx, idealY:normalizeY(lastVal), realY:normalizeY(lastVal), color:MANAGER_COLORS[idx], numStr:lastVal>0?`+${lastVal.toFixed(2)}`:lastVal.toFixed(2), nameStr:isLabelVisible?MANAGER_NAMES[idx]:"", isIsolated:isolatedIdx===idx };
+            }).filter(Boolean).sort((a,b)=>a.idealY-b.idealY);
+            
+            for (let i=1;i<tags.length;i++) { if(tags[i].idealY-tags[i-1].idealY<MIN_GAP) tags[i].idealY=tags[i-1].idealY+MIN_GAP; }
+            
+            return tags.map(({idx,idealY,realY,color,numStr,nameStr,isIsolated}) => {
+              const shifted=Math.abs(idealY-realY)>1; const nameW=nameStr?nameStr.length*6+15:0; const numW=42; const TW=nameW+numW; const tx=6-(TW>42?TW-42:0);
               return (
                 <g key={idx}>
-                  {shifted && (
-                    <line x1="5" y1={realY} x2="5" y2={idealY} stroke={color} strokeWidth="1" strokeDasharray="2 2" opacity="0.5" />
-                  )}
-                  <g transform={`translate(${translateX}, ${idealY})`}>
-                    <rect x="-1" y={`${-TAG_H / 2 - 1}`} width={TAG_W + 2} height={TAG_H + 2} fill="black" fillOpacity="0.3" rx="5" />
-                    <rect x="0" y={`${-TAG_H / 2}`} width={TAG_W} height={TAG_H} fill={color} rx="4" />
-                    <rect x="0" y={`${-TAG_H / 2}`} width={TAG_W} height={TAG_H / 2} fill="white" fillOpacity="0.08" rx="4" />
-                    
-                    {nameStr && (
-                      <>
-                        <text x={nameW / 2} y="0" fill="white" fontSize="9" fontWeight="bold" textAnchor="middle" dominantBaseline="central">
-                          {nameStr}
-                        </text>
-                        {/* เส้นคั่น */}
-                        <line x1={nameW} y1={`${-TAG_H / 2}`} x2={nameW} y2={`${TAG_H / 2}`} stroke="#000000" strokeOpacity="0.15" strokeWidth="2" />
-                      </>
-                    )}
-                    
-                    <text x={nameW + numW / 2} y="0" fill="white" fontSize="10.5" fontWeight="bold" textAnchor="middle" dominantBaseline="central" letterSpacing="-0.2">
-                      {numStr}
-                    </text>
+                  {shifted&&<line x1="5" y1={realY} x2="5" y2={idealY} stroke={color} strokeWidth="1" strokeDasharray="2 2" opacity="0.5"/>}
+                  <g transform={`translate(${tx},${idealY})`} style={{ cursor: "pointer", pointerEvents: "auto" }} onClick={(e) => { if(hasDragged.current) return; e.stopPropagation(); toggleLabelName(`mgr-${idx}`); }}>
+                    <rect x="-1" y={`${-TAG_H/2-1}`} width={TW+2} height={TAG_H+2} fill="black" fillOpacity="0.3" rx="5"/>
+                    <rect x="0" y={`${-TAG_H/2}`} width={TW} height={TAG_H} fill={color} rx="4" style={{filter:isIsolated?`drop-shadow(0 0 4px ${color})`:"none"}}/>
+                    <rect x="0" y={`${-TAG_H/2}`} width={TW} height={TAG_H/2} fill="white" fillOpacity="0.08" rx="4"/>
+                    {nameStr&&(<><text x={nameW/2} y="0" fill="white" fontSize="9" fontWeight="bold" textAnchor="middle" dominantBaseline="central">{nameStr}</text><line x1={nameW} y1={`${-TAG_H/2}`} x2={nameW} y2={`${TAG_H/2}`} stroke="#000" strokeOpacity="0.15" strokeWidth="2"/></>)}
+                    <text x={nameW+numW/2} y="0" fill="white" fontSize="10.5" fontWeight="bold" textAnchor="middle" dominantBaseline="central" letterSpacing="-0.2">{numStr}</text>
                   </g>
                 </g>
               );
             });
           })()}
 
-{/* %SHORT ฝั่งขวา — ShortB */}
-          {type === "%Short" && (() => {
-            const lastB = currentData["%ShortB"][currentData["%ShortB"].length - 1];
+          {/* 🌟 %Short right tag (Short B) */}
+          {type==="%Short" && (() => { 
+            const lastB=currentData["%ShortB"][currentData["%ShortB"].length-1]; 
+            const isLabelVisible = showLabels ? visibleLabels['short-B'] !== false : !!visibleLabels['short-B'];
+            const nameStr = isLabelVisible ? "%Short B" : "";
+            const numStr = lastB.toFixed(2);
+            const nameW = nameStr ? nameStr.length * 6 + 5 : 0; 
+            const numW = 42; 
+            const tagW = nameW + numW;
+            const translateX = 6 - (tagW > 42 ? tagW - 42 : 0);
+
             return (
-              <g transform={`translate(6, ${normalizeY(lastB)})`}>
-                <rect x="-1" y="-11" width="44" height="22" fill="black" fillOpacity="0.3" rx="5" />
-                <rect x="0" y="-10" width="42" height="20" fill="#f97316" rx="4" />
-                <text x="21" y="0" fill="white" fontSize="10.5" fontWeight="bold" textAnchor="middle" dominantBaseline="central">
-                  {lastB.toFixed(2)}
-                </text>
+              <g transform={`translate(${translateX},${normalizeY(lastB)})`} style={{ cursor: "pointer", pointerEvents: "auto" }} onClick={(e) => { if(hasDragged.current) return; e.stopPropagation(); toggleLabelName('short-B'); }}>
+                <rect x="-1" y="-11" width={tagW+2} height="22" fill="black" fillOpacity="0.3" rx="5"/>
+                <rect x="0" y="-10" width={tagW} height="20" fill="#f97316" rx="4"/>
+                {nameStr && (
+                  <>
+                    <text x={nameW / 2} y="0" fill="white" fontSize="9" fontWeight="bold" textAnchor="middle" dominantBaseline="central">{nameStr}</text>
+                    <line x1={nameW} y1="-10" x2={nameW} y2="10" stroke="#000000" strokeOpacity="0.15" strokeWidth="2" />
+                  </>
+                )}
+                <text x={nameW + numW/2} y="0" fill="white" fontSize="10.5" fontWeight="bold" textAnchor="middle" dominantBaseline="central">{numStr}</text>
               </g>
-            );
+            ); 
           })()}
         </svg>
       </div>
 
-      {/* %SHORT ฝั่งซ้าย — ShortA (fixed) */}
-      {type === "%Short" && (
-        <div className="absolute left-0 top-0 w-[55px] h-full pointer-events-none bg-[#0f172a] z-10 border-r border-slate-800/50">
-          <svg className="w-full h-full absolute left-0 top-0 overflow-visible pointer-events-none">
-            {[...Array(5)].map((_, i) => {
-              const y = paddingTop + (i * (height - paddingTop - paddingBottom)) / 4;
-              const value = yScale.max - (i * (yScale.max - yScale.min)) / 4;
-              const lastA = currentData["%ShortA"][currentData["%ShortA"].length - 1];
-              const tooClose = Math.abs(normalizeY(lastA) - y) < 12;
-              if (tooClose) return null;
+      {/* 🌟 %Short left axis (Short A) */}
+      {type==="%Short" && (
+        <div className="absolute left-0 top-0 w-[55px] h-full bg-[#0f172a] z-10 border-r border-slate-800/50">
+          <svg className="w-full h-full absolute left-0 top-0 overflow-visible">
+            {[...Array(5)].map((_,i) => {
+  const y = paddingTop + i*(height-paddingTop-paddingBottom)/4;
+  const value = yScale.max - i*(yScale.max-yScale.min)/4;
+  const lastA = currentData["%ShortA"][currentData["%ShortA"].length-1];
+  if (Math.abs(normalizeY(lastA)-y) < 12) return null;
+  return (
+    <text
+      key={i}
+      x="48" y={y}
+      fill="#64748b"
+      fontSize="10"
+      textAnchor="end"
+      dominantBaseline="central"
+      style={{ pointerEvents: "none" }}
+    >
+      {value.toFixed(2)}
+    </text>
+  );
+})}
+            
+            {(() => { 
+              const lastA=currentData["%ShortA"][currentData["%ShortA"].length-1]; 
+              const isLabelVisible = showLabels ? visibleLabels['short-A'] !== false : !!visibleLabels['short-A'];
+              const nameStr = isLabelVisible ? "%Short A" : "";
+              const numStr = lastA.toFixed(2);
+              const nameW = nameStr ? nameStr.length * 6 + 5 : 0; 
+              const numW = 42; 
+              const tagW = nameW + numW;
+
               return (
-                <text key={i} x="48" y={y} fill="#64748b" fontSize="10" textAnchor="end" dominantBaseline="central">
-                  {value.toFixed(2)}
-                </text>
-              );
-            })}
-            {(() => {
-              const lastA = currentData["%ShortA"][currentData["%ShortA"].length - 1];
-              return (
-                <g transform={`translate(7, ${normalizeY(lastA)})`}>
-                  <rect x="-1" y="-11" width="44" height="22" fill="black" fillOpacity="0.3" rx="5" />
-                  <rect x="0" y="-10" width="42" height="20" fill="#0ea5e9" rx="4" />
-                  <text x="21" y="0" fill="white" fontSize="10.5" fontWeight="bold" textAnchor="middle" dominantBaseline="central">
-                    {lastA.toFixed(2)}
-                  </text>
+                <g transform={`translate(7,${normalizeY(lastA)})`} style={{ cursor: "pointer", pointerEvents: "auto" }} onClick={(e) => { if(hasDragged.current) return; e.stopPropagation(); toggleLabelName('short-A'); }}>
+                  <rect x="-1" y="-11" width={tagW+2} height="22" fill="black" fillOpacity="0.3" rx="5"/>
+                  <rect x="0" y="-10" width={tagW} height="20" fill="#0ea5e9" rx="4"/>
+                  {nameStr && (
+                    <>
+                      <text x={nameW / 2} y="0" fill="white" fontSize="9" fontWeight="bold" textAnchor="middle" dominantBaseline="central">{nameStr}</text>
+                      <line x1={nameW} y1="-10" x2={nameW} y2="10" stroke="#000000" strokeOpacity="0.15" strokeWidth="2" />
+                    </>
+                  )}
+                  <text x={nameW + numW/2} y="0" fill="white" fontSize="10.5" fontWeight="bold" textAnchor="middle" dominantBaseline="central">{numStr}</text>
                 </g>
-              );
+              ); 
             })()}
           </svg>
         </div>
       )}
-
-      <div className="absolute inset-y-0 left-0 right-[55px] bg-gradient-to-t from-[#0f172a]/90 via-transparent to-transparent pointer-events-none" style={{ top: "75%" }} />
+      <div className="absolute inset-y-0 left-0 right-[55px] bg-gradient-to-t from-[#0f172a]/90 via-transparent to-transparent pointer-events-none" style={{top:"75%"}}/>
     </div>
   );
 }
+
 function EmptyChartPanel({ title, value, onChange }) {
   return (
     <div className="bg-[#1c2024] border border-slate-700/60 rounded-xl p-4 h-[280px] flex flex-col">
