@@ -23,7 +23,6 @@ const Profile = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // 1.1 จัดการเวลา Last Login
         const lastSignIn = new Date(user.metadata.lastSignInTime);
         const day = lastSignIn.getDate();
         const month = lastSignIn.toLocaleString('en-US', { month: 'long' });
@@ -38,15 +37,12 @@ const Profile = () => {
           lastLogin: formattedDate
         }));
 
-        // 1.2 ดึงข้อมูลแบบ 2 สเต็ป (หาตารางหลักก่อน ถ้าไม่เจอไปหาตารางสำรอง)
         try {
-          // สเต็ป A: หาในตาราง users (หลัก)
           const mainDocRef = doc(db, "users", user.uid);
           const mainDocSnap = await getDoc(mainDocRef);
           const mainData = mainDocSnap.data();
 
           if (mainDocSnap.exists() && mainData?.firstName) {
-            console.log("✅ เจอข้อมูลใน users (หลัก):", mainData);
             setUserData(prev => ({
               ...prev,
               firstName: mainData.firstName || '',
@@ -54,13 +50,10 @@ const Profile = () => {
               phone: mainData.phone || ''
             }));
           } else {
-            // สเต็ป B: ถ้าไม่เจอ ไปหาในตาราง users_temp (สำรองตอนสมัคร)
-            console.log("⚠️ ไม่พบใน users กำลังหาใน users_temp...");
             const tempDocRef = doc(db, "users_temp", user.email.toLowerCase()); 
             const tempDocSnap = await getDoc(tempDocRef);
             
             if (tempDocSnap.exists()) {
-              console.log("✅ เจอข้อมูลใน users_temp:", tempDocSnap.data());
               const data = tempDocSnap.data();
               setUserData(prev => ({
                 ...prev,
@@ -79,16 +72,13 @@ const Profile = () => {
     return () => unsubscribe();
   }, []);
 
-  // ================= 2. ฟังก์ชันบันทึกข้อมูลลง Firestore =================
   const handleSave = async () => {
     const user = auth.currentUser;
     if (!user) return alert("กรุณาล็อกอินใหม่อีกครั้ง");
 
     setIsSaving(true);
     try {
-      // เวลาบันทึก จะบันทึกเข้าตารางหลัก (users) เสมอ
       const docRef = doc(db, "users", user.uid);
-      
       await setDoc(docRef, {
         firstName: userData.firstName,
         lastName: userData.lastName,
@@ -97,7 +87,6 @@ const Profile = () => {
         updatedAt: new Date()
       }, { merge: true });
 
-      // อัปเดต LocalStorage ด้วย
       const storedProfile = localStorage.getItem("userProfile");
       let profile = storedProfile ? JSON.parse(storedProfile) : {};
       localStorage.setItem("userProfile", JSON.stringify({
@@ -109,128 +98,133 @@ const Profile = () => {
       alert("Profile updated successfully!");
     } catch (error) {
       console.error("Error saving profile:", error);
-      alert("Failed to save profile. See console for details.");
+      alert("Failed to save profile.");
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <div className="profile-page-container">
-      <h1 className="page-title">Your account</h1>
+    /* 🔴 ปรับเป็น bg-transparent ทั้งหมด เพื่อให้เห็นแค่สีเดียวจาก Layout หลัก */
+    <div className="w-full min-h-screen bg-transparent p-4 md:p-8 animate-fade-in">
+      <div className="max-w-3xl mx-auto">
+        
+        <h1 className="text-2xl md:text-3xl font-bold text-white mb-6 text-left">Account Settings</h1>
 
-      <div className="profile-tabs">
-        <button 
-          className={`tab-btn ${activeTab === 'Profile' ? 'active' : ''}`}
-          onClick={() => setActiveTab('Profile')}
-        >
-          <UserIcon /> Profile
-        </button>
-        <button 
-          className={`tab-btn ${activeTab === 'API' ? 'active' : ''}`}
-          onClick={() => setActiveTab('API')}
-        >
-          <CodeIcon /> API
-        </button>
-      </div>
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 w-full overflow-x-auto hide-scrollbar">
+          <button 
+            className={`flex-1 min-w-[120px] py-3 px-4 rounded-lg font-semibold flex items-center justify-center transition-colors text-sm
+              ${activeTab === 'Profile' ? 'bg-[#007bff] text-white' : 'bg-[#1b1d28]/40 border border-gray-700/30 text-gray-400 hover:bg-[#1b1d28]/60'}`}
+            onClick={() => setActiveTab('Profile')}
+          >
+            <UserIcon /> Profile
+          </button>
+          <button 
+            className={`flex-1 min-w-[120px] py-3 px-4 rounded-lg font-semibold flex items-center justify-center transition-colors text-sm
+              ${activeTab === 'API' ? 'bg-[#007bff] text-white' : 'bg-[#1b1d28]/40 border border-gray-700/30 text-gray-400 hover:bg-[#1b1d28]/60'}`}
+            onClick={() => setActiveTab('API')}
+          >
+            <CodeIcon /> API
+          </button>
+        </div>
 
-      {activeTab === 'Profile' && (
-        <div className="profile-layout fade-in" style={{ display: 'block' }}>
-          
-          {/* --- LEFT COLUMN: Form --- */}
-          <div className="card form-card" style={{ maxWidth: '800px' }}>
-            
-            {/* ปรับให้ Header ใช้ Flexbox ดันข้อความไปซ้ายสุดและขวาสุด */}
-            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ margin: 0, padding: 0, border: 'none' }}>My Account Information</h2>
-              <span className="last-login-text" style={{ fontSize: '0.9rem', color: '#9ca3af', fontWeight: 'normal' }}>
-                Last Login: {userData.lastLogin}
-              </span>
-            </div>
-            
-            <div className="form-content">
-              <div className="form-row two-cols">
-                <div className="form-group">
-                  <label>First Name</label>
-                  <input 
-                    type="text" 
-                    className="dark-input"
-                    value={userData.firstName}
-                    onChange={(e) => setUserData({...userData, firstName: e.target.value})}
-                    placeholder="Enter first name"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Last Name</label>
-                  <input 
-                    type="text" 
-                    className="dark-input"
-                    value={userData.lastName}
-                    onChange={(e) => setUserData({...userData, lastName: e.target.value})}
-                    placeholder="Enter last name"
-                  />
-                </div>
+        {activeTab === 'Profile' && (
+          <div className="w-full">
+            {/* 🔴 Card Container ปรับเป็น bg-transparent และเอา Border ออกเพื่อให้เนียนไปกับพื้นหลังหลัก */}
+            <div className="bg-transparent w-full flex flex-col gap-6">
+              
+              <div className="flex flex-col gap-1 w-full">
+                <h2 className="text-lg md:text-xl font-bold text-white text-left">Personal Information</h2>
+                <p className="text-xs text-gray-500 text-left">Last Login: {userData.lastLogin}</p>
               </div>
+              
+              <div className="flex flex-col gap-5 w-full">
+                
+                {/* First & Last Name */}
+                <div className="flex flex-col md:flex-row gap-5 w-full">
+                  <div className="flex flex-col gap-2 flex-1 w-full">
+                    <label className="text-sm font-medium text-gray-400 text-left">First Name</label>
+                    <input 
+                      type="text" 
+                      /* 🔴 ปรับสี input ให้เข้มกว่าพื้นหลังนิดหน่อยเพื่อให้ยังดูออกว่าเป็นช่องกรอก */
+                      className="w-full bg-[#111827]/50 border border-gray-700/50 rounded-lg p-3.5 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                      value={userData.firstName}
+                      onChange={(e) => setUserData({...userData, firstName: e.target.value})}
+                      placeholder="Enter first name"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 flex-1 w-full">
+                    <label className="text-sm font-medium text-gray-400 text-left">Last Name</label>
+                    <input 
+                      type="text" 
+                      className="w-full bg-[#111827]/50 border border-gray-700/50 rounded-lg p-3.5 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                      value={userData.lastName}
+                      onChange={(e) => setUserData({...userData, lastName: e.target.value})}
+                      placeholder="Enter last name"
+                    />
+                  </div>
+                </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Email Address</label>
+                {/* Email */}
+                <div className="flex flex-col gap-2 w-full">
+                  <label className="text-sm font-medium text-gray-400 text-left">Email Address</label>
                   <input 
                     type="email" 
-                    className="dark-input"
+                    className="w-full bg-[#111827]/30 border border-gray-700/30 rounded-lg p-3.5 text-gray-500 text-sm cursor-not-allowed"
                     value={userData.email}
                     disabled
-                    style={{ opacity: 0.6, cursor: 'not-allowed' }}
                   />
                 </div>
-              </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Phone Number</label>
+                {/* Phone */}
+                <div className="flex flex-col gap-2 w-full">
+                  <label className="text-sm font-medium text-gray-400 text-left">Phone Number</label>
                   <input 
                     type="tel" 
-                    className="dark-input"
+                    className="w-full bg-[#111827]/50 border border-gray-700/50 rounded-lg p-3.5 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
                     value={userData.phone}
                     onChange={(e) => setUserData({...userData, phone: e.target.value})}
                     placeholder="Enter phone number"
                   />
                 </div>
-              </div>
 
-              <div className="form-actions">
-                <button 
-                  className="btn-save-changes" 
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  style={{ opacity: isSaving ? 0.7 : 1 }}
-                >
-                  <LockIcon /> {isSaving ? "Saving..." : "Save Changes"}
-                </button>
+                {/* Action Button */}
+                <div className="w-full pt-2">
+                  <button 
+                    className="w-full bg-[#007bff] hover:bg-[#0069d9] text-white text-sm font-bold py-4 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20" 
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    style={{ opacity: isSaving ? 0.7 : 1 }}
+                  >
+                    <EditIcon /> {isSaving ? "Saving..." : "Edit Profile"} 
+                  </button>
+                </div>
+
               </div>
             </div>
+
           </div>
+        )}
 
-        </div>
-      )}
-
-      {activeTab === 'API' && (
-        <div className="api-content fade-in">
-           <div className="card">
-                <h2 className="card-header">API Configuration</h2>
-                <div style={{padding: '20px', color: '#9ca3af'}}>
-                    Manage your API keys here.
-                </div>
-           </div>
-        </div>
-      )}
+        {activeTab === 'API' && (
+          <div className="w-full fade-in">
+             <div className="bg-transparent w-full">
+                  <h2 className="text-lg md:text-xl font-bold text-white mb-4 text-left">API Configuration</h2>
+                  <div className="text-gray-500 text-sm text-left">
+                      Manage your API keys here.
+                  </div>
+             </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
-// --- Icons Components ---
-const UserIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:8}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
-const CodeIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:8}}><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>;
-const LockIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:6}}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
+// --- Icons ---
+const UserIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:8}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+const CodeIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:8}}><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>;
+const EditIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>;
 
 export default Profile;
