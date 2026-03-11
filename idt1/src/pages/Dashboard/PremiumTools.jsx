@@ -1,7 +1,7 @@
 // src/pages/dashboard/premiuntools.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import ToolsCard from "@/components/ToolsCard";
+import ToolsCard from "@/components/ToolsCard"; // หรือปรับ path ตามที่คุณใช้งานจริง
 
 /* =======================
    Data Configuration
@@ -28,7 +28,7 @@ const projects = [
   },
   {
     id: "fortune",
-    name: "Stock Fortune", // หรือ Market Oracle
+    name: "Stock Fortune",
     desc: "Probabilistic market forecasting based on sentiment and historical data.",
     premium: true,
   },
@@ -86,6 +86,8 @@ export default function PremiumTools() {
   const navigate = useNavigate();
   const [isMember, setIsMember] = useState(false);
   const [unlockedList, setUnlockedList] = useState([]);
+  
+  // กรองเฉพาะ Tools ที่เป็น Premium
   const premiumTools = projects.filter((tool) => tool.premium);
 
   /* ===== Load user profile ===== */
@@ -105,26 +107,26 @@ export default function PremiumTools() {
   return (
     <div className="w-full">
       {/* ===== Header Section ===== */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-4xl font-bold text-white mb-3">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-5">
+        <div className="w-full md:w-auto">
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 md:mb-3">
             Membership Tools
           </h1>
-          <p className="text-gray-400 text-sm max-w-3xl">
+          <p className="text-gray-400 text-sm max-w-3xl leading-relaxed">
             Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
           </p>
         </div>
 
         <button
           onClick={() => navigate("/member-register")}
-          className="bg-[#0099ff] hover:bg-[#007acc] text-white px-6 py-2.5 rounded-full font-medium transition shadow-lg whitespace-nowrap"
+          className="w-full md:w-auto bg-[#0099ff] hover:bg-[#007acc] text-white px-6 py-3 md:py-2.5 rounded-full font-medium transition shadow-lg whitespace-nowrap text-sm md:text-base"
         >
           Upgrade subscription
         </button>
       </div>
 
       {/* ===== Grid Section (ใช้ ToolsCard) ===== */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {premiumTools.map((tool) => (
           <ToolsCard
             key={tool.id}

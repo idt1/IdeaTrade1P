@@ -44,19 +44,20 @@ export default function ToolsCard({
     <div
       className={`
         ${cardBackground}
-        rounded-xl p-6
-        flex flex-col gap-4
+        rounded-xl p-5
+        flex flex-col gap-3
         border border-transparent
         hover:border-gray-500
         hover:-translate-y-1
         transition-all duration-200
+        h-full
       `}
     >
       {/* ===== Header ===== */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <div
           className={`
-            w-12 h-12 rounded-full
+            w-10 h-10 rounded-full shrink-0
             flex items-center justify-center
             text-white
             shadow-sm
@@ -65,13 +66,13 @@ export default function ToolsCard({
           `}
         >
           {project.external ? (
-            <span className="text-xl font-bold">↗</span>
+            <span className="text-lg font-bold">↗</span>
           ) : project.premium ? (
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
               fill="currentColor"
-              className="w-6 h-6"
+              className="w-5 h-5"
             >
               <path
                 fillRule="evenodd"
@@ -80,21 +81,20 @@ export default function ToolsCard({
               />
             </svg>
           ) : (
-            <span className="text-xl">🚀</span>
+            <span className="text-lg">🚀</span>
           )}
         </div>
 
-        <h3 className="text-xl font-bold text-white">
+        <h3 className="text-lg font-bold text-white text-left m-0">
           {project.name}
           {project.premium && (
-            <span className="text-[#cca300] text-sm ml-2">
-            </span>
+            <span className="text-[#cca300] text-sm ml-2"></span>
           )}
         </h3>
       </div>
 
       {/* ===== Description ===== */}
-      <p className="text-[#a0a0a0] text-sm leading-relaxed flex-grow">
+      <p className="text-[#a0a0a0] text-sm leading-relaxed text-left flex-grow">
         {project.desc}
       </p>
 
@@ -102,9 +102,9 @@ export default function ToolsCard({
       <button
         onClick={handleClick}
         className={`
-          w-full py-2.5 rounded-full
-          font-semibold
-          transition shadow-md
+          w-full py-2.5 rounded-lg
+          font-semibold text-sm tracking-wide
+          transition shadow-md mt-2
           ${
             project.external
               ? "bg-sky-600 hover:bg-sky-500 text-white"
