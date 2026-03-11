@@ -102,22 +102,45 @@ const generateMasterData = (seed = 1, totalPoints = 300) => {
   return data;
 };
 
+function ChartBodySkeleton() {
+  return (
+    <div className="relative w-full bg-[#0f172a]" style={{ height: CHART_CONFIG.height }}>
+      <div className="absolute inset-0 px-4 py-4 animate-pulse">
+        {[...Array(5)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute left-4 right-16 h-px bg-slate-800"
+            style={{ top: `${30 + i * 45}px` }}
+          />
+        ))}
+
+        <div className="absolute left-4 right-16 top-8 bottom-10 rounded-xl bg-gradient-to-r from-slate-800 via-slate-700/60 to-slate-800 opacity-80" />
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-[42px] h-[20px] rounded bg-slate-700" />
+      </div>
+    </div>
+  );
+}
+
 // ============================================================
 // REUSABLE CHART CARD (NEW STYLE)
 // ============================================================
 function ChartCard({ title, timeframe, chartId, globalHoverIndex, setGlobalHoverIndex, chartRefs }) {
   const seed = title.length;
-  const masterDataRef = useRef(generateMasterData(seed));
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const data = useMemo(() => {
-    const master = masterDataRef.current;
-    let sliceSize = 60;
-    if (timeframe === "15m") sliceSize = 40;
-    if (timeframe === "1H") sliceSize = 80;
-    if (timeframe === "Day") sliceSize = 150;
-    if (timeframe === "Week") sliceSize = 300;
-    return master.slice(master.length - sliceSize);
-  }, [timeframe]);
+  const masterData = useMemo(() => {
+  return generateMasterData(seed + refreshKey);
+}, [seed, refreshKey]);
+
+const data = useMemo(() => {
+  let sliceSize = 60;
+  if (timeframe === "15m") sliceSize = 40;
+  if (timeframe === "1H") sliceSize = 80;
+  if (timeframe === "Day") sliceSize = 150;
+  if (timeframe === "Week") sliceSize = 300;
+  return masterData.slice(masterData.length - sliceSize);
+}, [masterData, timeframe]);
 
   const scrollRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -143,7 +166,7 @@ function ChartCard({ title, timeframe, chartId, globalHoverIndex, setGlobalHover
     chartRefs.current[chartId] = scrollRef.current;
     scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
     return () => { delete chartRefs.current[chartId]; };
-  }, [chartId, timeframe, chartRefs]);
+  }, [chartId, timeframe, chartRefs, refreshKey]);
 
   const syncScroll = (sourceEl) => {
     Object.values(chartRefs.current).forEach((node) => {
@@ -175,112 +198,143 @@ function ChartCard({ title, timeframe, chartId, globalHoverIndex, setGlobalHover
   const isHovering = globalHoverIndex !== null && !isDragging && globalHoverIndex < data.length;
   const hoverX = isHovering ? paddingLeft + globalHoverIndex * pointGap : null;
 
+  const handleRefresh = useCallback(() => {
+    if (isRefreshing) return;
+
+    setIsRefreshing(true);
+    setGlobalHoverIndex(null);
+
+    setTimeout(() => {
+      setRefreshKey((prev) => prev + 1);
+      setIsRefreshing(false);
+    }, 900);
+  }, [isRefreshing, setGlobalHoverIndex]);
+
   return (
     <div className="bg-[#111827] border border-slate-700 rounded-xl overflow-hidden flex flex-col">
       {/* Header */}
       <div className="px-4 py-3 bg-[#0f172a] border-b border-slate-700/50 flex justify-between items-center">
-        <span className="text-sm font-bold text-slate-300">{title}</span>
-        <span className="text-xs text-slate-500 bg-[#1e293b] px-2 py-1 rounded">{timeframe}</span>
+      <span className="text-sm font-bold text-slate-300">{title}</span>
+
+      <div className="flex items-center gap-2">
+
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="w-7 h-7 rounded-md bg-[#1e293b] text-slate-400 hover:text-white hover:bg-slate-700 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label={`Refresh ${title}`}
+        >
+          <svg
+            className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M4 4v5h.582M20 20v-5h-.581M5.8 9A7 7 0 0119 8m-.8 7A7 7 0 015 16"
+            />
+          </svg>
+        </button>
       </div>
+    </div>
 
       {/* SVG Interactive Area */}
-      <div className="relative w-full bg-[#0f172a]" style={{ height }}>
-        <div
-          ref={scrollRef}
-          className={`w-full h-full relative overflow-x-auto overflow-y-hidden hide-scrollbar select-none ${isDragging ? "cursor-grabbing" : "cursor-crosshair"}`}
-          style={{ msOverflowStyle: "none", scrollbarWidth: "none" }}
-          onScroll={(e) => syncScroll(e.target)}
-          onMouseDown={handleMouseDown}
-          onMouseLeave={() => { setIsDragging(false); setGlobalHoverIndex(null); }}
-          onMouseUp={() => setIsDragging(false)}
-          onMouseMove={handleMouseMove}
-        >
-          <svg width={chartWidth} height={height} className="overflow-visible pointer-events-none">
-            {/* Grid */}
-            {[...Array(5)].map((_, i) => {
-              const y = paddingTop + (i * (height - paddingTop - paddingBottom)) / 4;
-              return <line key={i} x1={0} y1={y} x2={chartWidth} y2={y} stroke="#1e293b" strokeWidth="1" />;
-            })}
-            <line x1={0} y1={height - paddingBottom} x2={chartWidth} y2={height - paddingBottom} stroke="#334155" strokeWidth="1.5" />
+      {isRefreshing ? (
+        <ChartBodySkeleton />
+      ) : (
+        <div className="relative w-full bg-[#0f172a]" style={{ height }}>
+          <div
+            ref={scrollRef}
+            className={`w-full h-full relative overflow-x-auto overflow-y-hidden hide-scrollbar select-none ${isDragging ? "cursor-grabbing" : "cursor-crosshair"}`}
+            style={{ msOverflowStyle: "none", scrollbarWidth: "none" }}
+            onScroll={(e) => syncScroll(e.target)}
+            onMouseDown={handleMouseDown}
+            onMouseLeave={() => { setIsDragging(false); setGlobalHoverIndex(null); }}
+            onMouseUp={() => setIsDragging(false)}
+            onMouseMove={handleMouseMove}
+          >
+            <svg width={chartWidth} height={height} className="overflow-visible pointer-events-none">
+              {[...Array(5)].map((_, i) => {
+                const y = paddingTop + (i * (height - paddingTop - paddingBottom)) / 4;
+                return <line key={i} x1={0} y1={y} x2={chartWidth} y2={y} stroke="#1e293b" strokeWidth="1" />;
+              })}
+              <line x1={0} y1={height - paddingBottom} x2={chartWidth} y2={height - paddingBottom} stroke="#334155" strokeWidth="1.5" />
 
-            {/* Labels */}
-            {data.map((_, i) => (
-              <text key={i} x={paddingLeft + i * pointGap} y={height - paddingBottom + 16} fill="#64748b" fontSize="9" textAnchor="middle">
-                {LABELS[i % LABELS.length]}
-              </text>
-            ))}
+              {data.map((_, i) => (
+                <text key={i} x={paddingLeft + i * pointGap} y={height - paddingBottom + 16} fill="#64748b" fontSize="9" textAnchor="middle">
+                  {LABELS[i % LABELS.length]}
+                </text>
+              ))}
 
-            {/* Area Fill */}
-            <defs>
-              <linearGradient id={areaId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-                <stop offset="100%" stopColor={color} stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path
-              d={`${linePath} L ${lastX},${height - paddingBottom} L ${paddingLeft},${height - paddingBottom} Z`}
-              fill={`url(#${areaId})`}
-            />
+              <defs>
+                <linearGradient id={areaId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+                  <stop offset="100%" stopColor={color} stopOpacity="0" />
+                </linearGradient>
+              </defs>
 
-            {/* Line Path */}
-            <path 
-              d={linePath} 
-              fill="none" 
-              stroke={color} 
-              strokeWidth="2.5" 
-              strokeLinejoin="round" 
-              strokeLinecap="round" 
-            />
+              <path
+                d={`${linePath} L ${lastX},${height - paddingBottom} L ${paddingLeft},${height - paddingBottom} Z`}
+                fill={`url(#${areaId})`}
+              />
 
-            {/* Hover Crosshair & Values */}
+              <path
+                d={linePath}
+                fill="none"
+                stroke={color}
+                strokeWidth="2.5"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+
+              {isHovering && (
+                <g>
+                  <line x1={hoverX} y1={paddingTop} x2={hoverX} y2={height - paddingBottom} stroke="#475569" strokeWidth="1" strokeDasharray="4 4" />
+                  <circle cx={hoverX} cy={normalizeY(data[globalHoverIndex])} r="4" fill={color} stroke="#0f172a" strokeWidth="2" />
+                  <text x={hoverX} y={normalizeY(data[globalHoverIndex]) - 10} fill={color} fontSize="11" fontWeight="700" textAnchor="middle">
+                    {data[globalHoverIndex].toFixed(1)}
+                  </text>
+                </g>
+              )}
+            </svg>
+
             {isHovering && (
-              <g>
-                <line x1={hoverX} y1={paddingTop} x2={hoverX} y2={height - paddingBottom} stroke="#475569" strokeWidth="1" strokeDasharray="4 4" />
-                <circle cx={hoverX} cy={normalizeY(data[globalHoverIndex])} r="4" fill={color} stroke="#0f172a" strokeWidth="2" />
-                <text x={hoverX} y={normalizeY(data[globalHoverIndex]) - 10} fill={color} fontSize="11" fontWeight="700" textAnchor="middle">
-                  {data[globalHoverIndex].toFixed(1)}
+              <div
+                className="absolute top-2 z-50 flex flex-col items-center min-w-[60px] bg-[#1e293b] border border-slate-600 rounded-md p-1.5 shadow-xl pointer-events-none transition-transform duration-75"
+                style={{
+                  left: `${hoverX}px`,
+                  transform: globalHoverIndex > data.length - 5 ? "translateX(calc(-100% - 10px))" : "translateX(10px)",
+                }}
+              >
+                <span className="text-[10px] text-slate-400 font-medium mb-1">{LABELS[globalHoverIndex % LABELS.length]}</span>
+                <span className="text-white text-[12px] font-bold">{data[globalHoverIndex].toFixed(1)}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="absolute inset-y-0 left-0 right-[55px] bg-gradient-to-t from-[#0f172a]/90 via-transparent to-transparent pointer-events-none" style={{ top: "75%" }} />
+
+          <div className="absolute right-0 top-0 w-[55px] h-full pointer-events-none bg-[#0f172a] z-10 border-l border-slate-800/50">
+            <svg className="w-full h-full absolute right-0 top-0 overflow-visible pointer-events-none">
+              {[...Array(5)].map((_, i) => {
+                const y = paddingTop + (i * (height - paddingTop - paddingBottom)) / 4;
+                const value = yScale.max - (i * (yScale.max - yScale.min)) / 4;
+                return <text key={i} x="48" y={y} fill="#64748b" fontSize="10" textAnchor="end" dominantBaseline="central">{value.toFixed(1)}</text>;
+              })}
+
+              <g transform={`translate(6, ${normalizeY(lastPt)})`}>
+                <rect x="0" y="-10" width="42" height="20" fill={color} rx="4" />
+                <text x="21" y="0" fill="#ffffff" fontSize="10" textAnchor="middle" dominantBaseline="central" fontWeight="bold">
+                  {lastPt.toFixed(1)}
                 </text>
               </g>
-            )}
-          </svg>
-
-          {/* Floating Tooltip */}
-          {isHovering && (
-            <div
-              className="absolute top-2 z-50 flex flex-col items-center min-w-[60px] bg-[#1e293b] border border-slate-600 rounded-md p-1.5 shadow-xl pointer-events-none transition-transform duration-75"
-              style={{
-                left: `${hoverX}px`,
-                transform: globalHoverIndex > data.length - 5 ? "translateX(calc(-100% - 10px))" : "translateX(10px)",
-              }}
-            >
-              <span className="text-[10px] text-slate-400 font-medium mb-1">{LABELS[globalHoverIndex % LABELS.length]}</span>
-              <span className="text-white text-[12px] font-bold">{data[globalHoverIndex].toFixed(1)}</span>
-            </div>
-          )}
+            </svg>
+          </div>
         </div>
-
-        {/* Bottom Fade */}
-        <div className="absolute inset-y-0 left-0 right-[55px] bg-gradient-to-t from-[#0f172a]/90 via-transparent to-transparent pointer-events-none" style={{ top: "75%" }} />
-
-        {/* Right Y-Axis Panel */}
-        <div className="absolute right-0 top-0 w-[55px] h-full pointer-events-none bg-[#0f172a] z-10 border-l border-slate-800/50">
-          <svg className="w-full h-full absolute right-0 top-0 overflow-visible pointer-events-none">
-            {[...Array(5)].map((_, i) => {
-              const y = paddingTop + (i * (height - paddingTop - paddingBottom)) / 4;
-              const value = yScale.max - (i * (yScale.max - yScale.min)) / 4;
-              return <text key={i} x="48" y={y} fill="#64748b" fontSize="10" textAnchor="end" dominantBaseline="central">{value.toFixed(1)}</text>;
-            })}
-
-            {/* Current Value Badge */}
-            <g transform={`translate(6, ${normalizeY(lastPt)})`}>
-              <rect x="0" y="-10" width="42" height="20" fill={color} rx="4" />
-              <text x="21" y="0" fill="#ffffff" fontSize="10" textAnchor="middle" dominantBaseline="central" fontWeight="bold">
-                {lastPt.toFixed(1)}
-              </text>
-            </g>
-          </svg>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
