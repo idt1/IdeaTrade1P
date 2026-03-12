@@ -134,8 +134,8 @@ export default function Dashboard({ initialPage }) {
 
   /* --- Render Content Logic --- */
   const renderContent = () => {
-    if (activePage === "profile") return <div className="w-full min-h-full bg-[#0f172a] p-8"><Profile /></div>;
-    if (activePage === "subscription") return <div className="w-full min-h-full bg-[#0f172a] p-8"><ManageSubscription /></div>;
+    if (activePage === "profile") return <div className="w-full min-h-full bg-[#0D131A] p-8"><Profile /></div>;
+    if (activePage === "subscription") return <div className="w-full min-h-full bg-[#0D131A] p-8"><ManageSubscription /></div>;
     
     if (activePage === "preview-projects" || activePage === "whatsnew") return <PreviewProjects />;
     if (activePage === "premiumtools") return <PremiumTools />;
