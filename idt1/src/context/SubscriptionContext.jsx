@@ -1,36 +1,57 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase'; // เช็ค path ให้ตรงกับไฟล์ firebase ของคุณ
+import { auth, db } from '../firebase'; 
 
 const SubscriptionContext = createContext();
 
 export const SubscriptionProvider = ({ children }) => {
   const [accessData, setAccessData] = useState({});
   const [loading, setLoading] = useState(true);
-  const [isFreeAccess, setIsFreeAccess] = useState(false); // 🟢 1. เพิ่ม State เช็คสถานะ Free Access
+  const [isFreeAccess, setIsFreeAccess] = useState(false);
 
   useEffect(() => {
-    // ดักจับเมื่อ User ล็อกอิน หรือรีเฟรชหน้าเว็บ
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
-        setIsFreeAccess(false); // 🟢 2. ถ้าล็อกอินแล้ว ปิดโหมด Free Access
+        setIsFreeAccess(false);
+        
         try {
+          // 🔴 1. พยายามดึงข้อมูลจาก Firestore (กรณีเชื่อมต่อ Emulator ได้)
           const docRef = doc(db, 'users', user.uid);
           const docSnap = await getDoc(docRef);
           
           if (docSnap.exists()) {
-            // เก็บข้อมูล { gold: Timestamp, rubber: Timestamp, ... } ไว้ใน State
             setAccessData(docSnap.data().subscriptions || {});
           } else {
-            setAccessData({});
+            // 🔴 2. ถ้า Firestore หาไม่เจอ หรือติดต่อไม่ได้ (เช่น เพื่อนใช้ผ่าน ngrok แล้วติดเรื่อง Port)
+            // ให้ไปเช็คข้อมูลที่ "เราเซ็ตไว้ตอน Login" ใน localStorage แทน
+            const savedProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+            if (savedProfile.role === "member") {
+              // จำลองสิทธิ์ Member ให้ใช้งานได้
+              setAccessData({ fortune: true }); // ให้สิทธิ์ใช้หน้า Stock Fortune
+            } else {
+              setAccessData({});
+            }
           }
         } catch (error) {
           console.error("Error fetching subscriptions:", error);
-          setAccessData({});
+          // 🔴 3. ถ้า Error (ส่วนใหญ่เพื่อนจะติด Load failed ตรงนี้) ให้ใช้ข้อมูลจาก localStorage เป็นหลัก
+          const savedProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+          if (savedProfile.role === "member") {
+            setAccessData({ fortune: true });
+          } else {
+            setAccessData({});
+          }
         }
       } else {
-        setIsFreeAccess(true); // 🟢 3. ถ้าไม่ได้ล็อกอิน ให้เปิดโหมด Free Access
-        setAccessData({});     // และเคลียร์ข้อมูลแพ็กเกจทิ้ง
+        // 🟢 ถ้ายังไม่ได้ล็อกอิน (โหมดคนนอก)
+        setIsFreeAccess(true);
+        setAccessData({});
+        
+        // เช็คเผื่อกรณีเป็น Free Access จากปุ่ม Try Free
+        const savedProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+        if (savedProfile.role === "free") {
+          setIsFreeAccess(true);
+        }
       }
       setLoading(false);
     });
@@ -39,7 +60,6 @@ export const SubscriptionProvider = ({ children }) => {
   }, []);
 
   return (
-    // 🟢 4. อย่าลืมส่งตัวแปร isFreeAccess ออกไปให้ไฟล์อื่น (Guard) ใช้งานด้วย
     <SubscriptionContext.Provider value={{ accessData, loading, isFreeAccess }}>
       {children}
     </SubscriptionContext.Provider>
