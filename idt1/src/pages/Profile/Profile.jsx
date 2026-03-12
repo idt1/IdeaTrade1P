@@ -1,3 +1,4 @@
+// src/pages/Profile.jsx
 import React, { useState, useEffect } from 'react';
 import './Profile.css';
 
@@ -105,11 +106,11 @@ const Profile = () => {
   };
 
   return (
-    /* 🔴 ปรับเป็น bg-transparent ทั้งหมด เพื่อให้เห็นแค่สีเดียวจาก Layout หลัก */
-    <div className="w-full min-h-screen bg-transparent p-4 md:p-8 animate-fade-in">
+
+   <div className="w-full min-h-screen bg-transparent p-4 md:p-8 animate-fade-in">
       <div className="max-w-3xl mx-auto">
         
-        <h1 className="text-2xl md:text-3xl font-bold text-white mb-6 text-left">Account Settings</h1>
+        <h1 className="text-2xl md:text-3xl font-extrabold text-white mb-6 text-left">Account Settings</h1>
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 w-full overflow-x-auto hide-scrollbar">
@@ -131,7 +132,7 @@ const Profile = () => {
 
         {activeTab === 'Profile' && (
           <div className="w-full">
-            {/* 🔴 Card Container ปรับเป็น bg-transparent และเอา Border ออกเพื่อให้เนียนไปกับพื้นหลังหลัก */}
+            {/* Card Container */}
             <div className="bg-transparent w-full flex flex-col gap-6">
               
               <div className="flex flex-col gap-1 w-full">
@@ -147,7 +148,6 @@ const Profile = () => {
                     <label className="text-sm font-medium text-gray-400 text-left">First Name</label>
                     <input 
                       type="text" 
-                      /* 🔴 ปรับสี input ให้เข้มกว่าพื้นหลังนิดหน่อยเพื่อให้ยังดูออกว่าเป็นช่องกรอก */
                       className="w-full bg-[#111827]/50 border border-gray-700/50 rounded-lg p-3.5 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
                       value={userData.firstName}
                       onChange={(e) => setUserData({...userData, firstName: e.target.value})}
@@ -197,7 +197,7 @@ const Profile = () => {
                     disabled={isSaving}
                     style={{ opacity: isSaving ? 0.7 : 1 }}
                   >
-                    <EditIcon /> {isSaving ? "Saving..." : "Edit Profile"} 
+                    <EditIcon /> {isSaving ? "Saving..." : "Save Profile"} 
                   </button>
                 </div>
 
