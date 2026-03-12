@@ -701,38 +701,38 @@ export default function DRInsight() {
         <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
 
           <div className="col-span-3 flex flex-col gap-4 h-full overflow-hidden">
-            {[
-              { title: "USA", stocks: usaStocks, icon: "🌎", flex: "flex-[4]" },
-              { title: "Europe", stocks: europeStocks, icon: "🌍", flex: "flex-[3]" },
-              { title: "ETC", stocks: etcStocks, icon: "🌐", flex: "flex-[2]" },
-            ].map(({ title, stocks, icon, flex }) => {
-              const filtered = stocks.filter(s => s.dr.toLowerCase().includes(globalFilter.toLowerCase()));
-              return (
-                <div key={title} className={`bg-[#111827] border border-slate-800/80 rounded-xl flex flex-col overflow-hidden shadow-lg min-h-0 ${flex}`}>
-                  <div className="px-3 py-2.5 flex justify-between items-center border-b border-slate-800/60 bg-[#141b2a]">
-                    <span className="font-bold text-[13px] text-white">{title}</span>
-                    <span className="text-cyan-500 text-[11px] font-bold">{icon}</span>
-                  </div>
-                  <div className="flex justify-between text-[9px] text-slate-500 px-2 py-1 font-semibold uppercase tracking-wider sticky top-0 bg-[#111827] border-b border-slate-800/60 z-20">
-                    <span>DR/DRx</span>
-                    <span>TradingView</span>
-                  </div>
-                  <div className="overflow-y-auto flex-1 bg-[#0B1221] p-2" style={scrollbarHideStyle}>
-                    {filtered.map((stock, idx) => (
-                      <div key={idx} onClick={() => handleStockClick(stock.dr)}
-                        className={`flex justify-between items-center text-[10px] p-1.5 rounded cursor-pointer transition-colors group ${selectedSymbol === stock.dr ? 'bg-cyan-500/20 border border-cyan-500/50' : 'hover:bg-slate-800/60'}`}>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-1.5 h-1.5 rounded-full ${dotColors[idx % dotColors.length]}`}></div>
-                          <span className="text-slate-200 group-hover:text-white font-bold tracking-wide">{stock.dr}</span>
-                        </div>
-                        <span className="text-slate-500 truncate max-w-[80px] text-right">{stock.real}</span>
-                      </div>
-                    ))}
-                  </div>
+          {[
+            { title: "USA", stocks: usaStocks, icon: "🌎", flex: "flex-[4]" },
+            { title: "Europe", stocks: europeStocks, icon: "🌍", flex: "flex-[3]" },
+            { title: "ETC", stocks: etcStocks, icon: "🌐", flex: "flex-[2]" },
+          ].map(({ title, stocks, icon, flex }) => {
+            const filtered = stocks.filter(s => s.dr.toLowerCase().includes(globalFilter.toLowerCase()));
+            return (
+              <div key={title} className={`bg-[#111827] border border-slate-800/80 rounded-xl flex flex-col overflow-hidden shadow-lg min-h-0 ${flex}`}>
+                <div className="px-3 py-2.5 flex justify-between items-center border-b border-slate-800/60 bg-[#141b2a]">
+                  <span className="font-bold text-[12px] text-white">{title}</span>
+                  <span className="text-cyan-500 text-[10px] font-bold">{icon}</span>
                 </div>
-              );
-            })}
-          </div>
+                <div className="flex justify-between text-[8px] text-slate-500 px-2 py-1 font-semibold uppercase tracking-wider sticky top-0 bg-[#111827] border-b border-slate-800/60 z-20">
+                  <span>DR/DRx</span>
+                  <span>TradingView</span>
+                </div>
+                <div className="overflow-y-auto flex-1 bg-[#0B1221] p-2" style={scrollbarHideStyle}>
+                  {filtered.map((stock, idx) => (
+                    <div key={idx} onClick={() => handleStockClick(stock.dr)}
+                      className={`flex justify-between items-center text-[9px] p-1.5 rounded cursor-pointer transition-colors group ${selectedSymbol === stock.dr ? 'bg-cyan-500/20 border border-cyan-500/50' : 'hover:bg-slate-800/60'}`}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-1.5 h-1.5 rounded-full ${dotColors[idx % dotColors.length]}`}></div>
+                        <span className="text-slate-200 group-hover:text-white font-bold tracking-wide">{stock.dr}</span>
+                      </div>
+                      <span className="text-slate-500 truncate max-w-[80px] text-right">{stock.real}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
          <div className="col-span-6 flex flex-col gap-4 h-full overflow-hidden">
   {isLoadingCharts ? (
@@ -852,39 +852,40 @@ export default function DRInsight() {
             </div>
             <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden">
               <div className="flex flex-col gap-4 h-full overflow-hidden">
-                {[
-                  { title: "Japan", stocks: japanStocks, icon: "JP" },
-                  { title: "Singapore", stocks: singaporeStocks, icon: "SG" },
-                  { title: "Vietnam", stocks: vietnamStocks, icon: "VN" },
-                ].map(({ title, stocks, icon }) => {
-                  const filtered = stocks.filter(s => s.dr.toLowerCase().includes(globalFilter.toLowerCase()));
-                  return (
-                    <div key={title} className="bg-[#111827] border border-slate-800/80 rounded-xl flex flex-col overflow-hidden shadow-lg min-h-0 flex-1">
-                      <div className="px-3 py-2.5 flex justify-between items-center border-b border-slate-800/60 bg-[#141b2a]">
-                        <span className="font-bold text-[13px] text-white">{title}</span>
-                        <span className="text-cyan-500 text-[11px] font-bold">{icon}</span>
-                      </div>
-                      <div className="overflow-y-auto flex-1 bg-[#0B1221] p-2" style={scrollbarHideStyle}>
-                        {filtered.map((stock, idx) => (
-                          <div key={idx} onClick={() => handleStockClick(stock.dr)}
-                            className={`w-full flex items-center justify-between px-5 py-2.5 border-b border-slate-800/40 transition-colors text-left ${
-                            selectedSymbol === stock.dr
-                              ? "bg-cyan-500/15 border-l-2 border-l-cyan-400"
-                              : "hover:bg-[#1a2030] active:bg-[#1e2638]"
-                          }`}
-                        >
-                            <div className="flex items-center gap-2">
-                              <div className={`w-1.5 h-1.5 rounded-full ${dotColors[idx % dotColors.length]}`}></div>
-                              <span className="text-slate-200 group-hover:text-white font-bold tracking-wide">{stock.dr}</span>
-                            </div>
-                            <span className="text-slate-500 truncate max-w-[55px] text-right">{stock.real}</span>
-                          </div>
-                        ))}
-                      </div>
+              {[
+                { title: "Japan", stocks: japanStocks, icon: "JP" },
+                { title: "Singapore", stocks: singaporeStocks, icon: "SG" },
+                { title: "Vietnam", stocks: vietnamStocks, icon: "VN" },
+              ].map(({ title, stocks, icon }) => {
+                const filtered = stocks.filter(s => s.dr.toLowerCase().includes(globalFilter.toLowerCase()));
+                return (
+                  <div key={title} className="bg-[#111827] border border-slate-800/80 rounded-xl flex flex-col overflow-hidden shadow-lg min-h-0 flex-1">
+                    <div className="px-3 py-2.5 flex justify-between items-center border-b border-slate-800/60 bg-[#141b2a]">
+                      <span className="font-bold text-[13px] text-white">{title}</span>
+                      <span className="text-cyan-500 text-[11px] font-bold">{icon}</span>
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="overflow-y-auto flex-1 bg-[#0B1221] p-2" style={scrollbarHideStyle}>
+                      {filtered.map((stock, idx) => (
+                        <div key={idx} onClick={() => handleStockClick(stock.dr)}
+                          className={`w-full flex items-center justify-between px-5 py-2.5 border-b border-slate-800/40 transition-colors text-left ${
+                          selectedSymbol === stock.dr
+                            ? "bg-cyan-500/15 border-l-2 border-l-cyan-400"
+                            : "hover:bg-[#1a2030] active:bg-[#1e2638]"
+                        }`}
+                      >
+                          <div className="flex items-center gap-2">
+                            <div className={`w-1.5 h-1.5 rounded-full ${dotColors[idx % dotColors.length]}`}></div>
+                            {/* ✅ เพิ่ม text-[10px] ที่นี่ */}
+                            <span className="text-[10px] text-slate-200 group-hover:text-white font-bold tracking-wide">{stock.dr}</span>
+                          </div>
+                          <span className="text-[10px] text-slate-500 truncate max-w-[55px] text-right">{stock.real}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
               <div className="flex flex-col gap-4 h-full overflow-hidden">
                 {[
                   { title: "China", stocks: chinaStocks, icon: "CN", flex: "flex-[3]" },
