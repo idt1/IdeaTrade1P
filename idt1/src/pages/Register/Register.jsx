@@ -1,4 +1,3 @@
-// src/pages/Register/Register.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Rocket from "./Rocket";
@@ -65,8 +64,9 @@ export default function Register() {
 
     setIsSubmitting(true);
     try {
-      // ✅ 1. บันทึกข้อมูลลงใน Firestore (users_temp) ของจริง
       const emailKey = formData.email.trim().toLowerCase();
+      
+      // ✅ 1. บันทึกข้อมูลลงใน Firestore (users_temp) ของจริง
       const docRef = doc(db, "users_temp", emailKey); 
       
       await setDoc(docRef, {
@@ -77,22 +77,30 @@ export default function Register() {
         registeredAt: new Date()
       });
 
-      // ✅ 2. ยิง API ไปที่ Backend 8000 (ถ้าไม่ได้ใช้แล้ว สามารถลบออกได้นะครับ)
+      // ✅ 2. ยิง API ไปที่ Backend ผ่าน Proxy (ถ้าไม่ได้ใช้แล้ว สามารถลบออกได้นะครับ)
+      // เปลี่ยนจาก localhost:8000 เป็นการเรียก /api/register แทน เพื่อให้วิ่งผ่าน Proxy ไปพอร์ต 5000 ของเรา
       try {
-        await fetch('http://localhost:8000/api/register', {
+        const response = await fetch('/api/register', { // 🔴 แก้ไขตรงนี้
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
         });
+        
+        // อ่านผลลัพธ์จาก Backend (เผื่อต้องการดู)
+        const data = await response.json();
+        if(!response.ok) {
+           console.warn("Backend แจ้งเตือน:", data.message);
+        }
       } catch (apiErr) {
-        console.warn("ไม่ได้รัน Backend 8000 ข้ามไปใช้ข้อมูลจาก Firebase แทน");
+        console.warn("ไม่สามารถติดต่อ Backend ได้ ข้ามไปใช้ข้อมูลจาก Firebase แทน", apiErr);
       }
 
       // ✅ 3. ข้อมูลเข้า Firebase สำเร็จ เด้งไปหน้า Welcome เพื่อกรอก OTP ได้เลย
       alert("บันทึกข้อมูลเรียบร้อย! กรุณายืนยันตัวตนด้วย OTP"); 
       
+      // จำอีเมลไว้ เพื่อให้หน้า Welcome ดึงไปแสดงได้เลย
       localStorage.setItem("rememberedEmail", emailKey); 
-      navigate("/welcome"); 
+      navigate("/"); // หรือ "/welcome" ตาม path หน้า login ของคุณ
 
     } catch (error) {
       console.error("Error Registration:", error);
@@ -103,6 +111,7 @@ export default function Register() {
   };
 
   return (
+    // ... UI โค้ดเดิมของคุณทั้งหมด (ผมไม่ได้แก้ตรงนี้นะครับ)
     <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4 font-sans">
       <div className="w-full max-w-5xl bg-slate-800 rounded-2xl md:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row">
         
@@ -148,7 +157,7 @@ export default function Register() {
 
             {/* Buttons */}
             <div className="grid grid-cols-2 gap-4 pt-2">
-              <button type="button" onClick={() => navigate("/welcome")} className="py-3 rounded-lg bg-gray-600 text-gray-200 hover:bg-gray-500 transition">Cancel</button>
+              <button type="button" onClick={() => navigate("/")} className="py-3 rounded-lg bg-gray-600 text-gray-200 hover:bg-gray-500 transition">Cancel</button>
               <button type="submit" disabled={isSubmitting} className={`py-3 rounded-lg text-white transition ${isSubmitting ? 'bg-sky-400 cursor-not-allowed' : 'bg-sky-600 hover:bg-sky-500'}`}>{isSubmitting ? 'Creating...' : 'Create an account'}</button>
             </div>
           </form>

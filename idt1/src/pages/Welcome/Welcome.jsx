@@ -6,17 +6,20 @@ import { auth, googleProvider } from "@/firebase";
 import Rocket from "@/assets/icons/rocket-lunch 1.svg";
 import Crown from "@/assets/icons/crown 1.svg";
 import OtpModal from "@/components/OtpModal";
+import axios from "axios"; // 🔴 อย่าลืมติดตั้ง axios ถ้ายังไม่มี (npm install axios)
 
 export default function Welcome() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
+  // เพิ่ม state สำหรับ password
+  const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // สถานะการโหลดตอนขอ OTP
+  const [isLoading, setIsLoading] = useState(false);
 
   const [popupType, setPopupType] = useState("");
   const [openForgot, setOpenForgot] = useState(false);
-  const [openOtp, setOpenOtp] = useState(false);
+  const [openOtp, setOpenOtp] = useState(false); // ถ้าไม่ได้ใช้ OTP แล้ว อาจจะเอาออกได้ในอนาคต
 
   // ดึงอีเมลที่เคยจำไว้มาแสดง
   useEffect(() => {
@@ -30,8 +33,7 @@ export default function Welcome() {
   /* ======================
       EMAIL VALIDATION
   ====================== */
- const isValidEmail = (email) => {
-    // ใช้ Regex มาตรฐานที่รองรับทุกโดเมน (ขอแค่มี @ และ . อย่างถูกต้อง)
+  const isValidEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
@@ -76,7 +78,7 @@ export default function Welcome() {
     }
   };
 
-  const handleSignIn = async () => {
+const handleSignIn = async () => {
     // ❌ ยังไม่กรอกอีเมล
     if (!email) {
       setPopupType("emailRequired");
@@ -91,18 +93,17 @@ export default function Welcome() {
       return;
     }
 
-    // ✅ เริ่มกระบวนการส่ง OTP
+    // ✅ เริ่มกระบวนการส่ง OTP ผ่าน Firebase
     setIsLoading(true);
     try {
-      // ⚠️ จุดที่ต้องระวังตอนขึ้น Production: อย่าลืมเปลี่ยน URL ตรงนี้เป็นของจริง
-      const API_URL = "http://127.0.0.1:5001/ideatrade-9548f/us-central1/requestOTP"; 
+      // 🔴 ลบ http://127.0.0.1:5001 ทิ้งไปได้เลยครับ Proxy จะจัดการให้เอง
+      const API_URL = "/ideatrade-9548f/us-central1/requestOTP"; 
       
       const response = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase() })
       });
-
       const data = await response.json();
 
       if (response.ok && data.success) {
@@ -112,6 +113,7 @@ export default function Welcome() {
         } else {
           localStorage.removeItem("rememberedEmail");
         }
+        // ดึง Modal OTP ขึ้นมาแสดง
         setOpenOtp(true); 
       } else {
         alert("ไม่สามารถส่งอีเมลได้: " + (data.error || "ไม่ทราบสาเหตุ"));
@@ -178,7 +180,7 @@ export default function Welcome() {
 
           {/* RIGHT */}
           <div className="flex flex-col justify-center gap-5 text-white">
-            {/* Email */}
+            {/* Email Input */}
             <div className="relative w-full">
               <input
                 type="email"
@@ -191,19 +193,16 @@ export default function Welcome() {
                   focus:border-blue-500 outline-none
                 "
               />
-
               <label
                 className={`
                   absolute left-4
                   px-2 py-0.5 rounded-full
                   text-sm transition-all duration-200
-
                   ${
                     email
                       ? "-top-3 text-xs text-sky-400 bg-slate-800"
                       : "top-3 text-sm text-blue-300 bg-transparent"
                   }
-
                   peer-focus:-top-3
                   peer-focus:text-xs
                   peer-focus:text-sky-400
@@ -213,6 +212,40 @@ export default function Welcome() {
                 EMAIL
               </label>
             </div>
+
+            {/* 🔴 ตัวอย่างช่องใส่รหัสผ่าน (ถ้ามี)
+            <div className="relative w-full">
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="
+                  peer w-full bg-transparent
+                  border border-blue-300/40
+                  rounded-md px-4 py-3 text-white
+                  focus:border-blue-500 outline-none
+                "
+              />
+              <label
+                className={`
+                  absolute left-4
+                  px-2 py-0.5 rounded-full
+                  text-sm transition-all duration-200
+                  ${
+                    password
+                      ? "-top-3 text-xs text-sky-400 bg-slate-800"
+                      : "top-3 text-sm text-blue-300 bg-transparent"
+                  }
+                  peer-focus:-top-3
+                  peer-focus:text-xs
+                  peer-focus:text-sky-400
+                  peer-focus:bg-slate-800
+                `}
+              >
+                PASSWORD
+              </label>
+            </div>
+             */}
 
             {/* Options */}
             <div className="flex justify-between items-center text-sm">
@@ -226,7 +259,7 @@ export default function Welcome() {
               </label>
             </div>
 
-            {/* Sign in - แก้ไขโค้ดที่ซ้ำซ้อนแล้ว */}
+            {/* Sign in Button */}
             <button
               onClick={handleSignIn}
               disabled={isLoading}
@@ -234,7 +267,7 @@ export default function Welcome() {
                 isLoading ? "bg-slate-600 cursor-not-allowed" : "bg-sky-600 hover:bg-sky-500"
               }`}
             >
-              {isLoading ? "Sending OTP..." : "Sign in"}
+              {isLoading ? "Signing in..." : "Sign in"}
             </button>
 
             <p className="text-sm text-center text-gray-400">

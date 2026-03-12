@@ -63,7 +63,8 @@ export default function OtpModal({ open, onClose, onSuccess, email }) {
   const verifyOtp = async (code) => {
     setStatus("loading");
     try {
-      const response = await fetch("http://127.0.0.1:5001/ideatrade-9548f/us-central1/verifyOTP", {
+      // 🔴 แก้ไข URL ตรงนี้ ให้วิ่งผ่าน Proxy
+      const response = await fetch("/ideatrade-9548f/us-central1/verifyOTP", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -72,25 +73,19 @@ export default function OtpModal({ open, onClose, onSuccess, email }) {
         })
       });
 
-      // 1️⃣ อ่านข้อมูลจาก Backend ก่อนเลย จะได้รู้ว่าส่ง error อะไรมา
       const data = await response.json(); 
       
-      // 2️⃣ ถ้า Response หรืองานไม่สำเร็จ ให้พ่น Error ของ Backend ออกมา
       if (!response.ok || !data.success) {
          throw new Error(data.error || "Verification failed"); 
       }
 
-      // 3️⃣ ถ้าสำเร็จค่อย Login
       await signInWithCustomToken(auth, data.token);
       setStatus("success");
       setTimeout(() => onSuccess(), 800);
       
     } catch (error) {
-      // ✅ ตอนนี้เราจะเห็นใน Console แล้วว่ามัน Error เพราะอะไร!
       console.error("🔥 Verify Error:", error.message); 
       setStatus("error");
-      
-      // (ทางเลือก) ให้หน้าจอ Alert ข้อความ Error จริงๆ ออกมาดูเลย
       alert("เกิดข้อผิดพลาด: " + error.message); 
     }
   };
@@ -104,7 +99,8 @@ export default function OtpModal({ open, onClose, onSuccess, email }) {
     inputsRef.current[0]?.focus();
 
     try {
-      await fetch("http://127.0.0.1:5001/ideatrade-9548f/us-central1/requestOTP", {
+      // 🔴 แก้ไข URL ตรงนี้ ให้วิ่งผ่าน Proxy ด้วย
+      await fetch("/ideatrade-9548f/us-central1/requestOTP", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase() })
