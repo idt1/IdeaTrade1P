@@ -922,76 +922,120 @@ export default function DRInsight() {
       {/* END DESKTOP LAYOUT */}
 
       {/* FULLSCREEN MODAL */}
-      {fullscreenChart && (() => {
-        const stockName = chartSelections[fullscreenChart];
-        const stockData = allStockOptions.find(s => s.dr === stockName) || {};
+{fullscreenChart && (
+  <div className="fixed inset-0 bg-[#0d1117] z-[80] flex flex-col">
+    
+    {/* Header — เหมือน FlowIntraday */}
+    <div className="flex items-center gap-3 px-4 py-3 bg-[#0d1117] border-b border-slate-800 flex-shrink-0">
+      
+      {/* Back Button */}
+      <button
+        onClick={() => setFullscreenChart(null)}
+        className="flex items-center gap-1.5 bg-[#1f2937] hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-xs text-slate-300 hover:text-white transition-all flex-shrink-0"
+      >
+        ← Back
+      </button>
+
+      {/* Refresh Button */}
+      <button
+        className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-400 text-white transition-all flex-shrink-0"
+      >
+        🔄
+      </button>
+
+      {/* Title — Center */}
+      <div className="flex-1 flex flex-col items-center justify-center">
+        <h2 className="text-lg font-bold text-white tracking-widest">
+          {chartSelections[fullscreenChart]}
+        </h2>
+        <span className="text-[11px] text-slate-500">
+          {allStockOptions.find(s => s.dr === chartSelections[fullscreenChart])?.name || ""}
+        </span>
+      </div>
+
+      {/* Spacer for balance */}
+      <div style={{ width: '140px' }} />
+    </div>
+
+    {/* Chart Container */}
+    <div className="flex-1 min-h-0 bg-[#0d1117] relative overflow-hidden cursor-crosshair"
+      onMouseMove={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setHoverPos(Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)));
+      }}
+      onTouchMove={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setHoverPos(Math.max(0, Math.min(100, ((e.touches[0].clientX - rect.left) / rect.width) * 100)));
+      }}
+      onMouseLeave={() => setHoverPos(null)}
+      onTouchEnd={() => setHoverPos(null)}
+    >
+      {/* Grid Background */}
+      <div className="absolute inset-0 opacity-10" style={{
+        backgroundImage: 'linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px)',
+        backgroundSize: '30px 30px'
+      }} />
+
+      {(() => {
         const index = ['chart1', 'chart2', 'chart3'].indexOf(fullscreenChart);
         const lineColor = themeColors[index];
-        const chartTitles = [stockData.real, `PE:${stockData.real}`, stockName];
-        const chartTitle = chartTitles[index] || stockName;
         const data = chartData[fullscreenChart];
         const { min, max } = chartMinMax[fullscreenChart];
         const range = max - min || 1;
         const pathD = buildSvgPath(data, min, max);
 
         return (
-          <div className="fixed inset-0 bg-[#0B1221] z-[80] flex flex-col p-4 overflow-hidden">
-            <div className="flex justify-between items-center mb-4 shrink-0">
-              <div className="flex items-center gap-3">
-                <h2 className="text-xl md:text-2xl font-bold text-white">{chartTitle || "Chart"}</h2>
-                <span className="text-sm text-slate-500">({stockData.name || ""})</span>
-              </div>
-              <button onClick={() => setFullscreenChart(null)} className="text-2xl text-slate-400 hover:text-white transition p-1">✕</button>
+          <>
+            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 100" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id={`fullscreen-grad-${index}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={lineColor} stopOpacity="0.25" />
+                  <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path d={pathD} fill="none" stroke={lineColor} strokeWidth="2" vectorEffect="non-scaling-stroke" />
+              <path d={pathD + " V 100 H 0 Z"} fill={`url(#fullscreen-grad-${index})`} stroke="none" />
+            </svg>
+
+            {/* Y-axis Labels */}
+            <div className="absolute right-2 top-3 bottom-3 flex flex-col justify-between text-[10px] text-slate-600 text-right pointer-events-none z-10">
+              {[max, min + range * 0.75, min + range * 0.5, min + range * 0.25, min].map((v, i) => (
+                <span key={i} className="font-semibold">{v.toFixed(2)}</span>
+              ))}
             </div>
-            <div
-              className="flex-1 bg-[#111827] border border-slate-700 rounded-xl relative overflow-hidden cursor-crosshair"
-              onMouseMove={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                setHoverPos(Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)));
-              }}
-              onTouchMove={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                setHoverPos(Math.max(0, Math.min(100, ((e.touches[0].clientX - rect.left) / rect.width) * 100)));
-              }}
-              onMouseLeave={() => setHoverPos(null)}
-              onTouchEnd={() => setHoverPos(null)}
-            >
-              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 100" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id={`fullscreen-grad-${index}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={lineColor} stopOpacity="0.25" />
-                    <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                <path d={pathD} fill="none" stroke={lineColor} strokeWidth="2" vectorEffect="non-scaling-stroke" />
-                <path d={pathD + " V 100 H 0 Z"} fill={`url(#fullscreen-grad-${index})`} stroke="none" />
-              </svg>
-              <div className="absolute right-2 top-3 bottom-3 flex flex-col justify-between text-[10px] text-slate-600 text-right pointer-events-none z-10">
-                {[max, min + range * 0.75, min + range * 0.5, min + range * 0.25, min].map((v, i) => (
-                  <span key={i} className="font-semibold">{v.toFixed(2)}</span>
-                ))}
-              </div>
-              {hoverPos !== null && (() => {
-                const dataIndex = Math.min(data.length - 1, Math.max(0, Math.round((hoverPos / 100) * (data.length - 1))));
-                const hoverValue = data[dataIndex];
-                const currentYPercent = 100 - ((hoverValue - min) / range) * 100;
-                const actualXPercent = (dataIndex / (data.length - 1)) * 100;
-                return (
-                  <>
-                    <div className="absolute top-0 bottom-0 z-20 pointer-events-none border-l border-dashed border-slate-400 opacity-80" style={{ left: `${actualXPercent}%` }}></div>
-                    <div className="absolute left-0 right-0 z-20 pointer-events-none border-t border-dashed border-slate-400 opacity-80" style={{ top: `${currentYPercent}%` }}></div>
-                    <div className="absolute z-30 pointer-events-none w-3 h-3 rounded-full -translate-x-1/2 -translate-y-1/2"
-                      style={{ left: `${actualXPercent}%`, top: `${currentYPercent}%`, backgroundColor: lineColor, boxShadow: `0 0 15px ${lineColor}` }}></div>
-                    <div className="absolute right-0 z-30 -translate-y-1/2 px-2 py-1 bg-slate-800 text-white text-[11px] rounded shadow-md border border-slate-600 pointer-events-none font-semibold mr-2"
-                      style={{ top: `${currentYPercent}%` }}>{hoverValue?.toFixed(2)}</div>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
+
+            {/* Hover Indicators */}
+            {hoverPos !== null && (() => {
+              const dataIndex = Math.min(data.length - 1, Math.max(0, Math.round((hoverPos / 100) * (data.length - 1))));
+              const hoverValue = data[dataIndex];
+              const currentYPercent = 100 - ((hoverValue - min) / range) * 100;
+              const actualXPercent = (dataIndex / (data.length - 1)) * 100;
+              return (
+                <>
+                  <div className="absolute top-0 bottom-0 z-20 pointer-events-none border-l border-dashed border-slate-400 opacity-80" 
+                    style={{ left: `${actualXPercent}%` }} />
+                  <div className="absolute left-0 right-0 z-20 pointer-events-none border-t border-dashed border-slate-400 opacity-80" 
+                    style={{ top: `${currentYPercent}%` }} />
+                  <div className="absolute z-30 pointer-events-none w-3 h-3 rounded-full -translate-x-1/2 -translate-y-1/2"
+                    style={{ 
+                      left: `${actualXPercent}%`, 
+                      top: `${currentYPercent}%`, 
+                      backgroundColor: lineColor, 
+                      boxShadow: `0 0 15px ${lineColor}` 
+                    }} />
+                  <div className="absolute right-0 z-30 -translate-y-1/2 px-2 py-1 bg-slate-800 text-white text-[11px] rounded shadow-md border border-slate-600 pointer-events-none font-semibold mr-2"
+                    style={{ top: `${currentYPercent}%` }}>
+                    {hoverValue?.toFixed(2)}
+                  </div>
+                </>
+              );
+            })()}
+          </>
         );
       })()}
+    </div>
+  </div>
+)}
 
     </div>
   );
