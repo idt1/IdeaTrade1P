@@ -1084,15 +1084,23 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "" }) => {
           {/* Preview Image Card */}
           <div className="relative group w-full max-w-5xl mb-16">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700"></div>
-            <div className="relative bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
-              <div className="bg-[#0f172a] px-4 py-3 border-b border-slate-700/50 flex gap-2">
+
+            <div className="relative h-[450px] md:h-[650px] flex flex-col bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
+              
+              {/* Window Bar */}
+              <div className="flex-none bg-[#0f172a] px-4 py-3 border-b border-slate-700/50 flex gap-2">
                 <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
                 <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
                 <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
               </div>
-              <div className="w-full bg-[#0B1221]">
-                <div className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition duration-500" />
-                <TickMatchDashboard />
+              
+              {/* ✅ 1. แก้เป็น overflow-hidden เพื่อซ่อนเนื้อหาที่ล้นออกจากกล่อง */}
+              {/* ✅ 2. เติม pointer-events-none เพื่อล็อคการสัมผัส ไม่ให้เลื่อนหรือคลิกข้างในได้ */}
+              <div className="flex-1 overflow-hidden bg-[#0B1221] pointer-events-none">
+                
+                <div className="w-full h-[900px] opacity-90 group-hover:opacity-100 transition duration-500">
+                  <TickMatchDashboard />
+                </div>
               </div>
             </div>
           </div>
@@ -1198,15 +1206,23 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "" }) => {
           {/* Preview Image Card */}
           <div className="relative group w-full max-w-5xl mb-16">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700"></div>
-            <div className="relative bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
-              <div className="bg-[#0f172a] px-4 py-3 border-b border-slate-700/50 flex gap-2">
+
+            <div className="relative h-[450px] md:h-[650px] flex flex-col bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
+              
+              {/* Window Bar */}
+              <div className="flex-none bg-[#0f172a] px-4 py-3 border-b border-slate-700/50 flex gap-2">
                 <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
                 <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
                 <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
               </div>
-              <div className="w-full bg-[#0B1221]">
-                <div className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition duration-500" />
-                <TickMatchDashboard />
+              
+              {/* ✅ 1. แก้เป็น overflow-hidden เพื่อซ่อนเนื้อหาที่ล้นออกจากกล่อง */}
+              {/* ✅ 2. เติม pointer-events-none เพื่อล็อคการสัมผัส ไม่ให้เลื่อนหรือคลิกข้างในได้ */}
+              <div className="flex-1 overflow-hidden bg-[#0B1221] pointer-events-none">
+                
+                <div className="w-full h-[900px] opacity-90 group-hover:opacity-100 transition duration-500">
+                  <TickMatchDashboard />
+                </div>
               </div>
             </div>
           </div>
