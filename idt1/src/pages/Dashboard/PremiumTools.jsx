@@ -1,7 +1,12 @@
 // src/pages/dashboard/premiuntools.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import ToolsCard from "@/components/ToolsCard"; // หรือปรับ path ตามที่คุณใช้งานจริง
+import ToolsCard from "@/components/ToolsCard";
+
+// Import Firebase ให้เหมือนหน้า PreviewProject
+import { auth, db } from "@/firebase"; 
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 /* =======================
    Data Configuration
@@ -90,18 +95,57 @@ export default function PremiumTools() {
   // กรองเฉพาะ Tools ที่เป็น Premium
   const premiumTools = projects.filter((tool) => tool.premium);
 
-  /* ===== Load user profile ===== */
+  /* อัปเดต Load user profile ให้เช็คแบบเดียวกับหน้า Preview ===== */
   useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem("userProfile");
-      if (!savedUser) return;
+    const loadDemoProfile = () => {
+      const saved = localStorage.getItem("userProfile");
+      if (saved) {
+        const userData = JSON.parse(saved);
+        const subscriptions = userData.mySubscriptions || [];
+        const unlockedFromSubs = subscriptions.map(sub => sub.id); 
+        const explicitUnlocked = userData.unlockedItems || [];
+        const combinedUnlocked = [...new Set([...explicitUnlocked, ...unlockedFromSubs])];
+        
+        const hasAccess = userData.role === "member" || userData.role === "membership" || combinedUnlocked.length > 0;
+        setIsMember(hasAccess);
+        setUnlockedList(combinedUnlocked);
+      } else {
+        setIsMember(false);
+        setUnlockedList([]);
+      }
+    };
 
-      const user = JSON.parse(savedUser);
-      setIsMember(user.role === "member");
-      setUnlockedList(user.unlockedItems || []);
-    } catch (err) {
-      console.error("Error loading user profile", err);
-    }
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userRef = doc(db, "users", user.uid);
+          const userSnap = await getDoc(userRef);
+
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            const subscriptions = userData.mySubscriptions || [];
+            const unlockedFromSubs = subscriptions.map(sub => sub.id); 
+            const explicitUnlocked = userData.unlockedItems || [];
+            const combinedUnlocked = [...new Set([...explicitUnlocked, ...unlockedFromSubs])];
+            const hasAccess = userData.role === "member" || userData.role === "membership" || combinedUnlocked.length > 0;
+
+            setIsMember(hasAccess);
+            setUnlockedList(combinedUnlocked);
+          }
+        } catch (err) {
+          console.error("Error fetching Firestore:", err);
+        }
+      } else {
+        loadDemoProfile();
+      }
+    });
+
+    window.addEventListener("storage", loadDemoProfile);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener("storage", loadDemoProfile);
+    };
   }, []);
 
   return (
@@ -125,13 +169,14 @@ export default function PremiumTools() {
         </button>
       </div>
 
-      {/* ===== Grid Section (ใช้ ToolsCard) ===== */}
+      {/* ===== Grid Section ===== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {premiumTools.map((tool) => (
           <ToolsCard
             key={tool.id}
             project={tool}
-            isMember={isMember}
+            // ปรับตรงนี้ให้เหมือนหน้า PreviewProject เลยครับ
+            isMember={unlockedList.includes(tool.id)}
             unlockedList={unlockedList}
           />
         ))}
