@@ -1,10 +1,23 @@
 import React from 'react';
-import { createPortal } from 'react-dom'; // 1. นำเข้า createPortal
+import { createPortal } from 'react-dom'; 
+import { useNavigate } from 'react-router-dom'; // 👈 1. นำเข้า useNavigate
 
 const ExpiredPopup = ({ toolName, expireDateStr, hasPurchased = true, onClose }) => {
-  
+  const navigate = useNavigate(); // 👈 2. เรียกใช้งาน navigate
+
   // 🔥 ถ้าไม่เคยซื้อเลย ให้ return null
   if (!hasPurchased) return null;
+
+  // 👈 3. สร้างฟังก์ชันสำหรับกดปุ่มต่ออายุ (ใช้เทคนิคกันจอกระพริบเหมือนเดิม)
+  const handleRenewClick = () => {
+    // นำทางไปหน้า จ่ายเงิน/สมัครสมาชิก
+    navigate('/member-register'); 
+
+    // หน่วงเวลาปิด Popup เล็กน้อยเพื่อให้หน้าใหม่โหลดเสร็จก่อน
+    setTimeout(() => {
+      onClose();
+    }, 150);
+  };
 
   // 2. ใช้ createPortal เพื่อวาร์ป Popup ไปอยู่ที่ body ระดับนอกสุด
   return createPortal(
@@ -34,7 +47,11 @@ const ExpiredPopup = ({ toolName, expireDateStr, hasPurchased = true, onClose })
             Renew now to continue viewing real-time data.
           </p>
           
-          <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg w-full transition flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(220,38,38,0.3)] mb-4 cursor-pointer">
+          {/* 👈 4. ใส่ onClick={handleRenewClick} ให้กับปุ่มนี้ */}
+          <button 
+            onClick={handleRenewClick}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg w-full transition flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(220,38,38,0.3)] mb-4 cursor-pointer"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
               <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm4.28 10.28a.75.75 0 000-1.06l-3-3a.75.75 0 10-1.06 1.06l1.72 1.72H8.25a.75.75 0 000 1.5h5.69l-1.72 1.72a.75.75 0 101.06 1.06l3-3z" clipRule="evenodd" />
             </svg>

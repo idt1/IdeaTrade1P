@@ -10,7 +10,8 @@ export default function OtpModal({ open, onClose, onSuccess, email }) {
   const [resent, setResent] = useState(false);
   const [showTip, setShowTip] = useState(false);
 
-  const inputsRef = useRef([]);
+  // ใช้ ref ตัวเดียวสำหรับ input ที่ซ่อนอยู่
+  const hiddenInputRef = useRef(null);
 
   /* ⏱ Timer Logic */
   useEffect(() => {
@@ -34,36 +35,10 @@ export default function OtpModal({ open, onClose, onSuccess, email }) {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  /* 🔢 Handle OTP input */
-  const handleChange = (value, index) => {
-    if (!/^[0-9]?$/.test(value)) return;
-
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-
-    // Auto-focus next input
-    if (value && index < OTP_LENGTH - 1) {
-      inputsRef.current[index + 1].focus();
-    }
-
-    // Trigger verification when all digits are filled
-    if (newOtp.every((n) => n !== "")) {
-      verifyOtp(newOtp.join(""));
-    }
-  };
-
-  const handleKeyDown = (e, index) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputsRef.current[index - 1].focus();
-    }
-  };
-
   /* ✅ Verify OTP Logic */
   const verifyOtp = async (code) => {
     setStatus("loading");
     try {
-      // 🔴 แก้ไข URL ตรงนี้ ให้วิ่งผ่าน Proxy
       const response = await fetch("/ideatrade-9548f/us-central1/verifyOTP", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -96,10 +71,11 @@ export default function OtpModal({ open, onClose, onSuccess, email }) {
     setStatus("idle");
     setTimeLeft(300);
     setResent(true);
-    inputsRef.current[0]?.focus();
+    
+    // โฟกัสกลับไปที่ input ที่ซ่อนอยู่เพื่อให้แป้นพิมพ์เด้งขึ้นมา
+    hiddenInputRef.current?.focus();
 
     try {
-      // 🔴 แก้ไข URL ตรงนี้ ให้วิ่งผ่าน Proxy ด้วย
       await fetch("/ideatrade-9548f/us-central1/requestOTP", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -136,29 +112,53 @@ export default function OtpModal({ open, onClose, onSuccess, email }) {
           <button onClick={onClose} className="ml-auto text-white/40 hover:text-white transition-colors">✕</button>
         </div>
 
-        {/* OTP Input Group */}
-        <div className="flex justify-center gap-2 sm:gap-3 mb-6">
+        {/* OTP Input Group (รองรับ iOS AutoFill) */}
+        <div className="relative flex justify-center gap-2 sm:gap-3 mb-6">
+          
+          {/* Input ลับซ่อนไว้ด้านบนสุด เพื่อรับ iOS AutoFill */}
+          <input
+            ref={hiddenInputRef}
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            value={otp.join("")}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, ""); // รับเฉพาะตัวเลข
+              if (value.length <= OTP_LENGTH) {
+                const newOtp = value.split("").concat(Array(OTP_LENGTH - value.length).fill(""));
+                setOtp(newOtp);
+                
+                // ถ้ารหัสครบ 6 ตัวให้เรียก verify
+                if (value.length === OTP_LENGTH) {
+                  verifyOtp(value);
+                }
+              }
+            }}
+            maxLength={OTP_LENGTH}
+            disabled={status === "loading" || status === "success"}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-text z-20"
+          />
+
+          {/* UI กล่อง 6 ช่องของคุณ */}
           {otp.map((digit, i) => (
-            <input
+            <div
               key={i}
-              ref={(el) => (inputsRef.current[i] = el)}
-              type="text"
-              inputMode="numeric"
-              value={digit}
-              disabled={status === "loading" || status === "success"}
-              onChange={(e) => handleChange(e.target.value, i)}
-              onKeyDown={(e) => handleKeyDown(e, i)}
-              maxLength={1}
               className={`
+                flex items-center justify-center
                 w-10 h-12 sm:w-12 sm:h-14 
-                text-center text-xl font-bold 
-                rounded-xl outline-none transition-all duration-200
+                text-xl font-bold 
+                rounded-xl transition-all duration-200
                 ${status === "error" ? "bg-red-900/50 border-2 border-red-500 text-red-200" : 
                   status === "success" ? "bg-green-600 border-2 border-green-400" : 
                   status === "loading" ? "bg-slate-700 animate-pulse" : 
-                  "bg-slate-700 border-2 border-slate-600 focus:border-sky-400 focus:bg-slate-600 shadow-inner"}
+                  "bg-slate-700 border-2 border-slate-600 shadow-inner"}
+                ${/* ไฮไลท์กรอบช่องต่อไปที่กำลังจะพิมพ์ */
+                  otp.join("").length === i && status === "idle" ? "border-sky-400 bg-slate-600" : ""
+                }
               `}
-            />
+            >
+              {digit}
+            </div>
           ))}
         </div>
 
