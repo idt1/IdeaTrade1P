@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useSubscription } from "../../context/SubscriptionContext";
 import FlowIntradayDashboard from "./components/FlowIntradayDashboard.jsx";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 
 const scrollbarHideStyle = { msOverflowStyle: "none", scrollbarWidth: "none" };
 
@@ -1191,7 +1193,7 @@ const handleSymbolChange = useCallback((index, value) => {
         >
           {boxes.map((_, index) => (
             <div key={index} className="bg-[#111827] border border-slate-700 rounded-xl overflow-hidden hover:border-slate-500 transition flex flex-col min-h-0">
-              {/* Card header */}
+             {/* Card header */}
               <div className="flex items-center justify-between px-3 py-2 bg-[#0f172a] border-b border-slate-700 flex-shrink-0">
                 <SymbolInput
                   value={symbols[index]}
@@ -1201,12 +1203,23 @@ const handleSymbolChange = useCallback((index, value) => {
                   <select className="bg-[#1f2937] px-2 py-0.5 rounded text-xs outline-none cursor-pointer">
                     <option>Flow</option><option>Price</option>
                   </select>
-                  <span className="cursor-pointer hover:text-white transition">🔔</span>
+                  <button 
+                    className="hover:text-cyan-400 transition text-slate-400"
+                    title="Notifications"
+                  >
+                    <NotificationsNoneIcon sx={{ fontSize: 18 }} />
+                  </button>
                   {symbols[index] && (
                     <ZoomInIcon onClick={() => setFullscreenIndex(index)}
-                      sx={{ fontSize: 18, color: "#94a3b8", cursor: "pointer", transition: "all 0.2s ease", "&:hover": { color: "#fff", transform: "scale(1.1)" } }} />
+                      sx={{ fontSize: 18, color: "#94a3b8", cursor: "pointer", transition: "all 0.2s ease", "&:hover": { color: "#00d4ff", transform: "scale(1.1)" } }} />
                   )}
-                  <span onClick={() => handleRefresh(index)} className="cursor-pointer hover:text-white transition select-none" title="Go to latest">🔄</span>
+                  <button 
+                    onClick={() => handleRefresh(index)}
+                    className="hover:text-cyan-400 transition text-slate-400"
+                    title="Go to latest"
+                  >
+                    <RefreshIcon sx={{ fontSize: 18 }} />
+                  </button>
                 </div>
               </div>
 
