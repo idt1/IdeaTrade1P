@@ -45,7 +45,7 @@ const projects = [
   },
   {
     id: "fortune",
-    name: "Stock Fortune",
+    name: "Stock Fortune Teller",
     desc: "Probabilistic market forecasting based on sentiment and historical data.",
     premium: true,
     icon: <img src={fortuneIcon} alt="fortune" className="w-5 h-5 brightness-0 invert" />

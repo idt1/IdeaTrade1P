@@ -57,7 +57,7 @@ const getIcon = (key, active) =>
 
 /* ================= PROJECTS CONFIGURATION ================= */
 const projects = [
-  { id: "fortune", name: "หมอดูหุ้น", iconKey: "fortune" },
+  { id: "fortune", name: "Stock Fortune Teller", iconKey: "fortune" },
   { id: "petroleum", name: "Petroleum", iconKey: "petroleum" },
   { id: "rubber", name: "Rubber Thai", iconKey: "rubber" },
   { id: "flow", name: "Flow Intraday", iconKey: "flow" },
