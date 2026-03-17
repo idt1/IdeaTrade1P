@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "../../context/SubscriptionContext";
+import ToolHint from "@/components/ToolHint.jsx";
 
 import StockFortuneTellerDashboard from "./components/StockFortuneTellerDashboard.jsx";
 import SearchIcon from "@mui/icons-material/Search";
@@ -1219,96 +1220,105 @@ const resolveFilters = (currentFilters, changedKey, newValue) => {
 
   /* ==========================================================  CASE 3  =========================================================== */
   if (isMember && enteredTool) {
-    return (
-      <div className="w-full min-h-screen bg-[#0B1221] text-white px-6 py-6">
-        <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+      return (
+    <div className="w-full min-h-screen bg-[#0B1221] text-white px-6 py-6">
+      <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
 
-        {/* TOP BAR */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="relative w-80">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fontSize="small" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={symbol}
-              onChange={(e) => { setSymbol(e.target.value); setShowDropdown(true); }}
-              onFocus={() => setShowDropdown(true)}
-              onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-              placeholder="Type a Symbol..."
-              className="w-full bg-[#0f172a] border border-slate-600 rounded-full pl-10 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
-            />
-            {symbol && (
-              <button
-                onClick={() => { setSymbol(""); setSelectedSymbol(""); setShowDropdown(false); }}
-                className="absolute right-3 inset-y-0 flex items-center text-slate-400 hover:text-red-400 transition"
-              >
-                <CloseIcon fontSize="small" />
-              </button>
-            )}
-            {showDropdown && (
-              <div className="absolute mt-2 w-full bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl max-h-72 overflow-y-auto z-50">
-                {filteredSymbols.length > 0
-                  ? filteredSymbols.map((item, index) => (
-                      <div
-                        key={index}
-                        onMouseDown={() => {
+      {/* TOP BAR */}
+      <div className="flex items-center gap-3 mb-6">
+        {/* ✨ เพิ่ม ToolHint ที่นี่ */}
+        <ToolHint
+          toolName="Stock Fortune Teller"
+          description="ใช้วิเคราะห์แนวโน้มของหุ้นตรวจนิน และไม่ไว้ใจพวกผู้บริหาร ตรวจสิ่งและไม่ไว้ใจพวกผู้บริหาร อันดีอืนไหม"
+          onViewDetails={() => {
+            // เลื่อนไปยังส่วน features หรือเปิดหน้าใหม่
+            setEnteredTool(false);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
+
+        <div className="relative w-80">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fontSize="small" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={symbol}
+            onChange={(e) => { setSymbol(e.target.value); setShowDropdown(true); }}
+            onFocus={() => setShowDropdown(true)}
+            onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+            placeholder="Type a Symbol..."
+            className="w-full bg-[#0f172a] border border-slate-600 rounded-full pl-10 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+          />
+          {symbol && (
+            <button
+              onClick={() => { setSymbol(""); setSelectedSymbol(""); setShowDropdown(false); }}
+              className="absolute right-3 inset-y-0 flex items-center text-slate-400 hover:text-red-400 transition"
+            >
+              <CloseIcon fontSize="small" />
+            </button>
+          )}
+          {showDropdown && (
+            <div className="absolute mt-2 w-full bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl max-h-72 overflow-y-auto z-50">
+              {filteredSymbols.length > 0
+                ? filteredSymbols.map((item, index) => (
+                    <div
+                      key={index}
+                      onMouseDown={() => {
                         setSymbol(item);
                         setShowDropdown(false);
                         setRefreshing(true);
-
                         setTimeout(() => {
                           setSelectedSymbol(item);
                           setDataVersion((prev) => prev + 1);
                           setRefreshing(false);
                         }, 700);
                       }}
-                        className="px-4 py-2.5 text-sm text-slate-300 hover:bg-cyan-500/20 hover:text-white cursor-pointer transition"
-                      >
-                        {item}
-                      </div>
-                    ))
-                  : <div className="px-4 py-2 text-sm text-slate-500">No results</div>
-                }
-              </div>
-            )}
-          </div>
+                      className="px-4 py-2.5 text-sm text-slate-300 hover:bg-cyan-500/20 hover:text-white cursor-pointer transition"
+                    >
+                      {item}
+                    </div>
+                  ))
+                : <div className="px-4 py-2 text-sm text-slate-500">No results</div>
+              }
+            </div>
+          )}
+        </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={handleSaveLayout}
-              className="w-10 h-10 bg-[#0f172a] border border-slate-700 rounded-lg flex items-center justify-center hover:border-cyan-500 hover:text-cyan-400 transition"
-              title="Save Layout"
-            >
-              <SaveOutlinedIcon fontSize="small" />
-            </button>
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={handleSaveLayout}
+            className="w-10 h-10 bg-[#0f172a] border border-slate-700 rounded-lg flex items-center justify-center hover:border-cyan-500 hover:text-cyan-400 transition"
+            title="Save Layout"
+          >
+            <SaveOutlinedIcon fontSize="small" />
+          </button>
 
-            <button
-              onClick={() => {
+          <button
+            onClick={() => {
               if (!selectedSymbol) return;
-
               setRefreshing(true);
               setGlobalHoverIndex(null);
-
               setTimeout(() => {
                 setDataVersion((prev) => prev + 1);
                 setRefreshing(false);
               }, 700);
             }}
-              className="w-10 h-10 bg-[#0f172a] border border-slate-700 rounded-lg flex items-center justify-center hover:border-cyan-500 hover:text-cyan-400 transition"
-              title="Refresh"
-            >
-              <RefreshIcon fontSize="small" className={refreshing ? "animate-spin" : ""} />
-            </button>
+            className="w-10 h-10 bg-[#0f172a] border border-slate-700 rounded-lg flex items-center justify-center hover:border-cyan-500 hover:text-cyan-400 transition"
+            title="Refresh"
+          >
+            <RefreshIcon fontSize="small" className={refreshing ? "animate-spin" : ""} />
+          </button>
 
-            <button
-              onClick={scrollToLatest}
-              className="w-10 h-10 bg-[#0f172a] border border-slate-700 rounded-lg flex items-center justify-center hover:border-cyan-500 hover:text-cyan-400 transition"
-              title="Scroll to latest"
-            >
-              <FastForwardIcon fontSize="small" />
-            </button>
-          </div>
+          <button
+            onClick={scrollToLatest}
+            className="w-10 h-10 bg-[#0f172a] border border-slate-700 rounded-lg flex items-center justify-center hover:border-cyan-500 hover:text-cyan-400 transition"
+            title="Scroll to latest"
+          >
+            <FastForwardIcon fontSize="small" />
+          </button>
         </div>
+      </div>
 
         {/* CHART GRID หรือ Skeleton */}
         {refreshing ? (
