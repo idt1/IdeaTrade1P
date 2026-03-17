@@ -67,7 +67,7 @@ export default function Register() {
       const emailKey = formData.email.trim().toLowerCase();
       
       // ✅ 1. บันทึกข้อมูลลงใน Firestore (users_temp) ของจริง
-      const docRef = doc(db, "users_temp", emailKey); 
+      const docRef = doc(db, "users", emailKey);
       
       await setDoc(docRef, {
         firstName: formData.firstName,

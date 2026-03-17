@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
-import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore"; // ✅ เพิ่ม Timestamp
+// ✅ 1. เพิ่ม setDoc ที่นี่ครับ
+import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 import { db, auth } from "/src/firebase";
 
 import KbankIcon from "@/assets/icons/Kbank.png";
@@ -40,7 +41,6 @@ const paymentMethods = [
   { id: "promptpay", label: "PromptPay", icon: QrBlue, activeIcon: QrGray },
 ];
 
-// ✅ ประกาศฟังก์ชันแค่ครั้งเดียวตรงนี้
 export default function MemberRegister() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -51,7 +51,6 @@ export default function MemberRegister() {
   const [showModal, setShowModal] = useState(false);
   const [status, setStatus] = useState("idle");
 
-  // 🔹 Credit / Debit Card
   const [cardType, setCardType] = useState("visa");
   const [cardName, setCardName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
@@ -59,12 +58,10 @@ export default function MemberRegister() {
   const [expYear, setExpYear] = useState("");
   const [cvv, setCvv] = useState("");
 
-  // 🔹 Bank Account only
   const [slipImage, setSlipImage] = useState(null);
   const [copied, setCopied] = useState(false);
   const [isEditSummary, setIsEditSummary] = useState(false);
 
-  // ✅ เพิ่ม useEffect บล็อกนี้เข้าไปตรงนี้
   useEffect(() => {
     if (location.state && location.state.preselectedTool) {
       const toolNameFromPopup = location.state.preselectedTool;
@@ -81,7 +78,6 @@ export default function MemberRegister() {
     }
   }, [location.state]);
 
-  /* ================= FUNCTIONS ================= */
   const closeModal = () => {
     setShowModal(false);
     setStatus("idle");
@@ -141,7 +137,6 @@ export default function MemberRegister() {
     try {
       const currentUser = auth.currentUser;
 
-      // 1. สร้างประวัติการซื้อ (สำหรับโชว์ในหน้า Profile)
       const newSubscriptions = selectedTools.map((t) => {
         const toolInfo = TOOLS.find((x) => x.id === t.id);
         const isYearly = t.billing === "yearly";
@@ -164,9 +159,6 @@ export default function MemberRegister() {
 
       const newToolIds = selectedTools.map((t) => t.id);
 
-      // ---------------------------------------------------------
-      // ระบบที่ 1: สำหรับคนที่ LOGGED IN (เซฟลง Firebase)
-      // ---------------------------------------------------------
       if (currentUser) {
         const userRef = doc(db, "users", currentUser.uid);
         const userSnap = await getDoc(userRef);
@@ -188,8 +180,8 @@ export default function MemberRegister() {
         ];
         const mergedUnlockedItems = [...new Set([...oldUnlockedItems, ...newToolIds])];
 
-        // 🟢 สร้าง/อัปเดตวันหมดอายุ
-        const expirationUpdates = {};
+        // ✅ 2. สร้าง/อัปเดตวันหมดอายุแบบ Nested Object
+        const newExpirations = { ...currentSubExpirations };
         
         selectedTools.forEach((t) => {
           const isYearly = t.billing === "yearly";
@@ -206,21 +198,18 @@ export default function MemberRegister() {
             expireDate.setMonth(expireDate.getMonth() + 1);
           }
 
-          expirationUpdates[`subscriptions.${t.id}`] = Timestamp.fromDate(expireDate);
+          newExpirations[t.id] = Timestamp.fromDate(expireDate);
         });
 
-        await updateDoc(userRef, {
+        // ✅ 3. เซฟข้อมูลด้วย setDoc
+        await setDoc(userRef, {
           role: "membership",
           unlockedItems: mergedUnlockedItems,
           mySubscriptions: updatedSubscriptions,
-          ...expirationUpdates 
-        });
+          subscriptions: newExpirations 
+        }, { merge: true });
 
-      } 
-      // ---------------------------------------------------------
-      // ระบบที่ 2: สำหรับ GUEST / DEMO MODE (เซฟลง LocalStorage)
-      // ---------------------------------------------------------
-      else {
+      } else {
         const storedProfile = localStorage.getItem("userProfile");
         let parsedProfile = storedProfile ? JSON.parse(storedProfile) : { role: "free", unlockedItems: [], mySubscriptions: [], subscriptions: {} };
         
@@ -234,7 +223,6 @@ export default function MemberRegister() {
         ];
         const mergedUnlockedItems = [...new Set([...oldUnlockedItems, ...newToolIds])];
 
-        // 🟢 สร้าง/อัปเดตวันหมดอายุสำหรับ LocalStorage
         const updatedExpirations = { ...currentSubExpirations };
         selectedTools.forEach((t) => {
           const isYearly = t.billing === "yearly";
@@ -271,7 +259,7 @@ export default function MemberRegister() {
 
     } catch (error) {
       console.error("Payment Error:", error);
-      alert("เกิดข้อผิดพลาดในการทำรายการ");
+      alert("เกิดข้อผิดพลาดในการทำรายการ: " + error.message);
     }
   };
 
@@ -591,7 +579,7 @@ export default function MemberRegister() {
               onClick={() => {
                 setSelectedTools([]);
                 setSelectedPayment(null);
-                navigate(-1); // ✅ เปลี่ยนเป็น -1 เพื่อสั่งให้ถอยกลับไปหน้าก่อนหน้า
+                navigate(-1);
               }}
               className="mt-3 w-full text-sm text-[#9FB3C8] hover:text-white transition"
             >

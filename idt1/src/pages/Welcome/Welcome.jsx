@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+
 import logo from "@/assets/images/logo.png";
+
 import { signInWithPopup } from "firebase/auth";
-import { auth, googleProvider } from "@/firebase";
+import { auth, googleProvider, db } from "@/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
+
 import Rocket from "@/assets/icons/rocket-lunch 1.svg";
 import Crown from "@/assets/icons/crown 1.svg";
 import OtpModal from "@/components/OtpModal";
@@ -93,34 +97,54 @@ const handleSignIn = async () => {
       return;
     }
 
-    // ✅ เริ่มกระบวนการส่ง OTP ผ่าน Firebase
     setIsLoading(true);
     try {
-      // 🔴 ลบ http://127.0.0.1:5001 ทิ้งไปได้เลยครับ Proxy จะจัดการให้เอง
-      const API_URL = "/ideatrade-9548f/us-central1/requestOTP"; 
+      // 🟢 1. สแกนหาอีเมลในฐานข้อมูล (Firestore) 
+      const formattedEmail = email.trim().toLowerCase();
+      const usersRef = collection(db, "users"); 
+      const q = query(usersRef, where("email", "==", formattedEmail));
       
+      // ⚠️ ถ้าโค้ดพังตรงนี้ แสดงว่า Firestore ไม่เปิดสิทธิ์ให้คนนอกอ่านข้อมูล
+      const querySnapshot = await getDocs(q);
+
+      // ถ้าผลลัพธ์ว่างเปล่า (หาไม่เจอ)
+      if (querySnapshot.empty) {
+        setPopupType("emailNotFound"); 
+        setOpenForgot(true);
+        setIsLoading(false);
+        return; // หยุดการทำงาน ไม่ส่ง OTP
+      }
+
+      // ✅ 2. ถ้าเจออีเมลในระบบ ส่ง OTP
+      // 🔴 นำ URL เต็มกลับมาใส่ (ใช้บรรทัดใดบรรทัดหนึ่งตามระบบของคุณครับ)
+      
+      // แบบที่ 1: สำหรับรัน Firebase Emulator ในเครื่อง
+      const API_URL = "/ideatrade-9548f/us-central1/requestOTP";
+      
+      // แบบที่ 2: สำหรับขึ้นระบบจริง (Production)
+      // const API_URL = "https://us-central1-ideatrade-9548f.cloudfunctions.net/requestOTP";
+
       const response = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase() })
+        body: JSON.stringify({ email: formattedEmail })
       });
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // จัดการเรื่อง Remember Me
         if (remember) {
           localStorage.setItem("rememberedEmail", email);
         } else {
           localStorage.removeItem("rememberedEmail");
         }
-        // ดึง Modal OTP ขึ้นมาแสดง
         setOpenOtp(true); 
       } else {
         alert("ไม่สามารถส่งอีเมลได้: " + (data.error || "ไม่ทราบสาเหตุ"));
       }
     } catch (error) {
       console.error("Error requesting OTP:", error);
-      alert("⚠️ ติดต่อ Server ไม่ได้: กรุณาตรวจสอบว่ารัน Firebase Emulator อยู่หรือไม่");
+      // 🔴 แก้ให้โชว์ Error ของจริงออกมา เพื่อให้เรารู้ว่าติดที่ระบบไหน
+      alert("⚠️ เกิดข้อผิดพลาด: " + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -346,30 +370,41 @@ const handleSignIn = async () => {
         }}
       />
 
-      {/* ================= POPUP ERRORS ================= */}
+{/* ================= POPUP ERRORS ================= */}
       {openForgot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
-            className="absolute inset-0 bg-black/60"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm" // เพิ่ม backdrop-blur-sm ให้พื้นหลังเบลอสวยขึ้น
             onClick={() => setOpenForgot(false)}
           />
-          <div className="relative z-10 w-full max-w-md rounded-2xl bg-slate-800 text-white p-6 shadow-xl">
+          {/* 🟢 แก้บรรทัดล่างนี้: เปลี่ยน w-full เป็น w-[90%] เพื่อไม่ให้ชิดขอบจอในมือถือ */}
+          <div className="relative z-10 w-[90%] max-w-md mx-auto rounded-2xl bg-slate-800 text-white p-6 shadow-xl">
+            
             {popupType === "emailRequired" && (
               <>
                 <h3 className="text-xl font-semibold mb-2 text-red-400">Please enter your email</h3>
                 <p className="text-sm text-gray-300 mb-5">You need to provide an email before signing in.</p>
               </>
             )}
+            
             {popupType === "emailInvalid" && (
               <>
                 <h3 className="text-xl font-semibold mb-2 text-red-400">Invalid email address</h3>
                 <p className="text-sm text-gray-300 mb-5">Please check your email format and try again.</p>
               </>
             )}
+
+            {popupType === "emailNotFound" && (
+              <>
+                <h3 className="text-xl font-semibold mb-2 text-yellow-400">Email Not Found</h3>
+                <p className="text-sm text-gray-300 mb-5">ไม่พบอีเมลนี้ในระบบ กรุณาสมัครสมาชิกก่อนเข้าใช้งาน</p>
+              </>
+            )}
+
             <div className="flex justify-end">
               <button
                 onClick={() => setOpenForgot(false)}
-                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
+                className="px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all font-medium"
               >
                 Close
               </button>
