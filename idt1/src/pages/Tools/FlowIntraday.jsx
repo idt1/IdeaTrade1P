@@ -376,8 +376,8 @@ function InteractiveGridChart({
   const scrollRef    = useRef(null);
   const containerRef = useRef(null);
 
-  const [isDragging,     setIsDragging]     = useState(false);
-  const [dragStartX,     setDragStartX]     = useState(0);
+  const [isDragging,      setIsDragging]     = useState(false);
+  const [dragStartX,      setDragStartX]     = useState(0);
   const [dragScrollLeft, setDragScrollLeft] = useState(0);
   const [measuredHeight, setMeasuredHeight] = useState(180);
   const [svgScrollLeft,  setSvgScrollLeft]  = useState(0);
@@ -755,11 +755,11 @@ export default function FlowIntraday() {
   const [showRight,        setShowRight]        = useState(true);
   const [globalHoverIndex, setGlobalHoverIndex] = useState(null);
   const [watchlists,       setWatchlists]       = useState([]);
-  const [showAddModal,     setShowAddModal]      = useState(false);
-  const [showWatchPanel,   setShowWatchPanel]    = useState(false);
-  const [newListName,      setNewListName]       = useState("");
-  const [activeWatchlist,  setActiveWatchlist]   = useState(null);
-  const [loadingMap,       setLoadingMap]        = useState(Array(12).fill(false));
+  const [showAddModal,     setShowAddModal]     = useState(false);
+  const [showWatchPanel,   setShowWatchPanel]   = useState(false);
+  const [newListName,      setNewListName]      = useState("");
+  const [activeWatchlist,  setActiveWatchlist]  = useState(null);
+  const [loadingMap,       setLoadingMap]       = useState(Array(12).fill(false));
 
   // ── H-LINE ALERT SYSTEM ───────────────────────────────────
   const [hlineModeIndex, setHlineModeIndex] = useState(-1);
@@ -947,98 +947,150 @@ export default function FlowIntraday() {
     { title: "Customizable Layout",      desc: "Switch layouts and adapt to your trading style." },
   ];
 
-  // ── PREVIEW ──────────────────────────────────────────────────
-  if (!isMember || !enteredTool) {
+  /* ==========================================================
+      SHARED JSX — Features Scroll & Preview Section
+  ========================================================== */
+  const featuresSectionJSX = (
+    <div className="w-full max-w-5xl mb-12">
+      <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left border-l-4 border-cyan-500 pl-4">3 Main Features</h2>
+      <div className="relative group" onMouseEnter={() => (isPaused.current = true)} onMouseLeave={() => (isPaused.current = false)}>
+        <button onClick={() => scroll("left")} className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${showLeft ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <div ref={scrollContainerRef} onScroll={checkScroll} className="flex overflow-x-auto gap-6 py-4 px-1 hide-scrollbar" style={scrollbarHideStyle}>
+          {features.map((item, i) => (
+            <div key={i} className="w-[350px] md:w-[400px] flex-shrink-0 group/card bg-[#0f172a]/60 border border-slate-700/50 p-8 rounded-xl hover:border-cyan-500/30 transition duration-300">
+              <h3 className="text-xl font-bold text-white mb-3 group-hover/card:text-cyan-400 transition-colors">{item.title}</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+        <button onClick={() => scroll("right")} className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${showRight ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  );
+
+  const dashboardPreviewJSX = (
+    <div className="relative group w-full max-w-5xl mb-16">
+      <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700"/>
+      <div className="relative bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
+        <div className="bg-[#0f172a] px-4 py-3 flex items-center border-b border-slate-700/50">
+          <div className="flex gap-2">
+            <div className="w-3 h-3 rounded-full bg-red-500/80"/>
+            <div className="w-3 h-3 rounded-full bg-yellow-500/80"/>
+            <div className="w-3 h-3 rounded-full bg-green-500/80"/>
+          </div>
+        </div>
+        <div className="aspect-[16/9] w-full bg-[#0B1221] relative overflow-hidden"><FlowIntradayDashboard /></div>
+      </div>
+    </div>
+  );
+
+
+  /* ==========================================================
+      CASE 1 : PREVIEW VERSION (Not Member)
+  =========================================================== */
+  if (!isMember) {
     return (
-      <div className="relative w-full min-h-screen text-white overflow-hidden animate-fade-in pb-20">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] bg-blue-600/10 blur-[100px] rounded-full pointer-events-none"/>
-        <style>{`.hide-scrollbar::-webkit-scrollbar{display:none}`}</style>
+      <div className="relative w-full min-h-screen text-white overflow-x-hidden animate-fade-in pb-20">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
+
+        <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+
         <div className="relative z-10 max-w-6xl mx-auto px-4 py-8 flex flex-col items-center">
+
+          {/* Header */}
           <div className="text-center mb-10">
-            <h1 className="text-4xl md:text-6xl font-bold mb-4 tracking-tight">
-              <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent">Flow Intraday</span>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
+              <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">
+                Flow Intraday
+              </span>
             </h1>
-            <p className="text-slate-400 text-lg md:text-xl font-light">Turn your trading screen into an elite surveillance system</p>
+            <p className="text-slate-400 text-lg md:text-xl font-light">
+              Turn your trading screen into an elite surveillance system
+            </p>
           </div>
-          <div className="relative group w-full max-w-5xl mb-16">
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700"/>
-            <div className="relative bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
-              <div className="bg-[#0f172a] px-4 py-3 flex items-center border-b border-slate-700/50">
-                <div className="flex gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500/80"/>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/80"/>
-                  <div className="w-3 h-3 rounded-full bg-green-500/80"/>
-                </div>
-              </div>
-              <div className="aspect-[16/9] w-full bg-[#0B1221] relative overflow-hidden"><FlowIntradayDashboard /></div>
-            </div>
-          </div>
-          <div className="w-full max-w-5xl mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left border-l-4 border-cyan-500 pl-4">3 Main Features</h2>
-            <div className="relative group" onMouseEnter={() => (isPaused.current = true)} onMouseLeave={() => (isPaused.current = false)}>
-              <button onClick={() => scroll("left")} className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${showLeft ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/></svg>
-              </button>
-              <div ref={scrollContainerRef} onScroll={checkScroll} className="flex overflow-x-auto gap-6 py-4 px-1 hide-scrollbar" style={scrollbarHideStyle}>
-                {features.map((item, i) => (
-                  <div key={i} className="w-[350px] md:w-[400px] flex-shrink-0 group/card bg-[#0f172a]/60 border border-slate-700/50 p-8 rounded-xl hover:border-cyan-500/30 transition duration-300">
-                    <h3 className="text-xl font-bold text-white mb-3 group-hover/card:text-cyan-400 transition-colors">{item.title}</h3>
-                    <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
-                  </div>
-                ))}
-              </div>
-              <button onClick={() => scroll("right")} className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${showRight ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
-              </button>
-            </div>
-          </div>
+
+          {/* Dashboard Preview */}
+          {dashboardPreviewJSX}
+
+          {/* Features */}
+          {featuresSectionJSX}
 
           {/* CTA Buttons */}
           <div className="text-center w-full max-w-md mx-auto mt-4">
             <div className="flex flex-col md:flex-row items-center justify-center gap-4">
               
-              {!currentUser ? (
-                // 1. กรณี: ยังไม่ได้ล็อกอิน -> โชว์ปุ่ม Sign In + Join Membership
-                <>
-                  <button
-                    onClick={() => navigate("/login")}
-                    className="w-full md:w-auto px-8 py-3 rounded-full bg-slate-800 text-white font-semibold border border-slate-600 hover:bg-slate-700 hover:border-slate-500 transition-all duration-300"
-                  >
-                    Sign In
-                  </button>
-
-                  <button
-                    onClick={() => navigate("/member-register")}
-                    className="w-full md:w-auto px-8 py-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold hover:brightness-110 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300"
-                  >
-                    Join Membership
-                  </button>
-                </>
-              ) : !isMember ? (
-                // 2. กรณี: ล็อกอินแล้ว แต่ "ยังไม่มีแพ็กเกจ/แพ็กเกจหมดอายุ" -> โชว์แค่ Join Membership
+              {!currentUser && (
                 <button
-                  onClick={() => navigate("/member-register")}
-                  className="w-full md:w-auto px-8 py-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold hover:brightness-110 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300"
+                  onClick={() => navigate("/login")}
+                  className="w-full md:w-auto px-8 py-3 rounded-full bg-slate-800 text-white font-semibold border border-slate-600 hover:bg-slate-700 hover:border-slate-500 transition-all duration-300"
                 >
-                  Join Membership
-                </button>
-              ) : (
-                // 3. กรณี: ล็อกอินแล้ว + เป็น Member -> โชว์ปุ่ม Start Using Tool
-                <button
-                  onClick={() => setEnteredTool(true)}
-                  className="group relative inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] hover:scale-105 transition-all duration-300"
-                >
-                  <span className="mr-2">Start Using Tool</span>
-                  <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
+                  Sign In
                 </button>
               )}
 
+              <button
+                onClick={() => navigate("/member-register")}
+                className="w-full md:w-auto px-8 py-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold hover:brightness-110 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300"
+              >
+                Join Membership
+              </button>
             </div>
           </div>
+
+        </div>
       </div>
-    </div>
+    );
+  }
+
+  /* ==========================================================
+    CASE 2 : START SCREEN (Member but not entered)
+  ========================================================== */
+  if (isMember && !enteredTool) {
+    return (
+      <div className="relative w-full min-h-screen text-white overflow-x-hidden animate-fade-in pb-20">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
+
+        <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+
+        <div className="relative z-10 max-w-6xl mx-auto px-4 py-8 flex flex-col items-center">
+
+          {/* Header */}
+          <div className="text-center mb-10">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
+              <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">
+                Flow Intraday
+              </span>
+            </h1>
+            <p className="text-slate-400 text-lg md:text-xl font-light">
+              Turn your trading screen into an elite surveillance system
+            </p>
+          </div>
+
+          {/* Dashboard Preview */}
+          {dashboardPreviewJSX}
+
+          {/* Features */}
+          {featuresSectionJSX}
+
+          {/* CTA Button */}
+          <div className="text-center w-full max-w-md mx-auto mt-4">
+            <button
+              onClick={() => setEnteredTool(true)}
+              className="group relative inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] hover:scale-105 transition-all duration-300"
+            >
+              <span className="mr-2">Start Using Tool</span>
+              <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </button>
+          </div>
+
+        </div>
+      </div>
     );
   }
 
