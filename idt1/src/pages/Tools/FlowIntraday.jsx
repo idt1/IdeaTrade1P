@@ -1095,46 +1095,32 @@ export default function FlowIntraday() {
     );
   }
 
-  // ── DASHBOARD ─────────────────────────────────────────────────
+  // ── Case 3 DASHBOARD ─────────────────────────────────────────────────
   return (
     <div className="w-full h-screen bg-[#0b111a] text-white px-3 py-3 flex flex-col overflow-hidden">
-  <div className="w-full flex flex-col flex-1 min-h-0">
-    {/* Top Controls */}
-    <div className="flex flex-wrap items-center justify-between gap-3 mb-4 flex-shrink-0">
-      <div className="flex items-center gap-3">
-        {/* ToolHint */}
-        <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
-          Analyze intraday flow patterns, monitor net buy/sell pressure, and detect market sentiment shifts in real-time.
-        </ToolHint>
+      <div className="w-full flex flex-col flex-1 min-h-0">
 
-        <div className="flex items-center gap-3 bg-[#111827] border border-slate-700 px-4 py-2 rounded-lg">
-          <span className="text-sm text-slate-400">Select Layout :</span>
-          <div className="flex gap-2">
-            {["12", "6", "4"].map((col) => (
-              <button
-                key={col}
-                onClick={() => setLayout(col)}
-                className={`w-7 h-7 rounded text-xs flex items-center justify-center transition ${
-                  layout === col
-                    ? "bg-purple-600 text-white"
-                    : "bg-[#1f2937] text-slate-400 hover:text-white"
-                }`}
-              >
-                {col === "12" ? "▦" : col === "6" ? "▤" : "☰"}
-              </button>
-            ))}
+        {/* Top Controls */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
+          ห้อง"War Room"จับกระแสเงิน Real-time เปลี่ยนหน้าจอเทรดให้เป็นระบบเฝ้าระวังอัจฉริยะ 
+        </ToolHint>
+            <div className="flex items-center gap-3 bg-[#111827] border border-slate-700 px-4 py-2 rounded-lg">
+              <span className="text-sm text-slate-400">Select Layout :</span>
+              <div className="flex gap-2">
+                {["12","6","4"].map((col) => (
+                  <button key={col} onClick={() => setLayout(col)} className={`w-7 h-7 rounded text-xs flex items-center justify-center transition ${layout === col ? "bg-purple-600 text-white" : "bg-[#1f2937] text-slate-400 hover:text-white"}`}>
+                    {col === "12" ? "▦" : col === "6" ? "▤" : "☰"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center gap-3 text-sm text-slate-400">
+              <span>Price</span><div className="w-8 h-[2px] bg-white"/><span>Value</span>
+              <div className="flex gap-1"><div className="w-3 h-[2px] bg-green-400"/><div className="w-3 h-[2px] bg-red-400"/></div>
+            </div>
           </div>
-        </div>
-        <div className="hidden sm:flex items-center gap-3 text-sm text-slate-400">
-          <span>Price</span>
-          <div className="w-8 h-[2px] bg-white" />
-          <span>Value</span>
-          <div className="flex gap-1">
-            <div className="w-3 h-[2px] bg-green-400" />
-            <div className="w-3 h-[2px] bg-red-400" />
-          </div>
-        </div>
-      </div>
 
           <div className="relative flex items-center gap-3" data-watchpanel>
             <button onClick={() => setShowWatchPanel((v) => !v)} className="flex items-center gap-2 bg-[#111827] border border-slate-700 hover:border-slate-500 px-4 py-2 rounded-lg text-sm transition-all">
