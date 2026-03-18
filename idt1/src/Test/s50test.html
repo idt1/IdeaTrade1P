@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDEA TRADE Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(135deg, #1a1f2e 0%, #16192b 100%);
+            border-right: 1px solid rgba(100, 200, 255, 0.1);
+            padding: 20px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .sidebar.collapsed {
+            width: 80px;
+            padding: 20px 10px;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar.collapsed .sidebar-header {
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            letter-spacing: -1px;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+
+        .logo-accent {
+            color: #64c0ff;
+        }
+
+        .logo-red {
+            color: #ff6b6b;
+        }
+
+        .sidebar.collapsed .logo {
+            display: none;
+        }
+
+        .logo-icon {
+            font-size: 24px;
+            display: none;
+        }
+
+        .sidebar.collapsed .logo-icon {
+            display: block;
+        }
+
+        .status-badges {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar.collapsed .status-badges {
+            display: none;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid;
+        }
+
+        .badge.online {
+            background: rgba(0, 208, 132, 0.15);
+            border-color: rgba(0, 208, 132, 0.5);
+            color: #00d084;
+        }
+
+        .badge.membership {
+            background: rgba(255, 159, 0, 0.15);
+            border-color: rgba(255, 159, 0, 0.5);
+            color: #ff9f00;
+        }
+
+        .sidebar-section {
+            margin-bottom: 28px;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar.collapsed .sidebar-section {
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: rgba(200, 200, 200, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .sidebar.collapsed .section-title {
+            font-size: 0;
+            margin-bottom: 8px;
+            height: 0;
+            padding: 0;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: rgba(200, 200, 200, 0.75);
+            text-decoration: none;
+            font-size: 14px;
+            position: relative;
+        }
+
+        .sidebar.collapsed .menu-item {
+            padding: 10px;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+
+        .menu-item:hover {
+            background: rgba(100, 150, 255, 0.1);
+            color: #fff;
+        }
+
+        .menu-item.active {
+            background: rgba(100, 150, 255, 0.25);
+            color: #64c0ff;
+            border-left: 3px solid #64c0ff;
+            padding-left: 9px;
+        }
+
+        .sidebar.collapsed .menu-item.active {
+            border-left: none;
+            padding-left: 10px;
+            background: rgba(100, 150, 255, 0.35);
+        }
+
+        .menu-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .menu-label {
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar.collapsed .menu-label {
+            display: none;
+        }
+
+        .badge-small {
+            background: rgba(0, 208, 132, 0.3);
+            color: #00d084;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: auto;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar.collapsed .badge-small {
+            display: none;
+        }
+
+        .badge-small.premium {
+            background: rgba(255, 159, 0, 0.3);
+            color: #ff9f00;
+        }
+
+        /* Tooltip untuk icon-only mode */
+        .menu-item[data-tooltip]::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            margin-left: 12px;
+            background: rgba(0, 0, 0, 0.95);
+            color: #64c0ff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 100;
+            border: 1px solid rgba(100, 150, 255, 0.5);
+            font-weight: 500;
+        }
+
+        .sidebar.collapsed .menu-item:hover[data-tooltip]::after {
+            opacity: 1;
+        }
+
+        .join-membership-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            color: #000;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            margin-top: 20px;
+            white-space: nowrap;
+        }
+
+        .sidebar.collapsed .join-membership-btn {
+            padding: 10px;
+            font-size: 0;
+            margin-top: 15px;
+        }
+
+        .sidebar.collapsed .join-membership-btn::before {
+            content: '👑';
+            font-size: 18px;
+        }
+
+        .join-membership-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
+        }
+
+        /* ===== TOGGLE BUTTON ===== */
+        .sidebar-toggle {
+            position: absolute;
+            right: -14px;
+            top: 20px;
+            width: 28px;
+            height: 28px;
+            background: rgba(100, 150, 255, 0.3);
+            border: 2px solid rgba(100, 150, 255, 0.6);
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            z-index: 50;
+        }
+
+        .sidebar-toggle:hover {
+            background: rgba(100, 150, 255, 0.5);
+            border-color: rgba(100, 150, 255, 1);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 1400px;
+        }
+
+        .chart-card {
+            background: linear-gradient(135deg, #1a1f2e 0%, #16192b 100%);
+            border: 1px solid rgba(100, 200, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            overflow: visible;
+        }
+
+        .chart-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(100, 200, 255, 0.5), transparent);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .chart-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        /* Hint Icon Styling */
+        .hint-icon {
+            position: relative;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(100, 150, 255, 0.3);
+            border: 2px solid rgba(100, 150, 255, 0.8);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            color: #64a0ff;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            padding: 0;
+        }
+
+        .hint-icon:hover {
+            background: rgba(100, 150, 255, 0.5);
+            border-color: rgba(100, 150, 255, 1);
+            transform: scale(1.15);
+            box-shadow: 0 0 12px rgba(100, 150, 255, 0.6);
+        }
+
+        /* ===== HINT BOX TOOLTIP (SIDE) ===== */
+        .hint-box {
+            display: none;
+            position: fixed;
+            background: linear-gradient(135deg, #2a2f3e 0%, #1f232d 100%);
+            border: 1px solid rgba(100, 150, 255, 0.5);
+            border-radius: 12px;
+            padding: 20px;
+            width: 320px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), 
+                        0 0 30px rgba(100, 150, 255, 0.15);
+            z-index: 1000;
+            animation: slideInRight 0.3s ease;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .hint-box.active {
+            display: block;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Arrow pointing left to the button */
+        .hint-box::before {
+            content: '';
+            position: absolute;
+            left: -10px;
+            top: 20px;
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-right: 10px solid rgba(100, 150, 255, 0.5);
+        }
+
+        .hint-box::after {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 21px;
+            width: 0;
+            height: 0;
+            border-top: 7px solid transparent;
+            border-bottom: 7px solid transparent;
+            border-right: 8px solid #1f232d;
+        }
+
+        .hint-description {
+            font-size: 13px;
+            line-height: 1.6;
+            color: rgba(200, 200, 200, 0.85);
+            margin-bottom: 14px;
+        }
+
+        .hint-link {
+            display: inline-block;
+            color: #64c0ff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 12px;
+            padding: 6px 0;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .hint-link:hover {
+            color: #fff;
+        }
+
+        .refresh-btn {
+            background: rgba(100, 150, 255, 0.2);
+            border: 1px solid rgba(100, 150, 255, 0.4);
+            color: #64a0ff;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(100, 150, 255, 0.4);
+            border-color: rgba(100, 150, 255, 0.8);
+            transform: rotate(20deg);
+        }
+
+        /* Mock Chart Area */
+        .chart-placeholder {
+            height: 200px;
+            background: linear-gradient(180deg, rgba(50, 100, 150, 0.1) 0%, rgba(30, 50, 100, 0.1) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            border: 1px dashed rgba(100, 150, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-line {
+            position: absolute;
+            width: 90%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #64c0ff, transparent);
+            top: 50%;
+        }
+
+        .chart-line.green {
+            background: linear-gradient(90deg, transparent, #00d084, transparent);
+        }
+
+        .chart-line.red {
+            background: linear-gradient(90deg, transparent, #ff6b6b, transparent);
+        }
+
+        .chart-placeholder-text {
+            color: rgba(200, 200, 200, 0.4);
+            font-size: 14px;
+            z-index: 1;
+        }
+
+        /* Price Display */
+        .price-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(100, 150, 255, 0.05);
+            border-radius: 6px;
+            border-left: 3px solid;
+        }
+
+        .price-display.positive {
+            border-left-color: #00d084;
+        }
+
+        .price-display.negative {
+            border-left-color: #ff6b6b;
+        }
+
+        .price-label {
+            font-size: 12px;
+            color: rgba(200, 200, 200, 0.7);
+        }
+
+        .price-value {
+            font-size: 18px;
+            font-weight: bold;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .price-value.positive {
+            color: #00d084;
+        }
+
+        .price-value.negative {
+            color: #ff6b6b;
+        }
+
+        /* Scrollbar styling */
+        .sidebar::-webkit-scrollbar,
+        .main-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track,
+        .main-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb,
+        .main-content::-webkit-scrollbar-thumb {
+            background: rgba(100, 150, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover,
+        .main-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 150, 255, 0.5);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== SIDEBAR ===== -->
+    <div class="sidebar" id="sidebar">
+        <button class="sidebar-toggle" id="sidebarToggle">◄</button>
+
+        <div class="sidebar-header">
+            <div class="logo-icon">📊</div>
+            <div>
+                <div class="logo">IDEA<span class="logo-accent">/</span></div>
+                <div class="logo" style="font-size: 18px; margin-top: -4px;">TRADE<span class="logo-red">✓</span></div>
+            </div>
+        </div>
+
+        <div class="status-badges">
+            <div class="badge online">🟢 STATUS: ONLINE</div>
+            <div class="badge membership">👑 MEMBERSHIP</div>
+        </div>
+
+        <!-- BETA TOOLS Section -->
+        <div class="sidebar-section">
+            <div class="section-title">BETA TOOLS</div>
+            <a href="#" class="menu-item" data-tooltip="MIT">
+                <span class="menu-icon">🎯</span>
+                <span class="menu-label">MIT</span>
+                <span class="badge-small">FREE</span>
+            </a>
+        </div>
+
+        <!-- MEMBERSHIP TOOLS Section -->
+        <div class="sidebar-section">
+            <div class="section-title">MEMBERSHIP TOOLS</div>
+            <a href="#" class="menu-item" data-tooltip="Stock Fortune Teller">
+                <span class="menu-icon">💬</span>
+                <span class="menu-label">Stock Fortune Teller</span>
+                <span class="badge-small premium">👑</span>
+            </a>
+            <a href="#" class="menu-item" data-tooltip="Petroleum">
+                <span class="menu-icon">⛽</span>
+                <span class="menu-label">Petroleum</span>
+                <span class="badge-small premium">👑</span>
+            </a>
+            <a href="#" class="menu-item" data-tooltip="Rubber Thai">
+                <span class="menu-icon">🚗</span>
+                <span class="menu-label">Rubber Thai</span>
+                <span class="badge-small premium">👑</span>
+            </a>
+            <a href="#" class="menu-item" data-tooltip="Flow Intraday">
+                <span class="menu-icon">📈</span>
+                <span class="menu-label">Flow Intraday</span>
+                <span class="badge-small premium">👑</span>
+            </a>
+            <a href="#" class="menu-item active" data-tooltip="S50">
+                <span class="menu-icon">📊</span>
+                <span class="menu-label">S50</span>
+                <span class="badge-small premium">👑</span>
+            </a>
+            <a href="#" class="menu-item" data-tooltip="Gold">
+                <span class="menu-icon">💰</span>
+                <span class="menu-label">Gold</span>
+                <span class="badge-small premium">👑</span>
+            </a>
+            <a href="#" class="menu-item" data-tooltip="BidAsk">
+                <span class="menu-icon">🏷️</span>
+                <span class="menu-label">BidAsk</span>
+                <span class="badge-small premium">👑</span>
+            </a>
+            <a href="#" class="menu-item" data-tooltip="TickMatch">
+                <span class="menu-icon">📋</span>
+                <span class="menu-label">TickMatch</span>
+                <span class="badge-small premium">👑</span>
+            </a>
+        </div>
+
+        <button class="join-membership-btn">👑 Join Membership</button>
+    </div>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="main-content" id="mainContent">
+        <div class="header">
+            <h1>📊 IDEA TRADE Dashboard</h1>
+            <p style="color: rgba(200, 200, 200, 0.6); font-size: 14px;">Live Market Analysis</p>
+        </div>
+
+        <div class="container">
+            <!-- Chart 1: Last (SET50 Daily) -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">
+                        1. Last (SET50 Daily)
+                        <button class="hint-icon" data-hint="1">?</button>
+                    </div>
+                    <button class="refresh-btn">🔄</button>
+                </div>
+                
+                <div class="chart-placeholder">
+                    <div class="chart-line green"></div>
+                    <span class="chart-placeholder-text">Chart Line (Green = Uptrend)</span>
+                </div>
+
+                <div class="price-display positive">
+                    <span class="price-label">Current Price</span>
+                    <span class="price-value positive">1971.7</span>
+                </div>
+            </div>
+
+            <!-- Chart 2: Confirm Up/Down S50 -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">
+                        2. Confirm Up/Down S50
+                        <button class="hint-icon" data-hint="2">?</button>
+                    </div>
+                    <button class="refresh-btn">🔄</button>
+                </div>
+
+                <div class="chart-placeholder">
+                    <div class="chart-line red"></div>
+                    <span class="chart-placeholder-text">Chart Line (Red = Downtrend)</span>
+                </div>
+
+                <div class="price-display negative">
+                    <span class="price-label">Signal Value</span>
+                    <span class="price-value negative">1073.6</span>
+                </div>
+            </div>
+
+            <!-- Chart 3: Trend (Volume Flow) -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">
+                        3. Trend (Volume Flow)
+                        <button class="hint-icon" data-hint="3">?</button>
+                    </div>
+                    <button class="refresh-btn">🔄</button>
+                </div>
+
+                <div class="chart-placeholder">
+                    <div class="chart-line red"></div>
+                    <span class="chart-placeholder-text">Volume Trend (Red = Selling Pressure)</span>
+                </div>
+
+                <div class="price-display negative">
+                    <span class="price-label">Volume Index</span>
+                    <span class="price-value negative">1073.6</span>
+                </div>
+            </div>
+
+            <!-- Chart 4: Mid-Trend (SET Context) -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">
+                        4. Mid-Trend (SET Context)
+                        <button class="hint-icon" data-hint="4">?</button>
+                    </div>
+                    <button class="refresh-btn">🔄</button>
+                </div>
+
+                <div class="chart-placeholder">
+                    <div class="chart-line red"></div>
+                    <span class="chart-placeholder-text">Mid-Term Trend (Red = Downtrend)</span>
+                </div>
+
+                <div class="price-display negative">
+                    <span class="price-label">Trend Value</span>
+                    <span class="price-value negative">1105.2</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hint Box Container -->
+    <div class="hint-box" id="hint-1">
+        <div class="hint-description">โปรแกรมเมืองกันแต่อย่างไรก็ตามคุณควรเข้าใจว่าแต่ละแนวทางและวิธีการทำงานอะไร เตรียมแสดงราคาปิดล่าสุดของ SET50 ในแต่ละวัน</div>
+        <a href="#" class="hint-link">📖 View feature details here</a>
+    </div>
+
+    <div class="hint-box" id="hint-2">
+        <div class="hint-description">สัญญาณยืนยันแนวโน้มของ S50 ว่าจะขึ้นหรือลงในช่วงเวลาต่อไป ช่วยให้คุณตัดสินใจเทรดได้อย่างมั่นใจ</div>
+        <a href="#" class="hint-link">📖 View feature details here</a>
+    </div>
+
+    <div class="hint-box" id="hint-3">
+        <div class="hint-description">วัดศักยภาพการซื้อและการขายในตลาด โดยดูจากปริมาณการซื้อขายและแนวโน้ม หากปริมาณสูงแสดงว่ามีความสนใจ</div>
+        <a href="#" class="hint-link">📖 View feature details here</a>
+    </div>
+
+    <div class="hint-box" id="hint-4">
+        <div class="hint-description">แสดงแนวโน้มระยะกลางของตลาด SET โดยพิจารณาจากบริบทของตลาดโดยรวม ช่วยในการวางแผนเทรดระยะกลาง</div>
+        <a href="#" class="hint-link">📖 View feature details here</a>
+    </div>
+
+    <script>
+        // ===== SIDEBAR TOGGLE =====
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            // Change arrow direction
+            sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '►' : '◄';
+        });
+
+        // ===== HINT BOX FUNCTIONALITY =====
+        document.querySelectorAll('.hint-icon').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const hintId = button.getAttribute('data-hint');
+                const hintBox = document.getElementById(`hint-${hintId}`);
+                const rect = button.getBoundingClientRect();
+                
+                // Close all other hint boxes
+                document.querySelectorAll('.hint-box').forEach(box => {
+                    if (box !== hintBox) {
+                        box.classList.remove('active');
+                    }
+                });
+                
+                // Toggle current hint box
+                hintBox.classList.toggle('active');
+                
+                // Position hint box next to the button
+                if (hintBox.classList.contains('active')) {
+                    const buttonRight = rect.right;
+                    const buttonTop = rect.top + (rect.height / 2) - 20;
+                    
+                    hintBox.style.left = (buttonRight + 12) + 'px';
+                    hintBox.style.top = buttonTop + 'px';
+                }
+            });
+        });
+
+        // Close hint box when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.hint-icon') && !e.target.closest('.hint-box')) {
+                document.querySelectorAll('.hint-box').forEach(box => {
+                    box.classList.remove('active');
+                });
+            }
+        });
+
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.hint-box').forEach(box => {
+                    box.classList.remove('active');
+                });
+            }
+        });
+    </script>
+</body>
+</html>
