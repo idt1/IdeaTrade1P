@@ -298,25 +298,28 @@
         /* ===== MAIN CONTENT ===== */
         .main-content {
             flex: 1;
-            padding: 30px;
+            padding: 12px 20px 20px 20px;
             overflow-y: auto;
             transition: all 0.3s ease;
         }
 
         .header {
-            margin-bottom: 30px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .header h1 {
-            font-size: 28px;
+            font-size: 24px;
             color: #fff;
-            margin-bottom: 5px;
+            margin: 0;
         }
 
         .container {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
+            gap: 12px;
             max-width: 1400px;
         }
 
@@ -324,7 +327,7 @@
             background: linear-gradient(135deg, #1a1f2e 0%, #16192b 100%);
             border: 1px solid rgba(100, 200, 255, 0.2);
             border-radius: 12px;
-            padding: 20px;
+            padding: 16px;
             position: relative;
             overflow: visible;
         }
@@ -343,7 +346,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             position: relative;
         }
 
@@ -351,7 +354,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             color: #fff;
         }
@@ -383,6 +386,12 @@
             box-shadow: 0 0 12px rgba(100, 150, 255, 0.6);
         }
 
+        .hint-icon.header {
+            width: 26px;
+            height: 26px;
+            font-size: 15px;
+        }
+
         /* ===== HINT BOX TOOLTIP (SIDE) ===== */
         .hint-box {
             display: none;
@@ -390,13 +399,13 @@
             background: linear-gradient(135deg, #2a2f3e 0%, #1f232d 100%);
             border: 1px solid rgba(100, 150, 255, 0.5);
             border-radius: 12px;
-            padding: 20px;
-            width: 320px;
+            padding: 16px;
+            width: 300px;
             box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), 
                         0 0 30px rgba(100, 150, 255, 0.15);
             z-index: 1000;
             animation: slideInRight 0.3s ease;
-            max-height: 250px;
+            max-height: 220px;
             overflow-y: auto;
         }
 
@@ -441,10 +450,10 @@
         }
 
         .hint-description {
-            font-size: 13px;
-            line-height: 1.6;
+            font-size: 12px;
+            line-height: 1.5;
             color: rgba(200, 200, 200, 0.85);
-            margin-bottom: 14px;
+            margin-bottom: 10px;
         }
 
         .hint-link {
@@ -452,8 +461,8 @@
             color: #64c0ff;
             text-decoration: none;
             font-weight: 600;
-            font-size: 12px;
-            padding: 6px 0;
+            font-size: 11px;
+            padding: 4px 0;
             border-radius: 4px;
             transition: all 0.2s ease;
             cursor: pointer;
@@ -467,15 +476,15 @@
             background: rgba(100, 150, 255, 0.2);
             border: 1px solid rgba(100, 150, 255, 0.4);
             color: #64a0ff;
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             border-radius: 6px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.3s ease;
-            font-size: 16px;
+            font-size: 14px;
         }
 
         .refresh-btn:hover {
@@ -486,13 +495,13 @@
 
         /* Mock Chart Area */
         .chart-placeholder {
-            height: 200px;
+            height: 120px;
             background: linear-gradient(180deg, rgba(50, 100, 150, 0.1) 0%, rgba(30, 50, 100, 0.1) 100%);
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             border: 1px dashed rgba(100, 150, 255, 0.2);
             position: relative;
             overflow: hidden;
@@ -516,7 +525,7 @@
 
         .chart-placeholder-text {
             color: rgba(200, 200, 200, 0.4);
-            font-size: 14px;
+            font-size: 12px;
             z-index: 1;
         }
 
@@ -525,7 +534,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px;
+            padding: 8px;
             background: rgba(100, 150, 255, 0.05);
             border-radius: 6px;
             border-left: 3px solid;
@@ -540,12 +549,12 @@
         }
 
         .price-label {
-            font-size: 12px;
+            font-size: 11px;
             color: rgba(200, 200, 200, 0.7);
         }
 
         .price-value {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             font-variant-numeric: tabular-nums;
         }
@@ -667,24 +676,20 @@
     <!-- ===== MAIN CONTENT ===== -->
     <div class="main-content" id="mainContent">
         <div class="header">
-            <h1>📊 IDEA TRADE Dashboard</h1>
-            <p style="color: rgba(200, 200, 200, 0.6); font-size: 14px;">Live Market Analysis</p>
+            <button class="hint-icon header" id="mainHintIcon" data-hint="main">?</button>
         </div>
 
         <div class="container">
             <!-- Chart 1: Last (SET50 Daily) -->
             <div class="chart-card">
                 <div class="chart-header">
-                    <div class="chart-title">
-                        1. Last (SET50 Daily)
-                        <button class="hint-icon" data-hint="1">?</button>
-                    </div>
+                    <div class="chart-title">1. Last (SET50 Daily)</div>
                     <button class="refresh-btn">🔄</button>
                 </div>
                 
                 <div class="chart-placeholder">
                     <div class="chart-line green"></div>
-                    <span class="chart-placeholder-text">Chart Line (Green = Uptrend)</span>
+                    <span class="chart-placeholder-text">Chart Line (Green)</span>
                 </div>
 
                 <div class="price-display positive">
@@ -696,16 +701,13 @@
             <!-- Chart 2: Confirm Up/Down S50 -->
             <div class="chart-card">
                 <div class="chart-header">
-                    <div class="chart-title">
-                        2. Confirm Up/Down S50
-                        <button class="hint-icon" data-hint="2">?</button>
-                    </div>
+                    <div class="chart-title">2. Confirm Up/Down S50</div>
                     <button class="refresh-btn">🔄</button>
                 </div>
 
                 <div class="chart-placeholder">
                     <div class="chart-line red"></div>
-                    <span class="chart-placeholder-text">Chart Line (Red = Downtrend)</span>
+                    <span class="chart-placeholder-text">Chart Line (Red)</span>
                 </div>
 
                 <div class="price-display negative">
@@ -717,16 +719,13 @@
             <!-- Chart 3: Trend (Volume Flow) -->
             <div class="chart-card">
                 <div class="chart-header">
-                    <div class="chart-title">
-                        3. Trend (Volume Flow)
-                        <button class="hint-icon" data-hint="3">?</button>
-                    </div>
+                    <div class="chart-title">3. Trend (Volume Flow)</div>
                     <button class="refresh-btn">🔄</button>
                 </div>
 
                 <div class="chart-placeholder">
                     <div class="chart-line red"></div>
-                    <span class="chart-placeholder-text">Volume Trend (Red = Selling Pressure)</span>
+                    <span class="chart-placeholder-text">Volume Trend (Red)</span>
                 </div>
 
                 <div class="price-display negative">
@@ -738,16 +737,13 @@
             <!-- Chart 4: Mid-Trend (SET Context) -->
             <div class="chart-card">
                 <div class="chart-header">
-                    <div class="chart-title">
-                        4. Mid-Trend (SET Context)
-                        <button class="hint-icon" data-hint="4">?</button>
-                    </div>
+                    <div class="chart-title">4. Mid-Trend (SET Context)</div>
                     <button class="refresh-btn">🔄</button>
                 </div>
 
                 <div class="chart-placeholder">
                     <div class="chart-line red"></div>
-                    <span class="chart-placeholder-text">Mid-Term Trend (Red = Downtrend)</span>
+                    <span class="chart-placeholder-text">Mid-Term Trend (Red)</span>
                 </div>
 
                 <div class="price-display negative">
@@ -758,24 +754,9 @@
         </div>
     </div>
 
-    <!-- Hint Box Container -->
-    <div class="hint-box" id="hint-1">
-        <div class="hint-description">โปรแกรมเมืองกันแต่อย่างไรก็ตามคุณควรเข้าใจว่าแต่ละแนวทางและวิธีการทำงานอะไร เตรียมแสดงราคาปิดล่าสุดของ SET50 ในแต่ละวัน</div>
-        <a href="#" class="hint-link">📖 View feature details here</a>
-    </div>
-
-    <div class="hint-box" id="hint-2">
-        <div class="hint-description">สัญญาณยืนยันแนวโน้มของ S50 ว่าจะขึ้นหรือลงในช่วงเวลาต่อไป ช่วยให้คุณตัดสินใจเทรดได้อย่างมั่นใจ</div>
-        <a href="#" class="hint-link">📖 View feature details here</a>
-    </div>
-
-    <div class="hint-box" id="hint-3">
-        <div class="hint-description">วัดศักยภาพการซื้อและการขายในตลาด โดยดูจากปริมาณการซื้อขายและแนวโน้ม หากปริมาณสูงแสดงว่ามีความสนใจ</div>
-        <a href="#" class="hint-link">📖 View feature details here</a>
-    </div>
-
-    <div class="hint-box" id="hint-4">
-        <div class="hint-description">แสดงแนวโน้มระยะกลางของตลาด SET โดยพิจารณาจากบริบทของตลาดโดยรวม ช่วยในการวางแผนเทรดระยะกลาง</div>
+    <!-- Main Hint Box (Header only) -->
+    <div class="hint-box" id="hint-main">
+        <div class="hint-description">วิเคราะห์ S50 Index Futures ด้วย Flow Analysis & Momentum Signals</div>
         <a href="#" class="hint-link">📖 View feature details here</a>
     </div>
 
@@ -786,7 +767,6 @@
 
         sidebarToggle.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
-            // Change arrow direction
             sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '►' : '◄';
         });
 
