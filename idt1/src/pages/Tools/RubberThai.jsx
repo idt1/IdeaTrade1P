@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "../../context/SubscriptionContext";
+import ToolHint from "../../components/ToolHint.jsx";
 
 import RubberThaiDashboard from "./components/RubberThaiDashboard.jsx";
 
@@ -798,9 +799,16 @@ export default function RubberThai() {
       <div className="w-full mx-auto flex-1 flex flex-col min-h-0">
 
         {/* ================= TOP SEARCH BAR ================= */}
-        <div className="relative flex items-center justify-between mb-6 shrink-0">
+        <div className="flex items-center gap-4 mb-6 shrink-0">
+          {/* ToolHint */}
+          <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
+            Compare Thai rubber stocks against global commodity prices, identify supercycle phases, and detect mispricing divergences.
+          </ToolHint>
+
           <div className="relative w-64">
             <div className="relative bg-[#111827] border border-slate-700 rounded-md px-4 py-3 flex items-center">
+              <span onClick={() => setShowSymbolDropdown(!showSymbolDropdown)} className="text-slate-400 text-xs mr-2 cursor-pointer">▾</span>
+              
               <input
                 value={symbolQuery}
                 onChange={(e) => {
@@ -810,35 +818,33 @@ export default function RubberThai() {
                 }}
                 onFocus={() => setShowSymbolDropdown(true)}
                 placeholder="Type a Symbol..."
-                className="w-full bg-transparent outline-none text-white text-sm placeholder:text-slate-600"
+                className="flex-1 bg-transparent outline-none text-white text-sm placeholder:text-slate-600"
               />
-              <div className="flex items-center gap-2">
-                {(symbol || symbolQuery) && (
-                  <button
-                    onClick={() => {
-                      if (refreshing) return;
+              
+              {(symbol || symbolQuery) && (
+                <button
+                  onClick={() => {
+                    if (refreshing) return;
 
-                      setShowSymbolDropdown(false);
-                      setGlobalHoverIndex(null);
-                      setRefreshing(true);
+                    setShowSymbolDropdown(false);
+                    setGlobalHoverIndex(null);
+                    setRefreshing(true);
 
-                      setTimeout(() => {
-                        setSymbol("");
-                        setSymbolQuery("");
-                        setRefreshing(false);
-                      }, 700);
-                    }}
-                    className={`text-xs ml-2 ${
-                      refreshing
-                        ? "text-slate-600 cursor-not-allowed"
-                        : "text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    ✕
-                  </button>
-                )}
-                <span onClick={() => setShowSymbolDropdown(!showSymbolDropdown)} className="text-slate-400 text-xs ml-2 cursor-pointer">▾</span>
-              </div>
+                    setTimeout(() => {
+                      setSymbol("");
+                      setSymbolQuery("");
+                      setRefreshing(false);
+                    }, 700);
+                  }}
+                  className={`text-xs ml-2 ${
+                    refreshing
+                      ? "text-slate-600 cursor-not-allowed"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  ✕
+                </button>
+              )}
             </div>
 
             {showSymbolDropdown && (
