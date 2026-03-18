@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "../../context/SubscriptionContext";
 import RefreshIcon from "@mui/icons-material/Refresh";
-
+import ToolHint from "@/components/ToolHint.jsx";
 import S50Dashboard from "./components/S50Dashboard.jsx";
 
 // ❌ เอา export default function S50() ที่ครอบตรงนี้ออกแล้ว
@@ -135,7 +135,8 @@ function ChartCard({
   chartRefs,
   refreshKey,
   isRefreshing,
-  onRefresh
+  onRefresh,
+  toolHint = null,
 }) {
   const seed = title.length;
 
@@ -209,22 +210,27 @@ function ChartCard({
   const hoverX = isHovering ? paddingLeft + globalHoverIndex * pointGap : null;
 
   return (
-    <div className="bg-[#111827] border border-slate-700 rounded-xl overflow-hidden flex flex-col">
+    <div className="bg-[#111827] border border-slate-700 rounded-xl flex flex-col">
+
+    {toolHint && (
+  <div style={{ position: "absolute", top: "8px", left: "3px", zIndex: 20 }}>
+    {toolHint}
+  </div>
+)}
       {/* Header */}
       <div className="px-4 py-3 bg-[#0f172a] border-b border-slate-700/50 flex justify-between items-center">
-        <span className="text-sm font-bold text-slate-300">{title}</span>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            className="w-7 h-7 rounded-md bg-[#1e293b] text-slate-400 hover:text-white hover:bg-slate-700 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label={`Refresh ${title}`}
-          >
-            <RefreshIcon sx={{ fontSize: 16, color: "inherit" }} className={isRefreshing ? "animate-spin" : ""} />
-          </button>
-        </div>
+      <span className="text-sm font-bold text-slate-300">{title}</span>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          className="w-7 h-7 rounded-md bg-[#1e293b] text-slate-400 hover:text-white hover:bg-slate-700 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label={`Refresh ${title}`}
+        >
+          <RefreshIcon sx={{ fontSize: 16, color: "inherit" }} className={isRefreshing ? "animate-spin" : ""} />
+        </button>
       </div>
+    </div> 
 
       {/* SVG Interactive Area */}
       {isRefreshing ? (
@@ -321,6 +327,7 @@ function ChartCard({
         </div>
       )}
     </div>
+
   );
 }
 
@@ -676,6 +683,10 @@ const user = localStorage.getItem("token");
             refreshKey={refreshKey}
             isRefreshing={isRefreshing}
             onRefresh={handleRefresh}
+            toolHint={  // ✅ เพิ่มตรงนี้
+                  <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
+                        วิเคราะห์ SET50 Index Futures ติดตาม Flow และแนวโน้มตลาด
+                                  </ToolHint> }
           />
           <ChartCard 
             title="2. Confirm Up/Down S50" 
