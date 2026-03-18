@@ -24,6 +24,7 @@ import Gold from "@/pages/Tools/Gold";
 import BidAsk from "@/pages/Tools/BidAsk";
 import TickMatch from "@/pages/Tools/TickMatch";
 import DRInsight from "@/pages/Tools/DRInsight";
+import ChartFlipId from "@/pages/Hidden/Chartid";
 
 /* ================= CONSTANTS ================= */
 const CHART_IMAGE_URL = "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1964&auto=format&fit=crop";
@@ -58,6 +59,8 @@ const TOOL_CONFIG = {
 
   dr: { component: DRInsight, id: "dr", name: "DR Insight", isPremium: true },
   "DRInsight": { component: DRInsight, id: "dr", name: "DR Insight", isPremium: true },
+
+  "chartflipid": { component: ChartFlipId, id: "chartflipid", name: "Chart Flip ID", isPremium: false },
 };
 
 const FULL_WIDTH_PAGES = []; 
@@ -126,7 +129,9 @@ export default function Dashboard({ initialPage }) {
       else if (path === "subscription") setActivePage("subscription");
       else if (path === "preview-projects") setActivePage("preview-projects");
       else if (path === "premium-tools" || path === "premiumtools") setActivePage("premiumtools");
-      
+
+      else if (path === "chartflipid" || path === "chartflipid") setActivePage("chartflipid");
+
       else setActivePage("preview-projects"); // Fallback ถ้าหาไม่เจอจริงๆ
     }
   }, [location.state, location.pathname, isDataReady]);

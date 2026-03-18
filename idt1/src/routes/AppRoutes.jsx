@@ -24,6 +24,7 @@ export default function AppRoutes() {
       {/* ถ้าอยากให้มีหน้า Premium Tools แยก */}
       <Route path="/premium-tools" element={<Dashboard initialPage="premiumtools" />} />
 
+      <Route path="/chartflipid" element={<Dashboard initialPage="chartflipid" />} />
       {/* 2. MIT */}
       <Route path="/mit" element={<Dashboard initialPage="mit" />} />
       
@@ -64,6 +65,8 @@ export default function AppRoutes() {
 
       {/* === Shortcuts / Redirects === */}
       <Route path="/shortcuts" element={<Navigate to="/preview-projects" replace />} />
+
+      <Route path="/chartid" element={<Navigate to="/chartflipid" replace />} />
       
       {/* === Fallback (กันหลง) === */}
       <Route path="*" element={<Navigate to="/" replace />} />
