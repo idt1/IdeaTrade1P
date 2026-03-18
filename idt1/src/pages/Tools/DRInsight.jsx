@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useSubscription } from "../../context/SubscriptionContext";
 import drIcon from "@/assets/icons/dr.svg";
 import { Fullscreen, Settings as SettingsIcon } from '@mui/icons-material';
+import ToolHint from "@/components/ToolHint.jsx";
 
 import DRInsightDashboard from "./components/DRInsightDashboard.jsx";
 
@@ -739,6 +740,10 @@ export default function DRInsight() {
       <div className="hidden md:flex md:flex-col h-screen p-3 overflow-hidden animate-fade-in">
 
         <div className="flex items-center justify-center gap-6 mb-4 shrink-0">
+<ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
+    ​เครื่องมือวิเคราะห์ DR ที่เชื่อมข้อมูลหุ้นแม่ในต่างประเทศเข้ากับกระดานหุ้นไทย
+  </ToolHint>
+
           <div className="bg-[#111827] border border-slate-800 rounded-full px-4 py-2 flex items-center gap-2 shadow-sm">
             <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
