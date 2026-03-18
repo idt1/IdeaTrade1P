@@ -1,7 +1,6 @@
 // src/pages/ManageSubscription.jsx
 import React, { useState, useEffect } from 'react';
 import './Subscriptions.css';
-// 🟢 1. เพิ่ม updateDoc และ Timestamp เข้ามาสำหรับใช้ตอน Test
 import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
 import { db, auth } from "@/firebase"; 
 import { onAuthStateChanged } from "firebase/auth"; 
@@ -12,6 +11,9 @@ const ManageSubscription = () => {
   const [expiringSubs, setExpiringSubs] = useState([]);
   const [endedSubs, setEndedSubs] = useState([]);
   const [summary, setSummary] = useState({ monthly: 0, yearly: 0 });
+  
+  // 🟢 1. เพิ่ม State สำหรับเก็บคำค้นหา
+  const [searchTerm, setSearchTerm] = useState('');
   
   const navigate = useNavigate();
 
@@ -117,7 +119,6 @@ const ManageSubscription = () => {
   };
 
   /* ======================= REMOVE THIS TEST BLOCK LATER ======================= */
-  // 🟢 2. ฟังก์ชันสำหรับอัปเดตวันหมดอายุเพื่อทดสอบ
   const handleTestStatus = async (item, mode) => {
     const targetDate = new Date();
     if (mode === 'expiring') {
@@ -128,13 +129,11 @@ const ManageSubscription = () => {
 
     const user = auth.currentUser;
     if (user) {
-      // 1. อัปเดตใน Firebase
       const userRef = doc(db, "users", user.uid);
       await updateDoc(userRef, {
         [`subscriptions.${item.id}`]: Timestamp.fromDate(targetDate)
       });
     } else {
-      // 2. อัปเดตใน LocalStorage (โหมด Demo)
       const saved = localStorage.getItem('userProfile');
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -144,7 +143,6 @@ const ManageSubscription = () => {
       }
     }
     
-    // รีโหลดหน้าจอเพื่อให้ useEffect คำนวณวันใหม่
     window.location.reload();
   };
   /* ============================================================================ */
@@ -219,14 +217,10 @@ const ManageSubscription = () => {
               <div className="text-gray-400 text-[12px] pb-1.5">
                 {item.paymentMethod || 'Bank Transfer'}
               </div>
-              
-              {/* ======================= REMOVE THIS TEST BLOCK LATER ======================= */}
-              {/* ปุ่มเทสต์โหมด Mobile */}
               <div className="flex gap-1 opacity-40 hover:opacity-100 transition-opacity">
                 <button onClick={() => handleTestStatus(item, 'expiring')} className="text-[9px] bg-yellow-600/80 text-white px-1.5 py-0.5 rounded">T: 2 Days</button>
                 <button onClick={() => handleTestStatus(item, 'expired')} className="text-[9px] bg-red-600/80 text-white px-1.5 py-0.5 rounded">T: Expired</button>
               </div>
-              {/* ============================================================================ */}
             </div>
           </div>
 
@@ -262,20 +256,29 @@ const ManageSubscription = () => {
 
            <div className="flex flex-col items-end gap-1">
              <div className="text-gray-400 text-[13px] text-right truncate">{item.paymentMethod || 'Bank Transfer'}</div>
-             
-             {/* ======================= REMOVE THIS TEST BLOCK LATER ======================= */}
-             {/* ปุ่มเทสต์โหมด Desktop */}
              <div className="flex gap-1 opacity-20 hover:opacity-100 transition-opacity">
                <button onClick={() => handleTestStatus(item, 'expiring')} className="text-[9px] bg-yellow-600/80 text-white px-1.5 py-0.5 rounded">T: 2 Days</button>
                <button onClick={() => handleTestStatus(item, 'expired')} className="text-[9px] bg-red-600/80 text-white px-1.5 py-0.5 rounded">T: Expired</button>
              </div>
-             {/* ============================================================================ */}
            </div>
         </div>
 
       </div>
     );
   };
+
+  // 🟢 2. สร้างฟังก์ชันกรองข้อมูลตามคำค้นหาที่ผู้ใช้พิมพ์
+  const filterBySearch = (list) => {
+    if (!searchTerm) return list;
+    return list.filter(item => 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
+  // นำ Array ไปเข้าฟังก์ชันกรองก่อนนำไปเรนเดอร์
+  const filteredActive = filterBySearch(activeSubs);
+  const filteredExpiring = filterBySearch(expiringSubs);
+  const filteredEnded = filterBySearch(endedSubs);
 
   return (
     <div className="w-full min-h-screen bg-transparent p-4 md:p-10 animate-fade-in">
@@ -302,13 +305,20 @@ const ManageSubscription = () => {
             <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
               <SearchIcon />
             </div>
+            {/* 🟢 3. อัปเดตช่อง Input ให้ผูกกับ State `searchTerm` */}
             <input 
               type="text" 
-              placeholder="Search Something..." 
+              placeholder="Search tools..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-[#1b2230]/40 border border-gray-700/50 rounded-xl py-3 pl-12 pr-4 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition-all placeholder:text-gray-600"
             />
           </div>
-          <button className="w-full md:w-auto bg-[#007bff] hover:bg-[#0069d9] text-white font-bold py-3 md:py-2.5 px-8 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 whitespace-nowrap">
+          {/* 🟢 4. เพิ่ม onClick ส่งผู้ใช้ไปหน้า /member-register */}
+          <button 
+            onClick={() => navigate('/member-register')} 
+            className="w-full md:w-auto bg-[#007bff] hover:bg-[#0069d9] text-white font-bold py-3 md:py-2.5 px-8 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 whitespace-nowrap"
+          >
             <PlusIcon /> Add new tool
           </button>
         </div>
@@ -325,32 +335,34 @@ const ManageSubscription = () => {
           </div>
         </div>
 
-        {/* Sections */}
-        {endedSubs.length > 0 && (
+        {/* 🟢 5. เปลี่ยนจาก Array เดิม เป็น Array ที่ผ่านการกรอง (filtered...) แล้ว */}
+        {filteredEnded.length > 0 && (
           <div className="mb-8">
             <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] mb-4 text-left">Recently Ended</h3>
-            {endedSubs.map(item => renderRow(item, 'ended'))}
+            {filteredEnded.map(item => renderRow(item, 'ended'))}
           </div>
         )}
 
-        {expiringSubs.length > 0 && (
+        {filteredExpiring.length > 0 && (
           <div className="mb-8">
             <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] mb-4 text-left">Ending Soon</h3>
-            {expiringSubs.map(item => renderRow(item, 'expiring'))}
+            {filteredExpiring.map(item => renderRow(item, 'expiring'))}
           </div>
         )}
 
-        {activeSubs.length > 0 && (
+        {filteredActive.length > 0 && (
           <div className="mb-8">
             <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] mb-4 text-left">Active</h3>
-            {activeSubs.map(item => renderRow(item, 'active'))}
+            {filteredActive.map(item => renderRow(item, 'active'))}
           </div>
         )}
 
-        {/* No Data State */}
-        {endedSubs.length === 0 && expiringSubs.length === 0 && activeSubs.length === 0 && (
+        {/* 🟢 6. อัปเดต No Data State ให้โชว์ข้อความแยกตอนหาไม่เจอด้วย */}
+        {filteredEnded.length === 0 && filteredExpiring.length === 0 && filteredActive.length === 0 && (
           <div className="text-center mt-16 text-gray-600 bg-[#1b2230]/20 py-20 rounded-2xl border border-gray-800/50">
-            <p className="text-lg font-medium">No active subscriptions found.</p>
+            <p className="text-lg font-medium">
+              {searchTerm ? `No tools found matching "${searchTerm}"` : "No active subscriptions found."}
+            </p>
           </div>
         )}
 
