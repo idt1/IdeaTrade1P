@@ -62,6 +62,89 @@ export default function MemberRegister() {
   const [copied, setCopied] = useState(false);
   const [isEditSummary, setIsEditSummary] = useState(false);
 
+  // ✅ 2. State สำหรับเก็บข้อมูล Subscription แบบละเอียด (วันหมดอายุ + รอบบิล)
+  const [activeSubs, setActiveSubs] = useState({});
+
+  // ✅ 3. ฟังก์ชันจัดรูปแบบข้อมูลให้อ่านง่าย
+  const processSubs = (mySubs = [], expirations = {}) => {
+    const result = {};
+    mySubs.forEach((sub) => {
+      const exp = expirations[sub.id];
+      if (exp) {
+        result[sub.id] = {
+          cycle: sub.cycle ? sub.cycle.toLowerCase() : "monthly",
+          // รองรับทั้ง Firestore Timestamp และ ISO String จาก LocalStorage
+          expireDate: exp.toDate ? exp.toDate() : new Date(exp),
+        };
+      }
+    });
+    return result;
+  };
+
+  // ✅ 4. ดึงข้อมูล User ตอนเปิดหน้า
+  useEffect(() => {
+    const fetchUserSubscriptions = async () => {
+      setTimeout(async () => {
+        const currentUser = auth.currentUser;
+        let parsedSubs = {};
+
+        if (currentUser) {
+          try {
+            const userRef = doc(db, "users", currentUser.uid);
+            const userSnap = await getDoc(userRef);
+            
+            if (userSnap.exists()) {
+              const userData = userSnap.data();
+              parsedSubs = processSubs(userData.mySubscriptions, userData.subscriptions);
+            }
+          } catch (error) {
+            console.error("Error fetching user data:", error);
+          }
+        } else {
+          // Fallback สำหรับ LocalStorage
+          const storedProfile = localStorage.getItem("userProfile");
+          if (storedProfile) {
+            const userData = JSON.parse(storedProfile);
+            parsedSubs = processSubs(userData.mySubscriptions, userData.subscriptions);
+          }
+        }
+        
+        setActiveSubs(parsedSubs);
+      }, 500);
+    };
+
+    fetchUserSubscriptions();
+  }, []);
+
+  // ✅ 5. ฟังก์ชันเช็คสถานะ ให้กดซื้อเพิ่มได้ตลอด (ปลดล็อค)
+  const getToolStatus = (toolId, currentBillingCycle) => {
+    const sub = activeSubs[toolId];
+    if (!sub) return { isLocked: false, text: null };
+
+    const { cycle, expireDate } = sub;
+    const now = new Date();
+    const daysRemaining = (expireDate - now) / (1000 * 60 * 60 * 24);
+
+    // 5.1 ถ้าหมดอายุแล้ว
+    if (daysRemaining < 0) {
+      return { isLocked: false, text: "Expired" };
+    }
+
+    // 5.2 ถ้าใกล้หมดอายุ (<= 7 วัน)
+    if (daysRemaining <= 7) {
+      return { isLocked: false, text: "Renew" };
+    }
+
+    // 5.3 ถ้ายังมีอายุเหลือเยอะ
+    if (cycle === "monthly" && currentBillingCycle === "yearly") {
+      // เดิมเป็นรายเดือน ตอนนี้อยู่หน้าแท็บรายปี -> ให้อัปเกรด
+      return { isLocked: false, text: "Upgrade" }; 
+    }
+
+    // กรณีอื่นๆ (รายปีซื้อเดือนเพิ่ม, รายเดือนซื้อเดือนเพิ่ม, รายปีซื้อปีเพิ่ม) -> ปลดล็อคให้ซื้อทบเวลาได้
+    return { isLocked: false, text: "Extend" };
+  };
+
   useEffect(() => {
     if (location.state && location.state.preselectedTool) {
       const toolNameFromPopup = location.state.preselectedTool;
@@ -71,12 +154,16 @@ export default function MemberRegister() {
                t.id.toLowerCase() === toolNameFromPopup.toLowerCase()
       );
 
+      // ✅ 6. เช็คก่อน preselect ว่าล็อคอยู่หรือไม่ (ตอนนี้ปลดล็อคหมดแล้ว ก็จะเข้าเงื่อนไขตลอด)
       if (matchedTool) {
-        setSelectedTools([{ id: matchedTool.id, billing: "monthly" }]);
-        window.history.replaceState({}, document.title);
+        const { isLocked } = getToolStatus(matchedTool.id, "monthly");
+        if (!isLocked) {
+          setSelectedTools([{ id: matchedTool.id, billing: "monthly" }]);
+          window.history.replaceState({}, document.title);
+        }
       }
     }
-  }, [location.state]);
+  }, [location.state, activeSubs]);
 
   const closeModal = () => {
     setShowModal(false);
@@ -180,7 +267,6 @@ export default function MemberRegister() {
         ];
         const mergedUnlockedItems = [...new Set([...oldUnlockedItems, ...newToolIds])];
 
-        // ✅ 2. สร้าง/อัปเดตวันหมดอายุแบบ Nested Object
         const newExpirations = { ...currentSubExpirations };
         
         selectedTools.forEach((t) => {
@@ -201,7 +287,6 @@ export default function MemberRegister() {
           newExpirations[t.id] = Timestamp.fromDate(expireDate);
         });
 
-        // ✅ 3. เซฟข้อมูลด้วย setDoc
         await setDoc(userRef, {
           role: "membership",
           unlockedItems: mergedUnlockedItems,
@@ -319,27 +404,56 @@ export default function MemberRegister() {
             <h2 className="text-xl font-semibold mb-4">Select Your Tools</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {TOOLS.map((tool) => {
+                // ✅ 7. ดึงสถานะการล็อคจากฟังก์ชันใหม่ (ตอนนี้ไม่ล็อคเลย ให้กด Extend/Upgrade ได้)
+                const { isLocked, text } = getToolStatus(tool.id, billingCycle);
+                
                 const active = selectedTools.some(
-                (t) => t.id === tool.id && t.billing === billingCycle
-              );
+                  (t) => t.id === tool.id && t.billing === billingCycle
+                );
+                
                 return (
                   <div
                     key={tool.id}
-                    onClick={() => toggleTool(tool.id)}
-                    className={`cursor-pointer px-4 md:px-5 py-4 rounded-xl border flex items-center gap-2 min-h-[72px]
+                    onClick={() => {
+                      if (!isLocked) toggleTool(tool.id);
+                    }}
+                    className={`px-4 md:px-5 py-4 rounded-xl border flex items-center gap-2 min-h-[72px] transition-all
                     ${
-                      active
-                        ? "border-[#0E6BA8] bg-[#102B46]"
-                        : "border-[#1F3354] bg-[#13233A]"
+                      isLocked
+                        ? "border-[#1F3354] bg-[#0A1224] opacity-50 cursor-not-allowed" 
+                        : active
+                        ? "border-[#0E6BA8] bg-[#102B46] cursor-pointer"
+                        : "border-[#1F3354] bg-[#13233A] cursor-pointer hover:border-[#0E6BA8]/50"
                     }`}
                   >
-                    <span>{tool.name}</span>
+                    <div className="flex flex-col">
+                      <span className={isLocked ? "line-through text-[#9FB3C8]" : "text-white"}>
+                        {tool.name}
+                      </span>
+                      {/* ✅ 8. แสดง Badge พิเศษตามสถานะ (ทบเวลา / อัปเกรด) */}
+                      {!isLocked && text && (
+                        <span className={`text-[10px] mt-0.5 px-1.5 py-0.5 rounded-sm w-fit font-medium
+                          ${text === "Renew" ? "bg-amber-500/20 text-amber-400" : ""}
+                          ${text === "Expired" ? "bg-red-500/20 text-red-400" : ""}
+                          ${text === "Upgrade" ? "bg-blue-500/20 text-blue-400" : ""}
+                          ${text === "Extend" ? "bg-emerald-500/20 text-emerald-400" : ""}
+                        `}>
+                          {text}
+                        </span>
+                      )}
+                    </div>
 
-                    <span className="ml-auto text-sm text-[#9FB3C8]">
-                      {billingCycle === "monthly"
-                        ? `${tool.monthly}฿/m`
-                        : `${tool.yearly}฿/y`}
-                    </span>
+                    <div className="ml-auto text-sm">
+                      {isLocked ? (
+                        <span className="text-emerald-400 font-medium">Owned</span>
+                      ) : (
+                        <span className="text-[#9FB3C8]">
+                          {billingCycle === "monthly"
+                            ? `${tool.monthly}฿/m`
+                            : `${tool.yearly}฿/y`}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}

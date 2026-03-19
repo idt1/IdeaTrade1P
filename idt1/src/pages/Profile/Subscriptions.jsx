@@ -173,11 +173,12 @@ const ManageSubscription = () => {
       btnDesktop = <button onClick={() => handleActionClick(item)} className="px-5 py-1.5 rounded-md border border-yellow-500/50 text-yellow-500 text-[13px] hover:text-white hover:bg-yellow-900/40 hover:border-yellow-500 transition-all">{actionText}</button>;
       btnMobile = <button onClick={() => handleActionClick(item)} className="w-full py-3 rounded-lg font-bold bg-transparent border border-yellow-500/50 text-yellow-500 hover:text-white hover:bg-yellow-900/40 transition-all">{actionText}</button>;
 
+      //ปุ่มของตัวที่ ACTIVE
     } else {
       statusColor = 'text-green-500';
       statusIcon = <CheckCircleIcon className="w-4 h-4 text-green-500 shrink-0" />;
       statusText = 'active';
-      actionText = 'Manage';
+      actionText = 'Extend';
       cardBorder = 'border-gray-800';
       bgClass = 'bg-[#242b35]/80';
 
