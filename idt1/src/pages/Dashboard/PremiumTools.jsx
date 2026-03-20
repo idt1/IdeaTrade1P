@@ -161,7 +161,7 @@ export default function PremiumTools() {
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 md:mb-3">
             Membership Tools
           </h1>
-          <p className="text-gray-400 text-sm max-w-3xl leading-relaxed">
+          <p className="text-gray-400 text-sm max-w-4xl leading-relaxed">
             Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
           </p>
         </div>
