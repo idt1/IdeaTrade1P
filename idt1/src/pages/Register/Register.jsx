@@ -164,7 +164,7 @@ export default function Register() {
         </div>
 
         {/* RIGHT SIDE */}
-        <div className="w-full h-72 sm:h-80 md:h-96 lg:w-1/2 lg:h-auto relative flex"><Rocket /></div>
+        <div className="w-full min-h-[300px] h-80 sm:h-96 lg:w-1/2 lg:h-auto relative flex items-end justify-center pt-0 scale-100"><Rocket /></div>
       </div>
     </div>
   );
