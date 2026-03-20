@@ -139,8 +139,6 @@ function useLiveData(initialData, cardKey) {
   liveRef.current = liveData;
 
   const scheduleNext = useCallback(() => {
-    const delayMs = (2 + Math.random() * 4) * 60 * 1000;
-    // For demo: use 4-10 seconds instead
     const demoDelay = (10 + Math.random() * 5) * 1000;
     timerRef.current = setTimeout(() => {
       const current = liveRef.current;
@@ -317,14 +315,13 @@ const FlowChart = ({
   const [visibleRightIdx, setVisibleRightIdx] = useState(labels.length - 1);
   const dragStart  = useRef({ x: 0, scrollLeft: 0 });
 
-  // Auto-scroll to right when labels change (new points added OR filter applied)
-  const prevLabelsRef = useRef(labels);
+  const prevLenRef = useRef(labels.length);
   useEffect(() => {
-    prevLabelsRef.current = labels;
-    if (scrollRef.current) {
+    if (labels.length !== prevLenRef.current && scrollRef.current) {
       scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
     }
-  }, [labels]);
+    prevLenRef.current = labels.length;
+  }, [labels.length]);
 
   const { paddingLeft: padL, paddingRight: padR, paddingTop: padT, paddingBottom: padB } = CHART_CFG;
   const gap    = pointGap ?? CHART_CFG.pointGap;
@@ -441,7 +438,6 @@ const FlowChart = ({
     return avoidCollisions(raw);
   })();
 
-  // Pulse rings on last point for flashing series
   const flashedIndices = Object.keys(flashMap).map(Number).filter(i => i < 5);
 
   return (
@@ -514,7 +510,6 @@ const FlowChart = ({
                 <path d={d} fill="none" stroke={stroke} strokeWidth={sw} strokeLinejoin="round" strokeLinecap="round" />
                 {!isHovering && (
                   <>
-                    {/* Pulse ring on flash */}
                     {isFlashing && (
                       <>
                         <circle cx={lastX} cy={lastY} r="10" fill="none"
@@ -631,7 +626,6 @@ const FlowChart = ({
   );
 };
 
-/* ================= ZOOM MODAL ================= */
 /* ================= SPIN BUTTON ================= */
 const SpinButton = ({ onClick, title, label }) => {
   const [spinning, setSpinning] = useState(false);
@@ -643,14 +637,13 @@ const SpinButton = ({ onClick, title, label }) => {
       setSpinning(true);
       if (iconRef.current) {
         iconRef.current.classList.remove("spin-once");
-        void iconRef.current.offsetWidth; // reflow
+        void iconRef.current.offsetWidth;
         iconRef.current.classList.add("spin-once");
       }
     });
     setTimeout(() => setSpinning(false), 550);
   };
   return label ? (
-    // Modal style — text + icon
     <button onClick={handle} style={{
       display: "flex", alignItems: "center", gap: 5,
       padding: "4px 10px", background: "transparent",
@@ -670,7 +663,6 @@ const SpinButton = ({ onClick, title, label }) => {
       {label}
     </button>
   ) : (
-    // Card style — icon only
     <button onClick={handle} title={title}
       className="w-8 h-8 rounded-lg border border-slate-600 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 hover:border-slate-400 transition-all">
       <span ref={iconRef} style={{ display: "inline-flex" }}>
@@ -690,7 +682,6 @@ const TIME_FILTERS = [
 ];
 
 function parseTime(label) {
-  // label format: "dd/mm/yy\nH:MM"
   const timePart = label.split("\n")[1] || "";
   const [h, m] = timePart.split(":").map(Number);
   return [h || 0, m || 0];
@@ -712,8 +703,58 @@ function filterByTime(labels, allSeries, filterKey) {
   return { labels: filteredLabels, allSeries: filteredSeries };
 }
 
+/* ================= ZOOM MODAL ================= */
 const ZoomModal = ({ card, onClose, highlighted, dimmed, extraVisible, onLegendClick, onRowClick, onReset, globalHoverIndex, setGlobalHoverIndex, chartRefs, pointGap, handleZoom, flashMap, recentMap = {} }) => {
   const [timeFilter, setTimeFilter] = useState("all");
+  const [localPointGap, setLocalPointGap] = useState(pointGap);
+  const chartContainerRef = useRef(null);
+  const modalChartRefs = useRef({});
+  // track ว่า fit ครั้งล่าสุดสำหรับ filter อะไร เพื่อไม่ให้ fit ซ้ำแล้ว lock scroll
+  const lastFitFilter = useRef(null);
+
+  const filtered = useMemo(
+    () => card ? filterByTime(card.labels, card.allSeries, timeFilter) : { labels: [], allSeries: [] },
+    [card, timeFilter]
+  );
+
+  // Auto-fit gap ทุกครั้งที่ filter เปลี่ยนเท่านั้น (ไม่ run ซ้ำ)
+  useEffect(() => {
+    if (lastFitFilter.current === timeFilter) return;
+    lastFitFilter.current = timeFilter;
+    let rafId = requestAnimationFrame(() => {
+      const el = chartContainerRef.current;
+      if (!el || filtered.labels.length < 2) return;
+      const availW = el.clientWidth - CHART_CFG.paddingLeft - CHART_CFG.paddingRight - 4;
+      const gap = Math.max(8, Math.min(120, availW / (filtered.labels.length - 1)));
+      setLocalPointGap(gap);
+      // scroll หลัง re-render
+      rafId = requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const id = `modal-${card?.category}-${card?.type}`;
+          const chartEl = modalChartRefs.current?.[id];
+          if (chartEl) chartEl.scrollLeft = chartEl.scrollWidth;
+        });
+      });
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [timeFilter, filtered.labels.length, card]);
+
+  const localHandleZoom = useCallback((deltaY, mouseClientX, scrollEl) => {
+    setLocalPointGap(prev => {
+      const factor = deltaY > 0 ? 0.82 : 1.22;
+      const next = Math.max(8, Math.min(120, prev * factor));
+      if (scrollEl && Math.abs(next - prev) > 0.5) {
+        const rect     = scrollEl.getBoundingClientRect();
+        const cursorX  = mouseClientX - rect.left;
+        const contentX = scrollEl.scrollLeft + cursorX;
+        const ratio    = next / prev;
+        requestAnimationFrame(() => {
+          scrollEl.scrollLeft = contentX * ratio - cursorX;
+        });
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const fn = e => { if (e.key === "Escape") onClose(); };
@@ -724,20 +765,8 @@ const ZoomModal = ({ card, onClose, highlighted, dimmed, extraVisible, onLegendC
   if (!card) return null;
   const { category, type, data, allSeries, labels, top5 } = card;
   const isPos = type === "+";
-  const filtered = useMemo(
-    () => filterByTime(labels, allSeries, timeFilter),
-    [labels, allSeries, timeFilter]
-  );
 
-  const bodyRef = useRef(null);
-  const [bodyH, setBodyH] = useState(600);
-  useEffect(() => {
-    const el = bodyRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(([e]) => setBodyH(e.contentRect.height));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  const [chartH, setChartH] = useState(0);
 
   return (
     <div style={{
@@ -799,29 +828,51 @@ const ZoomModal = ({ card, onClose, highlighted, dimmed, extraVisible, onLegendC
 
         <div style={{ flex: 1 }} />
         {/* ── Reset button ── */}
-        <SpinButton onClick={() => { onReset?.(); setTimeFilter("all"); }} title="Reset" label="Reset" />
-
+        <SpinButton
+          onClick={() => { onReset?.(); setTimeFilter("all"); setLocalPointGap(pointGap); }}
+          title="Reset" label="Reset"
+        />
       </div>
 
-      <div style={{ display: "flex", flex: 1, minHeight: 0 }} ref={bodyRef}>
-        <div style={{ flex: 1, minWidth: 0, minHeight: 0, padding: "4px 0 2px 4px" }}>
-          <FlowChart
-            allSeries={filtered.allSeries}
-            labels={filtered.labels}
-            top5={top5}
-            highlighted={highlighted} dimmed={dimmed}
-            extraVisible={extraVisible} allData={data}
-            height={Math.max(200, bodyH - 12)}
-            chartId={`modal-${category}-${type}`}
-            globalHoverIndex={globalHoverIndex}
-            setGlobalHoverIndex={setGlobalHoverIndex}
-            chartRefs={chartRefs}
-            pointGap={pointGap}
-            handleZoom={handleZoom}
-            fullWidth={true}
-            flashMap={flashMap}
-          />
+      <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
+        {/* Chart area — FlowIntraday pattern: observe wrapper, fill with absolute */}
+        <div
+          ref={el => {
+            chartContainerRef.current = el;
+            // ResizeObserver ตรงนี้ — เหมือน FlowIntraday
+            if (el && !el._roAttached) {
+              el._roAttached = true;
+              const ro = new ResizeObserver(([entry]) => {
+                if (entry.contentRect.height > 0) setChartH(entry.contentRect.height);
+              });
+              ro.observe(el);
+            }
+          }}
+          style={{ flex: 1, minWidth: 0, position: "relative" }}
+        >
+          {chartH > 0 && (
+            <div style={{ position: "absolute", inset: 0 }}>
+              <FlowChart
+                allSeries={filtered.allSeries}
+                labels={filtered.labels}
+                top5={top5}
+                highlighted={highlighted} dimmed={dimmed}
+                extraVisible={extraVisible} allData={data}
+                height={chartH}
+                chartId={`modal-${category}-${type}`}
+                globalHoverIndex={globalHoverIndex}
+                setGlobalHoverIndex={setGlobalHoverIndex}
+                chartRefs={modalChartRefs}
+                pointGap={localPointGap}
+                handleZoom={localHandleZoom}
+                fullWidth={true}
+                flashMap={flashMap}
+              />
+            </div>
+          )}
         </div>
+
+        {/* Rankings panel */}
         <div style={{
           width: 300, flexShrink: 0, display: "flex", flexDirection: "column", minHeight: 0,
           border: "1px solid rgba(255,255,255,0.15)",
@@ -853,7 +904,6 @@ const ZoomModal = ({ card, onClose, highlighted, dimmed, extraVisible, onLegendC
               const leftBorder = isHi    ? `2px solid ${PALETTE[i]}`
                                : isExtra ? `2px solid ${EXTRA_COLOR}`
                                : "2px solid transparent";
-              // divider between top5 and rest
               const showDivider = i === 5;
               return (
                 <React.Fragment key={row.rank}>
@@ -866,49 +916,49 @@ const ZoomModal = ({ card, onClose, highlighted, dimmed, extraVisible, onLegendC
                       <span style={{ fontSize: 9, color: "#334155", fontFamily: "monospace", letterSpacing: "0.1em", whiteSpace: "nowrap" }}>OTHER</span>
                     </div>
                   )}
-                <div onClick={() => onRowClick?.(i)}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "32px 10px 1fr auto auto",
-                    alignItems: "center",
-                    gap: "0 10px",
-                    padding: "9px 18px",
-                    borderBottom: "1px solid rgba(255,255,255,0.15)",
-                    borderLeft: leftBorder,
-                    background: rowBg,
-                    cursor: "pointer",
-                    transition: "background .3s",
-                  }}>
-                  <span style={{
-                    color: isTop5 ? "#94a3b8" : "#334155",
-                    fontSize: isTop5 ? 12 : 11,
-                    fontWeight: isTop5 ? 700 : 400,
-                    textAlign: "right", fontFamily: "monospace",
-                    borderRight: "1px solid rgba(255,255,255,0.08)",
-                    paddingRight: 6,
-                  }}>{row.rank}</span>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: dotColor, justifySelf: "center" }} />
-                  <span style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 700, letterSpacing: "0.04em", fontFamily: "monospace" }}>
-                    {row.symbol}
-                    {(flash || recent) && (
-                      <span style={{ marginLeft: 5, fontSize: 9, color: (flash||recent) === "up" ? "#4ade80" : "#f87171" }}>
-                        {(flash||recent) === "up" ? "▲" : "▼"}
-                      </span>
-                    )}
-                  </span>
-                  <span style={{
-                    fontSize: 12, fontWeight: 700, fontFamily: "monospace", textAlign: "right",
-                    color: flash === "up" ? "#86efac" : flash === "down" ? "#fca5a5" : "#64748b",
-                    borderRight: "1px solid rgba(255,255,255,0.08)",
-                    paddingRight: 8,
-                  }}>{row.value}</span>
-                  <span style={{
-                    fontSize: 12, fontWeight: 700, fontFamily: "monospace", textAlign: "right", minWidth: 56,
-                    color: isUp ? "#4ade80" : isDown ? "#f87171" : "#334155",
-                  }}>
-                    {isUp ? "+" : ""}{row.change}%
-                  </span>
-                </div>
+                  <div onClick={() => onRowClick?.(i)}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "32px 10px 1fr auto auto",
+                      alignItems: "center",
+                      gap: "0 10px",
+                      padding: "9px 18px",
+                      borderBottom: "1px solid rgba(255,255,255,0.15)",
+                      borderLeft: leftBorder,
+                      background: rowBg,
+                      cursor: "pointer",
+                      transition: "background .3s",
+                    }}>
+                    <span style={{
+                      color: isTop5 ? "#94a3b8" : "#334155",
+                      fontSize: isTop5 ? 12 : 11,
+                      fontWeight: isTop5 ? 700 : 400,
+                      textAlign: "right", fontFamily: "monospace",
+                      borderRight: "1px solid rgba(255,255,255,0.08)",
+                      paddingRight: 6,
+                    }}>{row.rank}</span>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: dotColor, justifySelf: "center" }} />
+                    <span style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 700, letterSpacing: "0.04em", fontFamily: "monospace" }}>
+                      {row.symbol}
+                      {(flash || recent) && (
+                        <span style={{ marginLeft: 5, fontSize: 9, color: (flash||recent) === "up" ? "#4ade80" : "#f87171" }}>
+                          {(flash||recent) === "up" ? "▲" : "▼"}
+                        </span>
+                      )}
+                    </span>
+                    <span style={{
+                      fontSize: 12, fontWeight: 700, fontFamily: "monospace", textAlign: "right",
+                      color: flash === "up" ? "#86efac" : flash === "down" ? "#fca5a5" : "#64748b",
+                      borderRight: "1px solid rgba(255,255,255,0.08)",
+                      paddingRight: 8,
+                    }}>{row.value}</span>
+                    <span style={{
+                      fontSize: 12, fontWeight: 700, fontFamily: "monospace", textAlign: "right", minWidth: 56,
+                      color: isUp ? "#4ade80" : isDown ? "#f87171" : "#334155",
+                    }}>
+                      {isUp ? "+" : ""}{row.change}%
+                    </span>
+                  </div>
                 </React.Fragment>
               );
             })}
