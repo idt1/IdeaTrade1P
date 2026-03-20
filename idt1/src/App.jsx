@@ -32,7 +32,9 @@ function MainLayout() {
     "/gold", "/Gold",
     "/bidask", "/BidAsk",
     "/tickmatch", "/TickMatch",
-    "/dr", "/DRInsight"
+    "/dr", "/DRInsight",
+    "/real-flow",      // ✅ เพิ่ม (มีใน Routes แล้วแต่ยังไม่ได้ซ่อน)
+    "/chart-flip-id",  // ✅ เพิ่มใหม่
   ];
   
   // เช็คว่า path ปัจจุบันอยู่ในรายการที่ต้องซ่อน Sidebar หรือไม่
