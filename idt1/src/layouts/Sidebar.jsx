@@ -37,6 +37,8 @@ import signinIcon from "@/assets/icons/signin.svg";
 import signupIcon from "@/assets/icons/signup.svg";
 import realflow1 from "@/assets/icons/realflow1.svg";
 import realflowGray from "@/assets/icons/realflow_gray.svg";
+import chartFlipId from "@/assets/icons/chartfilp.svg";
+import chartFlipIdGray from "@/assets/icons/chartfilpg.svg";
 
 /* ================= ICON MAP ================= */
 const sidebarIcons = {
@@ -47,7 +49,7 @@ const sidebarIcons = {
   rubber:    { default: rubber,    active: arubber    },
   flow:      { default: flow,      active: aflow      },
   realflow:  { default: realflowGray, active: realflow1 },
-  // Real Flow reuses the same flow icon (swap with a dedicated icon when available)
+  chartflipid: { default: chartFlipIdGray, active: chartFlipId },
   s50:       { default: s50,       active: as50       },
   gold:      { default: gold,      active: agold      },
   bidask:    { default: bidask,    active: abidask    },
@@ -230,7 +232,7 @@ const SidebarContent = ({
     <>
       <FloatingTooltip visible={tooltipState.visible} top={tooltipState.top} text={tooltipState.text} />
 
-      {/* ✅ LOGOUT CONFIRMATION MODAL */}
+      {/* LOGOUT CONFIRMATION MODAL */}
       {showLogoutModal && createPortal(
         <div className="fixed inset-0 z-[99999] bg-black/60 flex items-center justify-center backdrop-blur-sm px-4">
           <div className="bg-[#1F2937] p-6 sm:p-8 rounded-lg shadow-2xl flex flex-col items-center gap-6 w-full max-w-[400px] border border-white/10">
@@ -256,7 +258,7 @@ const SidebarContent = ({
         document.body 
       )}
 
-      {/* ================= HEADER & LOGO ================= */}
+      {/* HEADER & LOGO */}
       <div className={`flex items-center shrink-0 transition-all duration-300 ${isCollapsed ? "flex-col-reverse gap-6 mb-4" : "justify-between px-6 py-6"}`}>
         {!isCollapsed && <img src={logo} className="w-36 transition-opacity object-contain pointer-events-none" alt="logo" />}
 
@@ -282,7 +284,7 @@ const SidebarContent = ({
         )}
       </div>
 
-      {/* ================= STATUS BADGES ================= */}
+      {/* STATUS BADGES */}
       <div className={`flex shrink-0 transition-all duration-300 ${isCollapsed ? "flex-col gap-1 w-full px-2 mb-3" : "flex-row gap-2 px-6 mb-0"}`}>
         <div className={`font-bold rounded border text-emerald-400 border-emerald-500/30 bg-emerald-500/10 flex items-center justify-center transition-all whitespace-nowrap overflow-hidden
           ${isCollapsed ? "text-[10px] py-1 w-full" : "text-[11px] px-2 py-1 rounded-full"}`}
@@ -298,7 +300,7 @@ const SidebarContent = ({
         </div>
       </div>
 
-      {/* ================= MENU ITEMS ================= */}
+      {/* MENU ITEMS */}
       <nav 
         className={`flex-1 no-scrollbar w-full ${
           isCollapsed 
@@ -452,11 +454,11 @@ const SidebarContent = ({
               src={getIcon("realflow", activePage === "real-flow")}
               className="w-5"
               alt="Real Flow"
-            style={
-              activePage === "real-flow"
-              ? { filter: "brightness(0) invert(1)" }          // active = ขาว
-              : { filter: "brightness(0) invert(1) opacity(0.4)" }  // default = เทา
-                  }
+              style={
+                activePage === "real-flow"
+                ? { filter: "brightness(0) invert(1)" }
+                : { filter: "brightness(0) invert(1) opacity(0.4)" }
+              }
             />
             {!isCollapsed && <span>Real Flow</span>}
           </div>
@@ -467,7 +469,31 @@ const SidebarContent = ({
           )}
         </button>
 
-        {/* ================= ACCOUNT SECTION ================= */}
+        {/* ── Chart Flip ID Button ── */}
+        <button
+          onClick={() => handleNavigation("chart-flip-id")}
+          onMouseEnter={(e) => handleMouseEnter(e, "Chart Flip ID")}
+          onMouseLeave={handleMouseLeave}
+          className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
+          ${activePage === "chart-flip-id" ? "bg-slate-800" : "hover:bg-white/5"}
+          ${isCollapsed ? "w-10 h-10 justify-center" : "w-full h-11 px-4 justify-between"}`}
+        >
+          <div className={`flex items-center gap-3 font-medium transition-colors pointer-events-none
+            ${activePage === "chart-flip-id" ? "text-white" : "text-gray-400"}
+            ${isCollapsed ? "justify-center w-full" : ""}`}
+          >
+            <img
+              src={getIcon("chartflipid", activePage === "chart-flip-id")}
+              className="w-5"
+              alt="Chart Flip ID"
+              style={{}}
+            />
+            {!isCollapsed && <span>ChartFlip</span>}
+          </div>
+          
+        </button>
+
+        {/* ACCOUNT SECTION */}
         {isCollapsed ? <div className="w-8 h-[1px] bg-white/10 my-1 shrink-0" /> : <div className="mt-6 mb-2 px-2 text-[11px] uppercase text-gray-500 shrink-0">Account</div>}
 
         <button
@@ -482,7 +508,6 @@ const SidebarContent = ({
           {!isCollapsed && <span className="pointer-events-none">Profile</span>}
         </button>
 
-        {/* โชว์ปุ่ม Manage Subscription ถ้าเป็น Member หรือมีแพ็กเกจอย่างน้อย 1 อัน */}
         {(isMember || Object.keys(accessData).length > 0) && (
           <button
             onClick={() => handleNavigation("subscription")}
@@ -539,7 +564,7 @@ const SidebarContent = ({
         <div className="h-10 shrink-0" />
       </nav>
 
-      {/* ================= FOOTER ================= */}
+      {/* FOOTER */}
       <div className="px-2 pb-2 w-full flex justify-center shrink-0">
         <button
           onClick={() => { 
@@ -582,7 +607,7 @@ export default function Sidebar({
         .animate-fade-in { animation: fade-in 0.1s ease-out; }
       `}</style>
 
-      {/* ============ DESKTOP SIDEBAR ============ */}
+      {/* DESKTOP SIDEBAR */}
       <aside
         className={`
           hidden md:flex flex-col h-screen shrink-0
@@ -595,7 +620,7 @@ export default function Sidebar({
         <SidebarContent {...sharedProps} onMobileClose={null} isMobile={false} />
       </aside>
 
-      {/* ============ MOBILE OVERLAY SIDEBAR ============ */}
+      {/* MOBILE OVERLAY */}
       {mobileOpen && (
         <div
           className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity"
@@ -603,7 +628,6 @@ export default function Sidebar({
         />
       )}
 
-      {/* Slide-in Sidebar */}
       <aside
         className={`
           md:hidden fixed top-0 left-0 h-full z-50
