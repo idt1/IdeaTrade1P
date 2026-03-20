@@ -24,7 +24,10 @@ export default function AppRoutes() {
       {/* ถ้าอยากให้มีหน้า Premium Tools แยก */}
       <Route path="/premium-tools" element={<Dashboard initialPage="premiumtools" />} />
 
-      <Route path="/chartflipid" element={<Dashboard initialPage="chartflipid" />} />
+      {/* ✅ chart-flip-id — ใช้ "chart-flip-id" ให้ตรงกับ Sidebar */}
+      <Route path="/chart-flip-id" element={<Dashboard initialPage="chart-flip-id" />} />
+      <Route path="/chartflipid"   element={<Navigate to="/chart-flip-id" replace />} />
+
       {/* 2. MIT */}
       <Route path="/mit" element={<Dashboard initialPage="mit" />} />
       
@@ -66,7 +69,8 @@ export default function AppRoutes() {
       {/* === Shortcuts / Redirects === */}
       <Route path="/shortcuts" element={<Navigate to="/preview-projects" replace />} />
 
-      <Route path="/chartid" element={<Navigate to="/chartflipid" replace />} />
+      {/* ✅ แก้ redirect ให้ชี้ไป /chart-flip-id */}
+      <Route path="/chartid" element={<Navigate to="/chart-flip-id" replace />} />
       <Route path="/real-flow" element={<Dashboard initialPage="real-flow" />} />
       
       {/* === Fallback (กันหลง) === */}
