@@ -6,23 +6,22 @@ import { useSubscription } from "../../context/SubscriptionContext";
 import TickMatchDashboard from "./components/TickMatchDashboard.jsx";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import LinkOffOutlinedIcon from "@mui/icons-material/LinkOffOutlined";
-// ✨ เพิ่ม 3 icons นี้
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import ToolHint from "@/components/ToolHint.jsx";
 
-// ✨ เพิ่ม Recharts
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-// Style ซ่อน Scrollbar (เหมือนต้นแบบ DR)
+// Style ซ่อน Scrollbar และเปิดใช้ Smooth Scroll บน Mobile
 const scrollbarHideStyle = {
   msOverflowStyle: "none",
   scrollbarWidth: "none",
+  WebkitOverflowScrolling: "touch",
 };
 
 /* ===============================
-    TICKMATCH DATA MOCKUP
+   TICKMATCH DATA MOCKUP
 ================================ */
 const features = [
   { title: "Net Accumulated Volume", desc: "Track global gold prices with an intelligent filtering system designed to eliminate market noise." },
@@ -31,7 +30,6 @@ const features = [
   { title: "Price-Based Distribution", desc: "Identifies price levels where the heaviest trading volume has occurred." },
 ];
 
-// ✨ Enhanced mock database with chart data
 const mockDatabase = {
   "": {
     sumBuy: "0", sumSell: "0", netVol: "0",
@@ -48,7 +46,6 @@ const mockDatabase = {
     { time: "09:58.472", last: "224.00", vol: "100", type: "S", sum: "40,364,500" },
     { time: "09:58.472", last: "224.00", vol: "1,000", type: "B", sum: "40,140,500" },
   ],
-  // ✨ เปลี่ยนข้อมูล flips
   flips: [
     { id: 1, time: "10:22.787", from: "-51,044", to: "58,160" },
     { id: 2, time: "10:35.724", from: "4,819", to: "-18,382" },
@@ -56,24 +53,15 @@ const mockDatabase = {
     { id: 4, time: "11:02.759", from: "-97,549", to: "58,061" },
     { id: 5, time: "14:05.012", from: "-1,998", to: "3,777" },
   ],
-  // ✨ เพิ่ม charts ที่จัดเรียงตามลำดับ price
   charts: [
-    { price: "221.50", buy: 8, sell: 12 },
-    { price: "222.00", buy: 15, sell: 20 },
-    { price: "222.50", buy: 12, sell: 18 },
-    { price: "223.00", buy: 22, sell: 15 },
-    { price: "223.50", buy: 18, sell: 25 },
-    { price: "224.00", buy: 50, sell: 15 },
-    { price: "224.50", buy: 35, sell: 28 },
-    { price: "225.00", buy: 35, sell: 55 },
-    { price: "225.50", buy: 28, sell: 32 },
-    { price: "226.00", buy: 55, sell: 20 },
-    { price: "226.50", buy: 42, sell: 38 },
-    { price: "227.00", buy: 15, sell: 10 },
-    { price: "227.50", buy: 20, sell: 22 },
-    { price: "228.00", buy: 40, sell: 40 },
-    { price: "228.50", buy: 18, sell: 15 },
-    { price: "229.00", buy: 5, sell: 2 },
+    { price: "221.50", buy: 8, sell: 12 }, { price: "222.00", buy: 15, sell: 20 },
+    { price: "222.50", buy: 12, sell: 18 }, { price: "223.00", buy: 22, sell: 15 },
+    { price: "223.50", buy: 18, sell: 25 }, { price: "224.00", buy: 50, sell: 15 },
+    { price: "224.50", buy: 35, sell: 28 }, { price: "225.00", buy: 35, sell: 55 },
+    { price: "225.50", buy: 28, sell: 32 }, { price: "226.00", buy: 55, sell: 20 },
+    { price: "226.50", buy: 42, sell: 38 }, { price: "227.00", buy: 15, sell: 10 },
+    { price: "227.50", buy: 20, sell: 22 }, { price: "228.00", buy: 40, sell: 40 },
+    { price: "228.50", buy: 18, sell: 15 }, { price: "229.00", buy: 5, sell: 2 },
   ]
 },
   "NVDA": {
@@ -109,11 +97,7 @@ const mockDatabase = {
     ]
   },
   "1DIV": {
-  sumBuy: "1,354,802", 
-  sumSell: "1,111,900", 
-  netVol: "243,002",
-  
-  // 📊 Tick Data (13 รายการ - แสดงทุก transaction)
+  sumBuy: "1,354,802", sumSell: "1,111,900", netVol: "243,002",
   ticks: [
     { time: "09:57.002", last: "12.15", vol: "1,000", type: "B", sum: "12,150" },
     { time: "10:01.004", last: "12.15", vol: "400", type: "S", sum: "7,290" },
@@ -129,39 +113,25 @@ const mockDatabase = {
     { time: "10:14.151", last: "12.00", vol: "400", type: "S", sum: "-24,060" },
     { time: "10:14.151", last: "12.00", vol: "100", type: "S", sum: "-25,260" },
   ],
-  
-  // 🔄 Flip Signal Data (5 ครั้ง - จุดที่เงินกลับทิศ)
   flips: [
-    { id: 1, time: "10:22.787", from: "-51,045", to: "58,180" },   // กลับจาก Sell เป็น Buy
-    { id: 2, time: "10:35.724", from: "4,818", to: "-18,382" },    // กลับจาก Buy เป็น Sell
-    { id: 3, time: "10:55.770", from: "17,307", to: "-99,893" },   // กลับจาก Buy เป็น Sell (แรง)
-    { id: 4, time: "11:02.759", from: "-97,549", to: "58,061" },   // กลับจาก Sell เป็น Buy (แรง)
-    { id: 5, time: "14:05.012", from: "-1,998", to: "3,777" },     // กลับจาก Sell เป็น Buy
+    { id: 1, time: "10:22.787", from: "-51,045", to: "58,180" },
+    { id: 2, time: "10:35.724", from: "4,818", to: "-18,382" },
+    { id: 3, time: "10:55.770", from: "17,307", to: "-99,893" },
+    { id: 4, time: "11:02.759", from: "-97,549", to: "58,061" },
+    { id: 5, time: "14:05.012", from: "-1,998", to: "3,777" },
   ],
-  
-  // 📈 Price-Based Distribution Chart (21 price levels)
   charts: [
-    { price: "12.10", buy: 5200, sell: 6800 },    // ราคาสูงสุด
-    { price: "12.00", buy: 4100, sell: 5900 },
-    { price: "11.90", buy: 3800, sell: 4200 },
-    { price: "11.88", buy: 9200, sell: 12800 },
-    { price: "11.80", buy: 28000, sell: 7200 },   // Buy Volume สูงมาก
-    { price: "11.79", buy: 14200, sell: 22800 },
-    { price: "11.78", buy: 14200, sell: 4800 },
-    { price: "11.77", buy: 13800, sell: 3200 },
-    { price: "11.72", buy: 8200, sell: 30200 },   // Sell Volume สูงมาก
-    { price: "11.70", buy: 4600, sell: 19500 },
-    { price: "11.68", buy: 19600, sell: 4200 },
-    { price: "11.63", buy: 3200, sell: 16200 },
-    { price: "11.62", buy: 18200, sell: 20100 },
-    { price: "11.61", buy: 18400, sell: 6200 },
-    { price: "11.59", buy: 7200, sell: 19800 },
-    { price: "11.58", buy: 16800, sell: 8200 },
-    { price: "11.57", buy: 17500, sell: 23500 },
-    { price: "11.56", buy: 19800, sell: 12800 },
-    { price: "11.55", buy: 9800, sell: 27800 },
-    { price: "11.54", buy: 28200, sell: 18200 },  // Buy Volume สูงมาก
-    { price: "11.52", buy: 18200, sell: 4200 },   // ราคาต่ำสุด
+    { price: "12.10", buy: 5200, sell: 6800 }, { price: "12.00", buy: 4100, sell: 5900 },
+    { price: "11.90", buy: 3800, sell: 4200 }, { price: "11.88", buy: 9200, sell: 12800 },
+    { price: "11.80", buy: 28000, sell: 7200 }, { price: "11.79", buy: 14200, sell: 22800 },
+    { price: "11.78", buy: 14200, sell: 4800 }, { price: "11.77", buy: 13800, sell: 3200 },
+    { price: "11.72", buy: 8200, sell: 30200 }, { price: "11.70", buy: 4600, sell: 19500 },
+    { price: "11.68", buy: 19600, sell: 4200 }, { price: "11.63", buy: 3200, sell: 16200 },
+    { price: "11.62", buy: 18200, sell: 20100 }, { price: "11.61", buy: 18400, sell: 6200 },
+    { price: "11.59", buy: 7200, sell: 19800 }, { price: "11.58", buy: 16800, sell: 8200 },
+    { price: "11.57", buy: 17500, sell: 23500 }, { price: "11.56", buy: 19800, sell: 12800 },
+    { price: "11.55", buy: 9800, sell: 27800 }, { price: "11.54", buy: 28200, sell: 18200 },
+    { price: "11.52", buy: 18200, sell: 4200 },
   ]
 },
 };
@@ -243,7 +213,6 @@ function FullscreenSymbolInput({ value, onChange }) {
 
   return (
     <div ref={ref} className="relative flex items-center">
-      {/* ✅ เพิ่ม relative wrapper */}
       <div className="relative w-56">
         <div className={`flex items-center gap-2 bg-[#1a2235] border rounded-lg px-3 py-1.5 transition-all ${
           open ? "border-cyan-500/60" : "border-slate-700 hover:border-slate-500"
@@ -265,7 +234,6 @@ function FullscreenSymbolInput({ value, onChange }) {
               value && !open ? "font-bold text-white" : "text-white"
             }`}
           />
-          {/* ✅ ปุ่ม ✕ ใช้ absolute positioning */}
           {query && (
             <button 
               onMouseDown={() => commit("")} 
@@ -328,16 +296,13 @@ export default function TickMatch() {
 
  /* ===============================  MEMBER CHECK  ================================ */
   useEffect(() => {
-    // 1. ถ้าเป็นโหมดทดลอง (Free Access) ให้สิทธิ์ใช้งานทันที
     if (isFreeAccess) {
       setIsMember(true);
       return;
     }
 
-    // 2. ⚠️ แก้คำว่า 'ชื่อแพ็กเกจ' ตรงนี้ ให้ตรงกับเครื่องมือของหน้านั้นๆ
     const toolId = 'tickmatch'; 
 
-    // 3. เช็คสิทธิ์จาก Firebase
     if (accessData && accessData[toolId]) {
       const expireTimestamp = accessData[toolId];
       let expireDate;
@@ -352,14 +317,13 @@ export default function TickMatch() {
         expireDate = new Date(0);
       }
 
-      // เช็คว่าหมดอายุหรือยัง
       if (expireDate.getTime() > new Date().getTime()) {
-        setIsMember(true); // ยังไม่หมดอายุ
+        setIsMember(true);
       } else {
-        setIsMember(false); // หมดอายุแล้ว
+        setIsMember(false);
       }
     } else {
-      setIsMember(false); // ไม่มีแพ็กเกจนี้
+      setIsMember(false);
     }
   }, [accessData, isFreeAccess]);
 
@@ -377,7 +341,6 @@ export default function TickMatch() {
 
   const scroll = (direction) => {
     if (scrollContainerRef.current) {
-      // เมื่อกดปุ่ม ให้หยุด Auto ชั่วคราวกันตีกัน
       isPaused.current = true;
 
       const { current } = scrollContainerRef;
@@ -385,15 +348,13 @@ export default function TickMatch() {
       
       if (direction === "left") {
         current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
-        scrollDirection.current = -1; // อัปเดตทิศทาง Auto ให้ไปทางซ้ายตาม
+        scrollDirection.current = -1;
       } else {
         current.scrollBy({ left: scrollAmount, behavior: "smooth" });
-        scrollDirection.current = 1;  // อัปเดตทิศทาง Auto ให้ไปทางขวาตาม
+        scrollDirection.current = 1;
       }
       
       setTimeout(checkScroll, 300);
-      
-      // ปล่อยให้ Auto ทำงานต่���หลังจากกดปุ่มไปสักพัก (500ms)
       setTimeout(() => { isPaused.current = false }, 500);
     }
   };
@@ -403,42 +364,35 @@ export default function TickMatch() {
   ================================ */
   useEffect(() => {
     const container = scrollContainerRef.current;
-    
-    // ถ้าหา container ไม่เจอ (เช่น อยู่หน้า Dashboard) ให้จบ
     if (!container) return;
 
-    const speed = 1;         // ความเร็ว (pixel)
-    const intervalTime = 15; // ความถี่ (ms)
+    const speed = 1;         
+    const intervalTime = 15; 
 
     const autoScrollInterval = setInterval(() => {
-      // ถ้าเมาส์ชี้อยู่ (Pause) หรือ Container หายไป ให้ข้ามรอบนี้
       if (isPaused.current || !container) return;
 
       const { scrollLeft, scrollWidth, clientWidth } = container;
       const maxScroll = scrollWidth - clientWidth;
 
-      // ตรวจสอบการชนขอบ เพื่อกลับทิศ
       if (scrollDirection.current === 1 && Math.ceil(scrollLeft) >= maxScroll - 2) {
         scrollDirection.current = -1;
       } else if (scrollDirection.current === -1 && scrollLeft <= 2) {
         scrollDirection.current = 1;
       }
 
-      // สั่งเลื่อน
       container.scrollLeft += (scrollDirection.current * speed);
       checkScroll();
     }, intervalTime);
 
     return () => clearInterval(autoScrollInterval);
-  }, [isMember, enteredTool]); // รันใหม่เมื่อเปลี่ยนหน้า View
+  }, [isMember, enteredTool]);
 
-  // Resize listener
   useEffect(() => {
     window.addEventListener('resize', checkScroll);
     return () => window.removeEventListener('resize', checkScroll);
   }, []);
 
-  // ✅ เพิ่ม helper นี้ก่อน AnalysisPanel
 function FitText({ value, className }) {
   const spanRef = useRef(null);
   
@@ -463,12 +417,12 @@ function FitText({ value, className }) {
     </span>
   );
 }
+
   /* ===============================
-      3. COMPONENT: AnalysisPanel (เฉพาะของ TickMatch)
+      3. COMPONENT: AnalysisPanel
   ================================ */
 const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
 
-  // ========== STATES ==========
   const [hasSearched, setHasSearched] = useState(false);
   const [isSynced, setIsSynced] = useState(true);
   const [symbol, setSymbol] = useState(defaultSymbol);
@@ -480,11 +434,10 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isFlipOpen, setIsFlipOpen] = useState(true);
   const [isChartModalOpen, setIsChartModalOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState("all"); // ✅ Filter state
+  const [activeFilter, setActiveFilter] = useState("all");
 
   const todayMax = new Date().toISOString().split("T")[0];
 
-  // ========== EFFECTS ==========
   useEffect(() => {
     const saved = localStorage.getItem("tickmatch_symbol_history");
     if (saved) {
@@ -503,7 +456,6 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
     setFilteredSymbols(filtered);
   }, [symbol, symbolHistory]);
 
-  // ESC key handler
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === "Escape" && isChartModalOpen) {
@@ -514,7 +466,6 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
     return () => window.removeEventListener("keydown", handleEsc);
   }, [isChartModalOpen]);
 
-  // 3️⃣ Functions
   const handleSearch = () => {
     if (!symbol.trim()) return;
     setIsSyncing(true);
@@ -531,10 +482,8 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
     }, 800);
   };
 
-  // 4️⃣ ✅ ประกาศ data ก่อน
   const data = mockDatabase[activeSymbol?.toUpperCase()] || mockDatabase[""];
 
-  // 5️⃣ ✅ ใช้ data หลังจากประกาศแล้ว
   const filteredTicks = data.ticks.filter(tick => {
     const vol = parseInt(tick.vol.replace(/,/g, "")) || 0;
     if (activeFilter === "buy") return tick.type === "B";
@@ -543,14 +492,14 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
     return true;
   });
 
-  // 6️⃣ Calculate percentages
   const totalBuy = parseInt(data.sumBuy.replace(/,/g, "")) || 0;
   const totalSell = parseInt(data.sumSell.replace(/,/g, "")) || 0;
   const total = totalBuy + totalSell;
   const buyPercent = total === 0 ? 50 : (totalBuy / total) * 100;
 
   return (
-    <div className="flex flex-col h-full bg-[#111827] border border-slate-700 rounded-lg shadow-lg overflow-hidden" style={scrollbarHideStyle}>
+    // ✨ เปลี่ยนจาก overflow-hidden เป็นการจัดการ z-index เพื่อให้ ? ลอยทะลุขอบ
+    <div className="relative flex flex-col h-full bg-[#111827] border border-slate-700 rounded-lg shadow-lg z-10" style={scrollbarHideStyle}>
       
       {isSyncing && (
         <div className="absolute inset-0 bg-[#111827]/60 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-lg">
@@ -558,152 +507,155 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
         </div>
       )}
 
-      {/* ========== FIXED HEADER SECTION ========== */}
-      <div className="shrink-0">
-  {/* --- ToolHint --- */}
-  {toolHint && (
-    <div style={{ position: "absolute", top: "3px", left: "1px", zIndex: 20 }}>
-      {toolHint}
-    </div>
-  )}
+      {/* ✨ ToolHint วางตรงนี้เพื่อให้ลอยอยู่มุมบนซ้าย */}
+      {toolHint && (
+        <div className="absolute -top-3 -left-3 z-50 shadow-lg rounded-full">
+          {toolHint}
+        </div>
+      )}
 
-        {/* --- SECTION 1: Header & Inputs --- */}
-        <div className="grid grid-cols-12 gap-2 p-3 pb-2 items-end bg-[#111827]">
+      {/* ========== FIXED HEADER SECTION ========== */}
+      <div className="shrink-0 rounded-t-lg">
+        
+        {/* ✨ SECTION 1: Header & Inputs (Flex แถวเดียว + Label ด้านบน) */}
+        {/* ✨ ใส่ pt-4 เข้าไปเพื่อให้ข้อมูลไม่โดนปุ่ม Toolhint ทับ */}
+        <div className="flex items-end gap-1.5 px-2 pt-4 pb-2 bg-[#111827] rounded-t-lg">
+          
           {/* SYNC Button */}
-          <div className="col-span-2">
+          <div className="shrink-0 w-[18%] max-w-[65px]">
             <button
               onClick={() => setIsSynced(!isSynced)}
-              className={`w-full h-[32px] flex items-center justify-center gap-1 text-[10px] font-semibold rounded-lg transition-all duration-200
+              className={`w-full h-[34px] px-1 flex items-center justify-center gap-1 text-[8px] md:text-[10px] font-bold rounded transition-all duration-200
                 ${isSynced ? "bg-[#0E3A6D] hover:bg-[#124a8a] text-white" : "bg-[#8FA3B5] hover:bg-[#7f95a8] text-white"}`}
             >
               {isSynced ? (
                 <>
-                  <LinkOutlinedIcon sx={{ fontSize: 10, opacity: 0.95 }} />
-                  SYNC
+                  <LinkOutlinedIcon sx={{ fontSize: 12, opacity: 0.95 }} />
+                  <span>SYNC</span>
                 </>
               ) : (
                 <>
-                  <LinkOffOutlinedIcon sx={{ fontSize: 7.4, opacity: 0.9 }} />
-                  UNSYNC
+                  <LinkOffOutlinedIcon sx={{ fontSize: 12, opacity: 0.9 }} />
+                  <span>UNSYNC</span>
                 </>
               )}
             </button>
           </div>
 
-{/* SYMBOL Input */}
-<div className="col-span-4 relative">
-  <input
-    value={symbol}
-    placeholder=" "
-    onChange={(e) => {
-      setSymbol(e.target.value);
-      setShowSymbolDropdown(true);
-    }}
-    onFocus={() => setShowSymbolDropdown(true)}
-    onBlur={() => setTimeout(() => setShowSymbolDropdown(false), 150)}
-    className="peer w-full bg-[#111827] border border-slate-600 rounded-md px-3 py-2 text-white text-xs uppercase outline-none pr-7"
-  />
-  <label className="absolute left-3 px-1 text-[10px] bg-[#0f172a] text-slate-400 transition-all duration-200 pointer-events-none peer-placeholder-shown:top-2 peer-placeholder-shown:text-xs peer-focus:-top-2 peer-focus:text-[10px] -top-2">
-    Symbol*
-  </label>
-  {symbol && (
-    <button
-      onMouseDown={() => {
-        setSymbol("");
-        setShowSymbolDropdown(false);
-      }}
-      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-sm transition-colors"
-    >
-      ✕
-    </button>
-  )}
-
-  {showSymbolDropdown && filteredSymbols.length > 0 && (
-    <div className="absolute left-0 right-0 mt-1 bg-[#0f172a] border border-slate-700 rounded-md shadow-lg z-50 max-h-40 overflow-y-auto">
-      {filteredSymbols.map((item, index) => (
-        <div
-          key={index}
-          onClick={() => {
-            setSymbol(item);
-            setShowSymbolDropdown(false);
-          }}
-          className="px-3 py-2 text-xs text-white hover:bg-indigo-600 cursor-pointer transition"
-        >
-          {item}
-        </div>
-      ))}
-    </div>
-  )}
-</div>
+          {/* SYMBOL Input */}
+          <div className="flex-[1.2] min-w-0 flex flex-col pl-1">
+            <label className="text-[8px] text-slate-500 font-bold uppercase tracking-wider mb-1 ml-0.5">
+              Symbol *
+            </label>
+            <div className="relative w-full">
+              <input
+                value={symbol}
+                placeholder=" "
+                onChange={(e) => {
+                  setSymbol(e.target.value);
+                  setShowSymbolDropdown(true);
+                }}
+                onFocus={() => setShowSymbolDropdown(true)}
+                onBlur={() => setTimeout(() => setShowSymbolDropdown(false), 150)}
+                className="w-full h-[34px] bg-[#0B1221] border border-slate-700 rounded px-1.5 text-white text-[10px] md:text-xs uppercase outline-none focus:border-blue-500 pr-5 transition-colors"
+              />
+              {symbol && (
+                <button
+                  onMouseDown={() => {
+                    setSymbol("");
+                    setShowSymbolDropdown(false);
+                  }}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs p-1"
+                >
+                  ✕
+                </button>
+              )}
+              {showSymbolDropdown && filteredSymbols.length > 0 && (
+                <div className="absolute left-0 right-0 mt-1 bg-[#0f172a] border border-slate-700 rounded-md shadow-lg z-50 max-h-40 overflow-y-auto">
+                  {filteredSymbols.map((item, index) => (
+                    <div
+                      key={index}
+                      onClick={() => {
+                        setSymbol(item);
+                        setShowSymbolDropdown(false);
+                      }}
+                      className="px-3 py-2 text-xs text-white hover:bg-indigo-600 cursor-pointer transition"
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* DATE Input */}
-          <div className="col-span-3 relative">
+          <div className="flex-[1.2] min-w-0 flex flex-col">
+            <label className="text-[8px] text-slate-500 font-bold uppercase tracking-wider mb-1 ml-0.5">
+              Date
+            </label>
             <input
               type="date"
               value={date}
               max={todayMax}
-              placeholder=" "
               onChange={(e) => setDate(e.target.value)}
-              className="peer w-full bg-[#0B1221] border border-slate-600 rounded-md px-3 py-2 text-white text-xs outline-none [&::-webkit-calendar-picker-indicator]:invert"
+              className="w-full h-[34px] bg-[#0B1221] border border-slate-700 rounded px-1 text-white text-[9px] sm:text-[11px] outline-none focus:border-blue-500 transition-colors [&::-webkit-calendar-picker-indicator]:invert"
             />
-            <label className="absolute left-3 px-1 text-[10px] bg-[#0f172a] text-slate-400 transition-all duration-200 pointer-events-none peer-placeholder-shown:top-2 peer-placeholder-shown:text-xs peer-focus:-top-2 peer-focus:text-[10px] -top-2">
-              Date
-            </label>
           </div>
 
           {/* SEARCH Button */}
-          <div className="col-span-3">
+          <div className="shrink-0 w-[20%] max-w-[75px]">
             <button
               onClick={handleSearch}
               disabled={isSyncing}
-              className="w-full h-[38px] bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded transition active:scale-95 disabled:opacity-50"
+              className="w-full h-[34px] bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] md:text-xs rounded transition active:scale-95 disabled:opacity-50"
             >
               SEARCH
             </button>
           </div>
         </div>
 
-{/* --- SECTION 2: Summary Cards --- */}
-<div className="px-3 pb-2">
-  <div className="grid grid-cols-3 gap-2">
-    
-    <div className="bg-[#1e1e1e] border border-green-900/50 rounded p-2 flex flex-col relative overflow-hidden min-w-0">
-      <span className="text-[10px] text-slate-400">Sum Buy</span>
-      <FitText 
-        value={data.sumBuy} 
-        className={`font-bold ${activeSymbol ? 'text-green-500' : 'text-white'}`} 
-      />
-      <div className="absolute bottom-0 left-0 h-[2px] bg-green-500 w-full"></div>
-    </div>
+        {/* --- SECTION 2: Summary Cards --- */}
+        <div className="px-3 pb-2">
+          <div className="grid grid-cols-3 gap-2">
+            
+            <div className="bg-[#1e1e1e] border border-green-900/50 rounded p-2 flex flex-col relative overflow-hidden min-w-0">
+              <span className="text-[10px] text-slate-400">Sum Buy</span>
+              <FitText 
+                value={data.sumBuy} 
+                className={`font-bold ${activeSymbol ? 'text-green-500' : 'text-white'}`} 
+              />
+              <div className="absolute bottom-0 left-0 h-[2px] bg-green-500 w-full"></div>
+            </div>
 
-    <div className="bg-[#1e1e1e] border border-green-900/50 rounded p-2 flex flex-col relative overflow-hidden min-w-0">
-      <span className="text-[10px] text-slate-400">Sum Sell</span>
-      <FitText 
-        value={data.sumSell} 
-        className={`font-bold ${activeSymbol ? 'text-red-500' : 'text-white'}`} 
-      />
-      <div className="absolute bottom-0 left-0 h-[2px] bg-red-500 w-full"></div>
-    </div>
+            <div className="bg-[#1e1e1e] border border-green-900/50 rounded p-2 flex flex-col relative overflow-hidden min-w-0">
+              <span className="text-[10px] text-slate-400">Sum Sell</span>
+              <FitText 
+                value={data.sumSell} 
+                className={`font-bold ${activeSymbol ? 'text-red-500' : 'text-white'}`} 
+              />
+              <div className="absolute bottom-0 left-0 h-[2px] bg-red-500 w-full"></div>
+            </div>
 
-    <div className="bg-[#1e1e1e] border border-green-900/50 rounded p-2 flex flex-col relative overflow-hidden min-w-0">
-      <span className="text-[10px] text-slate-400">Net Acc. Vol</span>
-      <FitText 
-        value={data.netVol} 
-        className={`font-bold ${
-          data.netVol === "0" ? 'text-white' 
-          : data.netVol.includes('-') ? 'text-red-500' 
-          : 'text-green-500'
-        }`} 
-      />
-      <div className={`absolute bottom-0 left-0 h-[2px] w-full ${
-        data.netVol === "0" ? 'bg-slate-500' 
-        : data.netVol.includes('-') ? 'bg-red-500' 
-        : 'bg-green-500'
-      }`}></div>
-    </div>
+            <div className="bg-[#1e1e1e] border border-green-900/50 rounded p-2 flex flex-col relative overflow-hidden min-w-0">
+              <span className="text-[10px] text-slate-400">Net Acc. Vol</span>
+              <FitText 
+                value={data.netVol} 
+                className={`font-bold ${
+                  data.netVol === "0" ? 'text-white' 
+                  : data.netVol.includes('-') ? 'text-red-500' 
+                  : 'text-green-500'
+                }`} 
+              />
+              <div className={`absolute bottom-0 left-0 h-[2px] w-full ${
+                data.netVol === "0" ? 'bg-slate-500' 
+                : data.netVol.includes('-') ? 'bg-red-500' 
+                : 'bg-green-500'
+              }`}></div>
+            </div>
 
-  </div>
-</div>
+          </div>
+        </div>
 
         {/* Progress Bar */}
         <div className="px-3 pb-2">
@@ -760,11 +712,10 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
       </div>
 
       {/* ========== SCROLLABLE CONTENT AREA ========== */}
-      <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2" style={scrollbarHideStyle}>
+      <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2 touch-pan-y overscroll-none rounded-b-lg" style={scrollbarHideStyle}>
         
-        {/* --- SECTION 3: Tick Table (Scrollable Inside) --- */}
+        {/* --- SECTION 3: Tick Table --- */}
         <div className="rounded overflow-hidden border border-slate-800/50 bg-[#0B1221]">
-          {/* Header - Fixed */}
           <div className="bg-[#1f2937] grid grid-cols-5 text-slate-400 text-[10px] font-medium border-b border-slate-800 sticky top-0 z-10">
             <div className="p-2 text-center">Time</div>
             <div className="p-2 text-right">Last</div>
@@ -773,8 +724,7 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
             <div className="p-2 text-right">Sum</div>
           </div>
           
-          {/* Body - Scrollable */}
-          <div className="overflow-y-auto max-h-[200px]" style={scrollbarHideStyle}>
+          <div className="overflow-y-auto max-h-[200px] touch-pan-y overscroll-none" style={scrollbarHideStyle}>
             {filteredTicks.length > 0 ? (
               filteredTicks.map((row, idx) => (
                 <div 
@@ -800,11 +750,10 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
           </div>
         </div>
 
-        {/* --- SECTION 4: Flip Section (Collapsible & Scrollable) --- */}
+        {/* --- SECTION 4: Flip Section --- */}
         {hasSearched && (
           <div className="bg-[#0B1221] border border-slate-800/50 rounded overflow-hidden">
             
-            {/* ✅ แก้ไขส่วน Header ให้เหมือนรูป */}
             <div 
               onClick={() => setIsFlipOpen(!isFlipOpen)}
               className="bg-[#374151] p-3 flex justify-between items-center cursor-pointer hover:bg-[#414b5c] transition"
@@ -814,7 +763,6 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
                   Total Flip Count: {data.flips.length}
                 </span>
                 
-                {/* Legend ตามรูป */}
                 <div className="flex items-center gap-3 text-xs">
                   <div className="flex items-center gap-1.5">
                     <div className="w-4 h-3 bg-red-500 rounded-sm"></div>
@@ -827,7 +775,6 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
                 </div>
               </div>
               
-              {/* Chevron Icon */}
               <ExpandMoreIcon 
                 sx={{
                   fontSize: 20,
@@ -840,12 +787,9 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
 
             {isFlipOpen && (
               <>
-              {/* Timeline Bar */}
               <div className="p-3 border-b border-slate-700/50 bg-[#111827]">
                 <div className="relative w-full">
-                  {/* แถบ timeline */}
                   <div className="relative w-full h-2 bg-slate-700 rounded-full mb-6">
-                    {/* ✅ Flip Markers */}
                     {data.flips.map((flip, idx) => {
                       const position = data.flips.length > 1 
                         ? (idx / (data.flips.length - 1)) * 100 
@@ -858,12 +802,10 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
                           className="absolute top-0 group/marker"
                           style={{ left: `${position}%` }}
                         >
-                          {/* แถบแนวตั้ง */}
                           <div className={`w-1 h-2 transition-all hover:h-3 hover:-translate-y-0.5 cursor-pointer ${
                             isNegative ? 'bg-red-500' : 'bg-green-500'
                           }`} />
                           
-                          {/* Tooltip on Hover - แสดงรายละเอียดเต็ม */}
                           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover/marker:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
                             <div className="bg-slate-900 border border-slate-700 text-white text-[10px] px-3 py-2 rounded shadow-xl">
                               <div className="font-bold mb-1">ครั้งที่ {flip.id}</div>
@@ -879,7 +821,6 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
                     })}
                   </div>
                   
-                  {/* ✅ เวลาแสดงด้านล่างแถบ timeline */}
                   <div className="flex justify-between text-[9px] text-slate-400 -mt-2">
                     <span>10:12</span>
                     <span>10:42</span>
@@ -891,8 +832,7 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
                 </div>
               </div>
 
-                {/* Flip Table - Scrollable */}
-                <div className="overflow-y-auto max-h-[180px]" style={scrollbarHideStyle}>
+                <div className="overflow-y-auto max-h-[180px] touch-pan-y overscroll-none" style={scrollbarHideStyle}>
                   <table className="w-full text-center border-collapse">
                     <thead className="bg-[#1f2937] text-slate-400 text-[10px] font-medium sticky top-0 z-10">
                       <tr>
@@ -948,7 +888,6 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
               </button>
             </div>
 
-            {/* Chart */}
             <div className="h-[200px] bg-[#111827] p-2">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.charts}>
@@ -981,11 +920,10 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
         )}
       </div>
 
-      {/* ✨ Chart Modal - Fullscreen Design แบบใหม่ */}
+      {/* ✨ Chart Modal - Fullscreen Design */}
       {isChartModalOpen && (
         <div className="fixed inset-0 bg-[#0d1117] z-[999] flex flex-col">
           
-          {/* Header */}
           <div className="flex items-center gap-3 px-4 py-3 bg-[#0d1117] border-b border-slate-800 flex-shrink-0">
             <button
               onClick={() => setIsChartModalOpen(false)}
@@ -996,7 +934,6 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
             
             <button
               onClick={() => {
-                // Refresh logic if needed
                 setIsSyncing(true);
                 setTimeout(() => setIsSyncing(false), 500);
               }}
@@ -1028,7 +965,6 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
             </h2>
           </div>
 
-          {/* Chart Content */}
           <div className="flex-1 min-h-0 bg-[#0d1117] flex items-center justify-center p-6">
             <div className="w-full h-full bg-[#111827] border border-slate-700 rounded-xl p-6">
               <ResponsiveContainer width="100%" height="100%">
@@ -1071,14 +1007,12 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
   =========================================================== */
   if (!isMember) {
     return (
-      <div className="relative w-full min-h-screen text-white overflow-hidden animate-fade-in pb-20">
+      <div className="relative w-full min-h-screen text-white overflow-x-hidden animate-fade-in pb-20">
         
-        {/* Background Glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-4 py-8 flex flex-col items-center">
           
-          {/* Header */}
           <div className="text-center mb-10">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
               <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">
@@ -1090,21 +1024,17 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
             </p>
           </div>
 
-          {/* Preview Image Card */}
           <div className="relative group w-full max-w-5xl mb-16">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700"></div>
 
             <div className="relative h-[450px] md:h-[650px] flex flex-col bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
               
-              {/* Window Bar */}
               <div className="flex-none bg-[#0f172a] px-4 py-3 border-b border-slate-700/50 flex gap-2">
                 <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
                 <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
                 <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
               </div>
               
-              {/* ✅ 1. แก้เป็น overflow-hidden เพื่อซ่อนเนื้อหาที่ล้นออกจากกล่อง */}
-              {/* ✅ 2. เติม pointer-events-none เพื่อล็อคการสัมผัส ไม่ให้เลื่อนหรือคลิกข้างในได้ */}
               <div className="flex-1 overflow-hidden bg-[#0B1221] pointer-events-none">
                 
                 <div className="w-full h-[900px] opacity-90 group-hover:opacity-100 transition duration-500">
@@ -1114,20 +1044,17 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
             </div>
           </div>
 
-          {/* Features Section (Scrollable) */}
           <div className="w-full max-w-5xl mb-12">
             <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left border-l-4 border-cyan-500 pl-4">
               4 Main Features
             </h2>
             
-            {/* Wrapper เพื่อดักจับ Mouse Hover สำหรับหยุด Auto Scroll */}
             <div 
               className="relative group w-full" 
               onMouseEnter={() => isPaused.current = true}
               onMouseLeave={() => isPaused.current = false}
             >
               
-              {/* Left Button */}
               <button 
                 onClick={() => scroll("left")}
                 className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20 
@@ -1144,7 +1071,6 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
                 </svg>
               </button>
 
-              {/* Scroll Container */}
               <div 
                 ref={scrollContainerRef} 
                 onScroll={checkScroll} 
@@ -1159,7 +1085,6 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
                 ))}
               </div>
 
-              {/* Right Button */}
               <button 
                 onClick={() => scroll("right")}
                 className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-20 z-20 
@@ -1178,11 +1103,9 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
             </div>
           </div>
 
-          {/* CTA Buttons */}
           <div className="text-center w-full max-w-md mx-auto mt-4">
             <div className="flex flex-col md:flex-row items-center justify-center gap-4">
               
-              {/* 🟢 ครอบปุ่ม Sign In ด้วยเงื่อนไขนี้ */}
               {!currentUser && (
                 <button
                   onClick={() => navigate("/login")}
@@ -1210,14 +1133,12 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
   =========================================================== */
   if (isMember && !enteredTool) {
     return (
-      <div className="relative w-full min-h-screen text-white overflow-hidden animate-fade-in pb-20">
+      <div className="relative w-full min-h-screen text-white overflow-x-hidden animate-fade-in pb-20">
         
-        {/* Background Glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-4 py-8 flex flex-col items-center">
           
-          {/* Header */}
           <div className="text-center mb-10">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
               <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">
@@ -1229,21 +1150,17 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
             </p>
           </div>
 
-          {/* Preview Image Card */}
           <div className="relative group w-full max-w-5xl mb-16">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700"></div>
 
             <div className="relative h-[450px] md:h-[650px] flex flex-col bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
               
-              {/* Window Bar */}
               <div className="flex-none bg-[#0f172a] px-4 py-3 border-b border-slate-700/50 flex gap-2">
                 <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
                 <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
                 <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
               </div>
               
-              {/* ✅ 1. แก้เป็น overflow-hidden เพื่อซ่อนเนื้อหาที่ล้นออกจากกล่อง */}
-              {/* ✅ 2. เติม pointer-events-none เพื่อล็อคการสัมผัส ไม่ให้เลื่อนหรือคลิกข้างในได้ */}
               <div className="flex-1 overflow-hidden bg-[#0B1221] pointer-events-none">
                 
                 <div className="w-full h-[900px] opacity-90 group-hover:opacity-100 transition duration-500">
@@ -1253,20 +1170,17 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
             </div>
           </div>
         
-          {/* Features Section (Scrollable) */}
           <div className="w-full max-w-5xl mb-12">
             <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left border-l-4 border-cyan-500 pl-4">
               4 Main Features
             </h2>
             
-            {/* Wrapper เพื่อดักจับ Mouse Hover สำหรับหยุด Auto Scroll */}
             <div 
               className="relative group w-full"
               onMouseEnter={() => isPaused.current = true}
               onMouseLeave={() => isPaused.current = false}
             >
               
-              {/* Left Button */}
               <button 
                 onClick={() => scroll("left")}
                 className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20 
@@ -1283,7 +1197,6 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
                 </svg>
               </button>
 
-              {/* Scroll Container */}
               <div 
                 ref={scrollContainerRef} 
                 onScroll={checkScroll} 
@@ -1298,7 +1211,6 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
                 ))}
               </div>
 
-              {/* Right Button */}
                 <button 
                 onClick={() => scroll("right")}
                 className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-20 z-20 
@@ -1317,14 +1229,13 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
             </div>
           </div>
 
-          {/* Start Button */}
           <div className="flex gap-4 justify-center w-full">
             <button
               onClick={() => {
                 setEnteredTool(true);
                 localStorage.setItem("tickToolEntered", "true"); // จำสถานะของ TickMatch
               }}
-              className="group relative inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300"
+              className="group relative inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] hover:scale-105 transition-all duration-300"
             >
               <span className="mr-2">Start Using Tool</span>
               <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1343,21 +1254,24 @@ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
 const todayStr = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="w-full h-screen bg-[#0B1221] text-white p-2 md:p-4 animate-fade-in flex flex-col gap-2 md:gap-4 ">
+    // ✨ ปรับเป็น min-h-screen เพื่อใช้ Native Scroll ของ Browser
+    <div className="w-full min-h-screen bg-[#0b111a] text-white p-3 sm:p-6 flex flex-col pb-24">
 
-      {/* Main Grid Layout (2 Panels ของ TickMatch) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-hidden">
+      <div className="max-w-[1600px] w-full mx-auto flex-1">
         
-      <AnalysisPanel
-  defaultSymbol=""
-  defaultDate={todayStr}
-  toolHint={
-    <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
-      Match tick-by-tick data patterns, recognize trading flow correlations, detect relationships between assets, and analyze pattern-based insights
-    </ToolHint>
-  }
-/>
-<AnalysisPanel defaultSymbol="" defaultDate={todayStr} />
+        {/* ✨ ปรับ gap ให้เล็กลงในมือถือเหมือน S50 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <AnalysisPanel
+            defaultSymbol=""
+            defaultDate={todayStr}
+            toolHint={
+              <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
+                Match tick-by-tick data patterns, recognize trading flow correlations, detect relationships between assets, and analyze pattern-based insights
+              </ToolHint>
+            }
+          />
+          <AnalysisPanel defaultSymbol="" defaultDate={todayStr} />
+        </div>
       </div>
     </div>
   );
