@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 
 /* ================= CONSTANTS ================= */
 const CATEGORIES = ["SET100", "NON-SET100", "MAI", "WARRANT"];
@@ -1116,11 +1117,13 @@ const SectionCard = ({ category, type, seed: initSeed, globalHoverIndex, setGlob
 
 /* ================= MAIN COMPONENT ================= */
 export default function RealFlow() {
+  const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState(null);
   const [searchQuery, setSearchQuery]        = useState("");
   const [globalHoverIndex, setGlobalHoverIndex] = useState(null);
   const [pointGap, setPointGap] = useState(52);
   const chartRefs = useRef({});
+  
 
   const handleZoom = useCallback((deltaY, mouseClientX, scrollEl) => {
     setPointGap(prev => {
