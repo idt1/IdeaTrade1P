@@ -209,28 +209,32 @@ function ChartCard({
   const isHovering = globalHoverIndex !== null && !isDragging && globalHoverIndex < data.length;
   const hoverX = isHovering ? paddingLeft + globalHoverIndex * pointGap : null;
 
-  return (
-    <div className="bg-[#111827] border border-slate-700 rounded-xl flex flex-col">
+return (
+    // 🟢 1. เติมคำว่า relative ลงไปใน className ของบรรทัดนี้ เพื่อล็อคไม่ให้ปุ่ม ? บินหลุดกรอบ
+    <div className="relative bg-[#111827] border border-slate-700 rounded-xl flex flex-col">
 
-    {toolHint && (
-  <div style={{ position: "absolute", top: "8px", left: "3px", zIndex: 20 }}>
-    {toolHint}
-  </div>
-)}
+      {/* 🟢 2. ปรับตำแหน่ง ToolHint ให้อยู่มุมซ้ายบน ลอยออกมานอกการ์ดนิดนึง (-top-3, -left-3) */}
+      {toolHint && (
+        <div className="absolute -top-3 -left-3 z-20 shadow-lg rounded-full">
+          {toolHint}
+        </div>
+      )}
+
       {/* Header */}
-      <div className="px-4 py-3 bg-[#0f172a] border-b border-slate-700/50 flex justify-between items-center">
-      <span className="text-sm font-bold text-slate-300">{title}</span>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={onRefresh}
-          disabled={isRefreshing}
-          className="w-7 h-7 rounded-md bg-[#1e293b] text-slate-400 hover:text-white hover:bg-slate-700 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label={`Refresh ${title}`}
-        >
-          <RefreshIcon sx={{ fontSize: 16, color: "inherit" }} className={isRefreshing ? "animate-spin" : ""} />
-        </button>
+      {/* 🟢 3. ถ้ากลัวปุ่มทับตัวอักษร อาจจะเพิ่ม pl-6 (เว้นซ้าย) ตรง Header เผื่อไว้หน่อยครับ */}
+      <div className="px-4 pl-6 py-3 bg-[#0f172a] border-b border-slate-700/50 flex justify-between items-center rounded-t-xl">
+        <span className="text-sm font-bold text-slate-300">{title}</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="w-7 h-7 rounded-md bg-[#1e293b] text-slate-400 hover:text-white hover:bg-slate-700 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label={`Refresh ${title}`}
+          >
+            <RefreshIcon sx={{ fontSize: 16, color: "inherit" }} className={isRefreshing ? "animate-spin" : ""} />
+          </button>
+        </div>
       </div>
-    </div> 
 
       {/* SVG Interactive Area */}
       {isRefreshing ? (
@@ -666,13 +670,19 @@ const user = localStorage.getItem("token");
     );
   }
 
-  /* ==========================================================
+/* ==========================================================
     CASE 3 : FULL DASHBOARD (Member + Entered)
   ========================================================== */
   return (
-    <div className="w-full h-screen overflow-hidden bg-[#0b111a] text-white px-6 py-6 flex flex-col">
-      <div className="max-w-[1600px] w-full mx-auto flex-1 min-h-0 overflow-y-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    // 🟢 1. เปลี่ยนจาก h-screen overflow-hidden เป็น min-h-screen เพื่อใช้ Native Scroll ของเบราว์เซอร์
+    // 🟢 2. ปรับ px-6 เป็น p-3 sm:p-6 สำหรับมือถือ เพื่อให้ขอบไม่แคบไป และมีพื้นที่ร่องให้เอานิ้วไถจอได้ง่ายขึ้น
+    <div className="w-full min-h-screen bg-[#0b111a] text-white p-3 sm:p-6 flex flex-col pb-24">
+      
+      {/* 🟢 3. เอา overflow-y-auto ออก ปล่อยให้มัน Scroll อิสระ */}
+      <div className="max-w-[1600px] w-full mx-auto flex-1">
+        
+        {/* 🟢 4. ปรับ gap ให้เล็กลงในมือถือ (gap-4) และจอใหญ่ (gap-6) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <ChartCard 
             title="1. Last (SET50 Daily)" 
             timeframe={timeframe} 
@@ -683,7 +693,7 @@ const user = localStorage.getItem("token");
             refreshKey={refreshKey}
             isRefreshing={isRefreshing}
             onRefresh={handleRefresh}
-            toolHint={  // ✅ เพิ่มตรงนี้
+            toolHint={
                   <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
                       Monitor SET50 Index in multiple timeframes, analyze trend with flow analysis, confirm bullish/bearish momentum, and sync charts for comparative analysis
                   </ToolHint> }

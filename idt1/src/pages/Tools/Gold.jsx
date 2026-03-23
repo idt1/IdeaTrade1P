@@ -171,20 +171,24 @@ function DynamicChart({ title, height = 280, color, gradientId, seed, points = 7
   const isHovering = globalHoverIndex !== null && !isDragging && globalHoverIndex < data.length;
   const hoverX = isHovering ? paddingLeft + globalHoverIndex * pointGap : null;
 
-  // FIX 1: card div ครอบทั้ง header + SVG container ไว้ด้วยกัน
   return (
-    <div className={`bg-[#111827] border border-slate-700 rounded-xl flex flex-col ${className}`}>
+    <div className={`relative bg-[#111827] border border-slate-700 rounded-xl flex flex-col ${className}`}>
 
+      {/* 🟢 ToolHint ลอยตัวที่มุมซ้ายบนของการ์ด เหมือนหน้า S50 */}
       {toolHint && (
-  <div style={{ position: "absolute", top: "8px", left: "3px", zIndex: 20 }}>
-    {toolHint}
-  </div>
-)}
+        <div className="absolute -top-3 -left-3 z-20 shadow-lg rounded-full">
+          {toolHint}
+        </div>
+      )}
 
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 bg-[#0f172a] rounded-t-xl flex items-center justify-between shrink-0">
+      {/* 🟢 เพิ่ม pl-6 (padding-left) เพื่อเว้นที่ให้ปุ่มที่ลอยอยู่ ไม่ให้ทับตัวหนังสือ */}
+      <div className="px-3 sm:px-4 pl-6 sm:pl-8 pt-4 pb-3 bg-[#0f172a] rounded-t-xl flex items-center justify-between shrink-0">
+        
         <p className="text-sm text-slate-300 font-bold uppercase tracking-wide">{title}</p>
-        <div className="flex items-center gap-3">
+
+        {/* ส่วนตัวเลขและปุ่มรีเฟรชด้านขวา */}
+        <div className="flex items-center gap-2 sm:gap-3">
           <span className="text-sm font-bold" style={{ color: dynamicColor }}>
             {lastPt.toFixed(2)}
           </span>
@@ -666,8 +670,8 @@ export default function Gold() {
   ========================================================== */
 
   return (
-    <div className="w-full h-screen overflow-hidden bg-[#0b111a] text-white px-6 py-6 flex flex-col">
-      <div className="max-w-[1700px] w-full mx-auto flex-1 min-h-0 flex flex-col overflow-y-auto">
+    <div className="w-full min-h-screen bg-[#0b111a] text-white p-3 sm:p-6 flex flex-col pb-24">
+      <div className="max-w-[1700px] w-full mx-auto flex-1 flex flex-col">
 
         {/* ================= MAIN CHART ================= */}
         <DynamicChart
@@ -684,7 +688,7 @@ export default function Gold() {
           points={100}
           basePrice={2030}
           vol={10}
-          className="mb-6 shrink-0"
+          className="mb-4 sm:mb-6 shrink-0" 
           globalHoverIndex={globalHoverIndex}
           setGlobalHoverIndex={setGlobalHoverIndex}
           chartRefs={chartRefs}
@@ -693,7 +697,7 @@ export default function Gold() {
         />
 
         {/* ================= LOWER GRID ================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 
           <DynamicChart
             chartId="chart-trends"
