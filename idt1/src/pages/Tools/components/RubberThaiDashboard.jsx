@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-//import { AreaLWC } from '../../../components/LWChart';
+import { AreaLWC } from '../../../components/LWChart';
 
 const dates = [
   '02/06/24','05/06/24','08/06/24','11/06/24','14/06/24','17/06/24','20/06/24',
