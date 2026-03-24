@@ -205,7 +205,7 @@ export default function BidAsk() {
               onMouseLeave={() => isPaused.current = false}
             >
 
-              <button 
+              <button
                 onClick={() => scroll("left")}
                 className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20 
                           w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white 
@@ -213,7 +213,7 @@ export default function BidAsk() {
                           hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] 
                           flex items-center justify-center transition-all duration-300 backdrop-blur-sm
                           active:scale-95
-                          ${showLeft ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`} 
+                          ${showLeft ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
                 aria-label="Scroll Left"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -246,7 +246,7 @@ export default function BidAsk() {
                 ))}
               </div>
 
-              <button 
+              <button
                 onClick={() => scroll("right")}
                 className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-20 z-20 
                           w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white 
@@ -268,8 +268,7 @@ export default function BidAsk() {
           {/* CTA Buttons */}
           <div className="text-center w-full max-w-md mx-auto mt-4">
             <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-              
-              {/* 🟢 ครอบปุ่ม Sign In ด้วยเงื่อนไขนี้ */}
+
               {!currentUser && (
                 <button
                   onClick={() => navigate("/login")}
@@ -352,7 +351,7 @@ export default function BidAsk() {
               onMouseLeave={() => isPaused.current = false}
             >
 
-              <button 
+              <button
                 onClick={() => scroll("left")}
                 className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20 
                           w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white 
@@ -360,7 +359,7 @@ export default function BidAsk() {
                           hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] 
                           flex items-center justify-center transition-all duration-300 backdrop-blur-sm
                           active:scale-95
-                          ${showLeft ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`} 
+                          ${showLeft ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
                 aria-label="Scroll Left"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -393,7 +392,7 @@ export default function BidAsk() {
                 ))}
               </div>
 
-              <button 
+              <button
                 onClick={() => scroll("right")}
                 className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-20 z-20 
                           w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white 
@@ -434,18 +433,19 @@ export default function BidAsk() {
 
   /* ==========================================================
      CASE 3 : FULL PRODUCTION DASHBOARD
-     - Desktop: h-screen overflow-hidden flex flex-col (unchanged)
-     - Mobile: min-h-screen overflow-y-auto flex flex-col
+     - Mobile:          min-h-screen, panels stack vertically (h-[600px] each)
+     - Tablet landscape (lg: 1024px+): side-by-side, fills h-screen
+     - Desktop (xl):    same as lg
   ========================================================== */
   return (
-    <div className="w-full xl:h-screen xl:overflow-hidden min-h-screen bg-[#0b111a] text-white px-3 md:px-6 py-3 md:py-6 flex flex-col">
-      <div className="max-w-[1800px] mx-auto flex-1 xl:min-h-0 flex flex-col">
+    <div className="w-full min-h-screen lg:h-[calc(100dvh-64px)] lg:overflow-hidden bg-[#0b111a] text-white px-3 md:px-6 py-3 md:py-6 flex flex-col">
+      <div className="max-w-[1800px] mx-auto flex-1 lg:min-h-0 flex flex-col">
 
         {/* TWO PANELS
-            - Mobile: stack vertically, each panel has fixed height
-            - Desktop (xl): side-by-side, fill remaining height
+            - Mobile:           stack vertically, each panel h-[600px]
+            - Tablet landscape+ (lg): side-by-side, fill remaining height
         */}
-        <div className="flex-1 xl:min-h-0 grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6 overflow-visible pt-4">
+        <div className="flex-1 lg:min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 overflow-visible pt-4">
           <ReplayPanel
             toolHint={
               <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
@@ -607,17 +607,19 @@ function ReplayPanel({ toolHint }) {
 
   return (
     /*
-      Mobile:  fixed height 600px, scrollable internally
-      Desktop (xl): flex flex-col h-full min-h-0 (fills grid cell)
+      Mobile:               fixed height 600px, scrollable internally
+      Tablet landscape+ (lg): flex flex-col h-full min-h-0 (fills grid cell)
     */
-    <div className="bg-[#111827] border border-slate-700 rounded-xl flex flex-col h-[600px] xl:h-full xl:min-h-0 relative">
+    <div className="bg-[#111827] border border-slate-700 rounded-xl flex flex-col h-[600px] lg:h-full lg:min-h-0 relative">
+
       {/* ToolHint — ลอยบนขอบบนซ้าย */}
       {toolHint && (
         <div style={{ position: "absolute", top: "-11px", left: "-11px", zIndex: 20 }}>
           {toolHint}
         </div>
       )}
-      <div className="p-3 md:p-4 border-b border-slate-700 bg-[#0f172a] shrink-0 relative rounded-t-xl">
+
+      <div className="p-3 md:p-4 border-b border-slate-700 bg-[#0f172a] shrink-0 relative">
         {/* Row 1: Symbol | Start Date | End Date */}
         <div className="grid grid-cols-3 gap-2 md:gap-3 mb-2 md:mb-3 text-xs text-slate-500">
 
@@ -644,7 +646,7 @@ function ReplayPanel({ toolHint }) {
               {/* ปุ่ม Clear */}
               {symbol && (
                 <button
-                  onMouseDown={(e) => e.preventDefault()} // ป้องกัน onBlur ยิงก่อน onClick
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     setSymbol("");
                     setIsSearched(false);
@@ -875,7 +877,7 @@ function ReplayPanel({ toolHint }) {
       </div>
 
       {/* STATS */}
-      <div className="grid grid-cols-2 gap-2 md:gap-4 p-3 md:p-4 border-t border-slate-700 bg-[#0f172a] shrink-0 rounded-b-xl">
+      <div className="grid grid-cols-2 gap-2 md:gap-4 p-3 md:p-4 border-t border-slate-700 bg-[#0f172a] shrink-0">
         <StatSection title="In Range" />
         <StatSection title="Actual" />
       </div>
