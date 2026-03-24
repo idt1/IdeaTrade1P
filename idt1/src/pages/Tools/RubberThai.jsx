@@ -758,7 +758,7 @@ export default function RubberThai() {
 
         {/* TOP SEARCH BAR */}
         <div className="flex items-center gap-4 mb-6 shrink-0">
-          <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
+          <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
             Real-time Thai rubber price tracking, symbol selection, analyze 24-hour close prices, and view comprehensive price dashboard
           </ToolHint>
 
