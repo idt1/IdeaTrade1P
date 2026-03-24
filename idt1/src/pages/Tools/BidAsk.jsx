@@ -454,12 +454,12 @@ export default function BidAsk() {
             }
           />
           <ReplayPanel />
-                  </div>
+        </div>
 
-                </div>
-              </div>
-            );
-          }
+      </div>
+    </div>
+  );
+}
 
 // Sub-components
 function Badge({ label, value, color }) {
@@ -611,55 +611,55 @@ function ReplayPanel({ toolHint }) {
       Desktop (xl): flex flex-col h-full min-h-0 (fills grid cell)
     */
     <div className="bg-[#111827] border border-slate-700 rounded-xl flex flex-col h-[600px] xl:h-full xl:min-h-0 relative">
-{/* ToolHint — ลอยบนขอบบนซ้าย */}
-  {toolHint && (
-    <div style={{ position: "absolute", top: "-11px", left: "-11px", zIndex: 20 }}>
-      {toolHint}
-    </div>
-  )}
- <div className="p-3 md:p-4 border-b border-slate-700 bg-[#0f172a] shrink-0 relative">
+      {/* ToolHint — ลอยบนขอบบนซ้าย */}
+      {toolHint && (
+        <div style={{ position: "absolute", top: "-11px", left: "-11px", zIndex: 20 }}>
+          {toolHint}
+        </div>
+      )}
+      <div className="p-3 md:p-4 border-b border-slate-700 bg-[#0f172a] shrink-0 relative rounded-t-xl">
         {/* Row 1: Symbol | Start Date | End Date */}
         <div className="grid grid-cols-3 gap-2 md:gap-3 mb-2 md:mb-3 text-xs text-slate-500">
 
           {/* SYMBOL */}
-<div className="relative">
-  <div className="relative bg-[#111827] border border-slate-600 rounded-md px-3 py-2 flex items-center">
-    <input
-      value={symbol}
-      onChange={(e) => {
-        setSymbol(e.target.value);
-        setShowSymbolDropdown(true);
-      }}
-      onFocus={() => {
-        setIsFocused(true);
-        setShowSymbolDropdown(true);
-      }}
-      onBlur={() => {
-        setTimeout(() => setShowSymbolDropdown(false), 150);
-        setIsFocused(false);
-      }}
-      className="w-full bg-transparent outline-none text-white text-xs pr-5"
-    />
+          <div className="relative">
+            <div className="relative bg-[#111827] border border-slate-600 rounded-md px-3 py-2 flex items-center">
+              <input
+                value={symbol}
+                onChange={(e) => {
+                  setSymbol(e.target.value);
+                  setShowSymbolDropdown(true);
+                }}
+                onFocus={() => {
+                  setIsFocused(true);
+                  setShowSymbolDropdown(true);
+                }}
+                onBlur={() => {
+                  setTimeout(() => setShowSymbolDropdown(false), 150);
+                  setIsFocused(false);
+                }}
+                className="w-full bg-transparent outline-none text-white text-xs pr-5"
+              />
 
-    {/* ปุ่ม Clear */}
-    {symbol && (
-      <button
-        onMouseDown={(e) => e.preventDefault()} // ป้องกัน onBlur ยิงก่อน onClick
-        onClick={() => {
-          setSymbol("");
-          setIsSearched(false);
-          setIsPlaying(false);
-          setShowSymbolDropdown(false);
-        }}
-        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
-        aria-label="Clear symbol"
-      >
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-    )}
-  </div>
+              {/* ปุ่ม Clear */}
+              {symbol && (
+                <button
+                  onMouseDown={(e) => e.preventDefault()} // ป้องกัน onBlur ยิงก่อน onClick
+                  onClick={() => {
+                    setSymbol("");
+                    setIsSearched(false);
+                    setIsPlaying(false);
+                    setShowSymbolDropdown(false);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                  aria-label="Clear symbol"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
 
             {showSymbolDropdown && filteredSymbols.length > 0 && (
               <div className="absolute left-0 right-0 mt-1 bg-[#0f172a] border border-slate-700 rounded-md shadow-lg z-50 max-h-40 overflow-y-auto">
@@ -875,7 +875,7 @@ function ReplayPanel({ toolHint }) {
       </div>
 
       {/* STATS */}
-      <div className="grid grid-cols-2 gap-2 md:gap-4 p-3 md:p-4 border-t border-slate-700 bg-[#0f172a] shrink-0">
+      <div className="grid grid-cols-2 gap-2 md:gap-4 p-3 md:p-4 border-t border-slate-700 bg-[#0f172a] shrink-0 rounded-b-xl">
         <StatSection title="In Range" />
         <StatSection title="Actual" />
       </div>
