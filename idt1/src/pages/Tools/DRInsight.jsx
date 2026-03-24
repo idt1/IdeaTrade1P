@@ -187,7 +187,6 @@ function TVChart({ data, themeColor = "#3b82f6" }) {
         background: { type: 'solid', color: 'transparent' },
         textColor: '#64748b',
       },
-      // ล็อคกราฟไม่ให้เลื่อนหรือซูม
       handleScroll: false,
       handleScale: false,
       grid: {
@@ -227,10 +226,7 @@ function TVChart({ data, themeColor = "#3b82f6" }) {
   }, [data, themeColor]);
 
   return (
-    // เพิ่ม class "tv-chart-container" เพื่อใช้เป็นตัวอ้างอิง
     <div className="relative w-full h-full tv-chart-container">
-      
-      {/* บังคับซ่อน Tag <a> ทั้งหมดที่อยู่ใน container นี้ (ซึ่งก็คือตัวโลโก้) */}
       <style>{`
         .tv-chart-container a { 
           display: none !important; 
@@ -239,8 +235,169 @@ function TVChart({ data, themeColor = "#3b82f6" }) {
           pointer-events: none !important;
         }
       `}</style>
-      
       <div ref={chartContainerRef} className="absolute inset-0 w-full h-full min-h-[150px]" />
+    </div>
+  );
+}
+
+/* ===============================
+    WAVE SKELETON
+================================ */
+const shimmerKeyframes = `
+  @keyframes shimmer {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+`;
+
+function WaveSkeleton({ delay = 0, height = "180px" }) {
+  return (
+    <div
+      className="w-full bg-[#0f172a] rounded-lg overflow-hidden relative flex-1 min-h-0"
+      style={{ height: height === "100%" ? "100%" : height }}
+    >
+      <style>{shimmerKeyframes}</style>
+      <div className="absolute inset-0 flex flex-col justify-between p-3">
+        <div className="flex gap-2">
+          <div className="h-2 rounded-full bg-slate-800 w-1/3" />
+          <div className="h-2 rounded-full bg-slate-800 w-1/5" />
+        </div>
+        <div className="flex-1 my-3 rounded bg-slate-800/60" />
+        <div className="flex gap-3 justify-between">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-2 rounded-full bg-slate-800 flex-1" />
+          ))}
+        </div>
+      </div>
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "linear-gradient(90deg, transparent 0%, rgba(56,189,248,0.08) 40%, rgba(125,211,252,0.18) 50%, rgba(56,189,248,0.08) 60%, transparent 100%)",
+          animation: "shimmer 1.8s ease-in-out infinite",
+          animationDelay: `${delay}s`,
+        }}
+      />
+    </div>
+  );
+}
+/* ===============================
+    LEGEND PILLS
+================================ */
+function LegendPills() {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {[
+        { label: "ราคาน้ำมัน", color: "bg-blue-500" },
+        { label: "PE Ratio", color: "bg-red-500" },
+        { label: "Last", color: "bg-green-500" },
+      ].map(item => (
+        <div
+          key={item.label}
+          className="bg-[#111827] px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-[11px] text-slate-400 border border-slate-800 flex items-center gap-2 whitespace-nowrap"
+        >
+          <span>{item.label}</span>
+          <div className={`w-5 sm:w-7 h-0.5 ${item.color} rounded`}></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ===============================
+    SEARCH BAR
+================================ */
+function SearchBar({ value, onChange }) {
+  return (
+    <div className="flex items-center gap-2 bg-[#1a1f2b] border border-slate-700/60 rounded-xl px-3 py-2 sm:py-2.5">
+      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      <input
+        type="text"
+        placeholder="Filter symbol..."
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="bg-transparent text-xs sm:text-sm text-slate-300 focus:outline-none placeholder-slate-600 w-full"
+      />
+      {value && (
+        <button onClick={() => onChange("")} className="text-slate-500 hover:text-white transition shrink-0">
+          <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ===============================
+    STOCK LIST ITEM
+================================ */
+function StockListItem({ stock, idx, selectedSymbol, onClick, compact = false }) {
+  const isSelected = selectedSymbol === stock.dr;
+  return (
+    <div
+      onClick={() => onClick(stock.dr)}
+      className={`flex justify-between items-center cursor-pointer transition-colors group rounded
+        ${compact
+          ? "text-[9px] p-1 sm:p-1.5"
+          : "text-[10px] px-2 py-1.5 border-b border-slate-800/40"
+        }
+        ${isSelected
+          ? "bg-cyan-500/20 border border-cyan-500/50"
+          : "hover:bg-slate-800/60"
+        }`}
+    >
+      <div className="flex items-center gap-1.5 sm:gap-2 overflow-hidden">
+        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColors[idx % dotColors.length]}`} />
+        <span className={`font-bold tracking-wide truncate ${isSelected ? "text-cyan-400" : "text-slate-200 group-hover:text-white"}`}>
+          {stock.dr}
+        </span>
+      </div>
+      <span className="text-slate-500 truncate max-w-[55px] sm:max-w-[70px] text-right ml-1 shrink-0">
+        {stock.real}
+      </span>
+    </div>
+  );
+}
+
+/* ===============================
+    STOCK PANEL (sidebar panel)
+================================ */
+function StockPanel({ title, stocks, selectedSymbol, onStockClick, globalFilter, compact = false, flex = "" }) {
+  const filtered = stocks.filter(s =>
+    s.dr.toLowerCase().includes(globalFilter.toLowerCase()) ||
+    s.name.toLowerCase().includes(globalFilter.toLowerCase())
+  );
+
+  return (
+    <div className={`bg-[#111827] border border-slate-800/80 rounded-xl flex flex-col overflow-hidden shadow-lg min-h-0 ${flex}`}>
+      <div className="px-2 sm:px-3 py-2 sm:py-2.5 flex justify-between items-center border-b border-slate-800/60 bg-[#141b2a] shrink-0">
+        <span className="font-bold text-[11px] sm:text-[13px] text-white">{title}</span>
+        <img src={drIcon} alt="dr" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+      </div>
+      {!compact && (
+        <div className="flex justify-between text-[8px] text-slate-500 px-2 py-1 font-semibold uppercase tracking-wider bg-[#111827] border-b border-slate-800/60 shrink-0">
+          <span>DR/DRx</span>
+          <span>TradingView</span>
+        </div>
+      )}
+      <div className="overflow-y-auto flex-1 bg-[#0B1221] p-1.5 sm:p-2" style={scrollbarHideStyle}>
+        {filtered.length === 0 ? (
+          <div className="text-center text-[10px] text-slate-600 py-2">No results</div>
+        ) : (
+          filtered.map((stock, idx) => (
+            <StockListItem
+              key={stock.dr}
+              stock={stock}
+              idx={idx}
+              selectedSymbol={selectedSymbol}
+              onClick={onStockClick}
+              compact={compact}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -306,14 +463,15 @@ function CountrySection({ title, stocks, selectedSymbol, onStockClick, globalFil
 }
 
 /* ===============================
-    CHART CARD COMPONENT (Mobile)
+    CHART CARD COMPONENT
 ================================ */
-function ChartCard({ chartKey, chartSelections, setChartSelections, chartData, themeColor, onFullscreen, onStockSelect }) {
+function ChartCard({ chartKey, chartSelections, setChartSelections, chartData, themeColor, onFullscreen, onStockSelect, containerClass = "", customHeightClass = "h-[200px] shrink-0" }) {
   const stockName = chartSelections[chartKey];
   const data = chartData[chartKey];
 
   return (
-    <div className="bg-[#1a1f2b] border border-slate-700/60 rounded-xl overflow-hidden flex flex-col">
+    <div className={`bg-[#1a1f2b] border border-slate-700/60 rounded-xl overflow-hidden flex flex-col ${containerClass}`}>
+      {/* ส่วนหัวของกราฟ (Dropdown) */}
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-800 bg-[#1e2433] shrink-0 z-10">
         <select
           value={stockName}
@@ -344,7 +502,8 @@ function ChartCard({ chartKey, chartSelections, setChartSelections, chartData, t
         </div>
       </div>
 
-      <div className="relative bg-[#0B1221] flex-1" style={{ height: "180px" }}>
+      {/* พื้นที่ของกราฟ */}
+      <div className={`relative bg-[#0B1221] w-full ${customHeightClass}`}>
         {!stockName && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
             <span className="text-slate-600 text-xs">Select a symbol to display chart</span>
@@ -359,39 +518,222 @@ function ChartCard({ chartKey, chartSelections, setChartSelections, chartData, t
 }
 
 /* ===============================
-    WAVE SKELETON
+    MOBILE: Nested Country Section (เมนูย่อยกดพับได้)
 ================================ */
-const shimmerKeyframes = `
-  @keyframes shimmer {
-    0%   { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
-`;
+function NestedCountrySection({ region, selectedSymbol, onStockClick, globalFilter }) {
+  const [open, setOpen] = useState(false); // ตั้งค่าเริ่มต้นเป็น false (ย่อปิดไว้)
+  
+  const filtered = region.stocks.filter(s =>
+    s.dr.toLowerCase().includes(globalFilter.toLowerCase()) ||
+    s.name.toLowerCase().includes(globalFilter.toLowerCase())
+  );
+  
+  const hasFilterMatch = globalFilter.length > 0 && filtered.length > 0;
 
-function WaveSkeleton({ delay = 0 }) {
+  if (filtered.length === 0) return null;
+
   return (
-    <div className="w-full h-[180px] bg-[#0f172a] rounded-lg overflow-hidden relative">
-      <style>{shimmerKeyframes}</style>
-      <div className="absolute inset-0 flex flex-col justify-between p-3">
-        <div className="flex gap-2">
-          <div className="h-2 rounded-full bg-slate-800 w-1/3" />
-          <div className="h-2 rounded-full bg-slate-800 w-1/5" />
+    <div className="border-b border-slate-800/50 last:border-none">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-5 py-2.5 bg-[#111827] hover:bg-[#1a2235] transition-colors"
+      >
+        <div className="flex items-center gap-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+          <span>{region.icon}</span>
+          <span>{region.title}</span>
         </div>
-        <div className="flex-1 my-3 rounded bg-slate-800/60" />
-        <div className="flex gap-3 justify-between">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-2 rounded-full bg-slate-800 flex-1" />
+        <svg
+          className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${(open || hasFilterMatch) ? "rotate-180" : ""}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {(open || hasFilterMatch) && (
+        <div className="bg-[#0d1220]">
+          {filtered.map((stock) => (
+            <button
+              key={stock.dr}
+              onClick={() => onStockClick(stock.dr)}
+              className={`w-full flex items-center justify-between px-6 py-2.5 border-b border-slate-800/40 transition-colors text-left ${
+                selectedSymbol === stock.dr
+                  ? "bg-cyan-500/15 border-l-2 border-l-cyan-400"
+                  : "hover:bg-[#1a2030] active:bg-[#1e2638]"
+              }`}
+            >
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                <div className="w-1.5 h-1.5 rounded-full shrink-0 bg-blue-500" />
+                <span className={`text-xs font-bold tracking-wide shrink-0 ${
+                  selectedSymbol === stock.dr ? "text-cyan-400" : "text-slate-200"
+                }`}>
+                  {stock.dr}
+                </span>
+                <span className="text-xs text-slate-500 truncate">{stock.name}</span>
+              </div>
+              <span className="text-[10px] text-slate-600 shrink-0 ml-2">{stock.real}</span>
+            </button>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+/* ===============================
+    MOBILE: Asia Nested Section
+================================ */
+function AsiaMobileSection({ selectedSymbol, onStockClick, globalFilter, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  
+  const regions = [
+    { title: "Japan", stocks: japanStocks, icon: "🇯🇵" },
+    { title: "China", stocks: chinaStocks, icon: "🇨🇳" },
+    { title: "Singapore", stocks: singaporeStocks, icon: "🇸🇬" },
+    { title: "Vietnam", stocks: vietnamStocks, icon: "🇻🇳" },
+    { title: "Taiwan", stocks: taiwanStocks, icon: "🇹🇼" },
+  ];
+
+  const allAsiaStocks = regions.flatMap(r => r.stocks);
+  const filteredAsiaStocks = allAsiaStocks.filter(s => 
+    s.dr.toLowerCase().includes(globalFilter.toLowerCase()) || 
+    s.name.toLowerCase().includes(globalFilter.toLowerCase())
+  );
+  const hasFilterMatch = globalFilter.length > 0 && filteredAsiaStocks.length > 0;
+
+  return (
+    <div className="border-b border-slate-800">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-3.5 bg-[#181e2a] text-sm font-semibold text-white hover:bg-[#1e2535] active:bg-[#232b3e] transition-colors"
+      >
+        <span>Asia</span>
+        <svg
+          className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${(open || hasFilterMatch) ? "rotate-180" : ""}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {(open || hasFilterMatch) && (
+        <div className="bg-[#0d1220]">
+          {filteredAsiaStocks.length === 0 ? (
+            <div className="px-4 py-3 text-xs text-slate-600 text-center">No results</div>
+          ) : (
+            regions.map(region => (
+              <NestedCountrySection
+                key={region.title}
+                region={region}
+                selectedSymbol={selectedSymbol}
+                onStockClick={onStockClick}
+                globalFilter={globalFilter}
+              />
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+/* ===============================
+    MOBILE DASHBOARD COMPONENT
+================================ */
+function MobileDashboard({
+  globalFilter, setGlobalFilter,
+  selectedSymbol, onStockClick,
+  chartSelections, setChartSelections,
+  chartData, themeColors,
+  isLoadingCharts,
+  setFullscreenChart
+}) {
+  return (
+    <div className="flex flex-col min-h-screen animate-fade-in">
+      {/* Sticky Search */}
+      <div className="sticky top-0 z-40 bg-[#0B1221] px-3 pt-3 pb-2 border-b border-slate-800">
+        <div className="flex items-center gap-2 bg-[#1a1f2b] border border-slate-700/60 rounded-xl px-3 py-2.5">
+          <svg className="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Filter symbol..."
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="bg-transparent text-sm text-slate-300 focus:outline-none placeholder-slate-600 w-full"
+          />
+          {globalFilter && (
+            <button onClick={() => setGlobalFilter("")} className="text-slate-500 hover:text-white transition shrink-0">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
-      <div
-        className="absolute inset-0"
-        style={{
-          background: "linear-gradient(90deg, transparent 0%, rgba(56,189,248,0.08) 40%, rgba(125,211,252,0.18) 50%, rgba(56,189,248,0.08) 60%, transparent 100%)",
-          animation: "shimmer 1.8s ease-in-out infinite",
-          animationDelay: `${delay}s`,
-        }}
-      />
+
+      {/* Accordions */}
+      <div className="bg-[#0d1118]">
+        <CountrySection title="USA" stocks={usaStocks} selectedSymbol={selectedSymbol} onStockClick={onStockClick} globalFilter={globalFilter} />
+        <CountrySection title="Europe" stocks={europeStocks} selectedSymbol={selectedSymbol} onStockClick={onStockClick} globalFilter={globalFilter} />
+        <AsiaMobileSection 
+          selectedSymbol={selectedSymbol} 
+          onStockClick={onStockClick} 
+          globalFilter={globalFilter} 
+        />
+        <CountrySection title="ETC" stocks={etcStocks} selectedSymbol={selectedSymbol} onStockClick={onStockClick} globalFilter={globalFilter} />
+      </div>
+
+      {/* Legend */}
+      <div className="mx-3 mt-3 mb-2 flex justify-between items-center bg-[#1a1f2b] border border-slate-800 rounded-full px-4 py-2">
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+          <div className="w-6 h-0.5 bg-blue-500 rounded"></div>
+          <span>ราคาน้ำมัน</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+          <div className="w-6 h-0.5 bg-red-500 rounded"></div>
+          <span>PE Ratio</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+          <div className="w-6 h-0.5 bg-green-500 rounded"></div>
+          <span>Last</span>
+        </div>
+      </div>
+
+{/* Vertical Charts */}
+      <div className="flex flex-col gap-3 px-3 pb-6">
+        {isLoadingCharts ? (
+          ['chart1', 'chart2', 'chart3'].map((chartKey, index) => (
+            <div key={chartKey} className="bg-[#1a1f2b] border border-slate-700/60 rounded-xl overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-800 bg-[#1e2433] shrink-0">
+                <select disabled className="flex-1 mr-3 bg-[#0f151e] text-slate-300 border border-slate-700/50 rounded px-2 py-1.5 text-xs opacity-50 cursor-not-allowed">
+                  <option>Select a symbol...</option>
+                </select>
+                <div className="flex items-center gap-3 text-slate-600 opacity-50">
+                  <span className="text-sm">⛶</span>
+                  <span className="text-sm">⚙</span>
+                </div>
+              </div>
+              <div className="w-full h-[200px] shrink-0">
+                <WaveSkeleton delay={index * 0.2} height="100%" />
+              </div>
+            </div>
+          ))
+        ) : (
+          ['chart1', 'chart2', 'chart3'].map((chartKey, index) => (
+            <ChartCard
+              key={chartKey}
+              chartKey={chartKey}
+              chartSelections={chartSelections}
+              setChartSelections={setChartSelections}
+              chartData={chartData}
+              themeColor={themeColors[index]}
+              onFullscreen={setFullscreenChart}
+              onStockSelect={onStockClick}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -416,7 +758,23 @@ export default function DRInsight() {
   const [selectedSymbol, setSelectedSymbol] = useState("");
   const [isLoadingCharts, setIsLoadingCharts] = useState(false);
 
+  // Detect screen size for adaptive layouts
+  const [screenSize, setScreenSize] = useState("mobile");
+
   const { accessData, isFreeAccess, currentUser } = useSubscription();
+
+  useEffect(() => {
+    const updateSize = () => {
+      const w = window.innerWidth;
+      if (w < 950)       setScreenSize("mobile"); 
+      else if (w < 1180) setScreenSize("tablet"); 
+      else if (w < 1440) setScreenSize("laptop");
+      else               setScreenSize("desktop");
+    };
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
+  }, []);
 
   useEffect(() => {
     if (isFreeAccess) { setIsMember(true); return; }
@@ -607,348 +965,250 @@ export default function DRInsight() {
   }
 
   /* CASE 3: Full dashboard */
+  const isMobile = screenSize === "mobile";
+  const isTablet = screenSize === "tablet";
+  const isDesktop = screenSize === "desktop";
+
   return (
     <div className="w-full bg-[#0B1221] text-white font-sans">
 
-      {/* MOBILE LAYOUT */}
-      <div className="md:hidden flex flex-col min-h-screen">
+      {/* -----------------------------------------------
+          MOBILE (<640px)
+      ----------------------------------------------- */}
+      {isMobile && (
+        <MobileDashboard
+          globalFilter={globalFilter}
+          setGlobalFilter={setGlobalFilter}
+          selectedSymbol={selectedSymbol}
+          onStockClick={handleStockClick}
+          chartSelections={chartSelections}
+          setChartSelections={setChartSelections}
+          chartData={chartData}
+          themeColors={themeColors}
+          isLoadingCharts={isLoadingCharts}
+          setFullscreenChart={setFullscreenChart}
+        />
+      )}
 
-        <div className="sticky top-0 z-40 bg-[#0B1221] px-3 pt-3 pb-2 border-b border-slate-800">
-          <div className="flex items-center gap-2 bg-[#1a1f2b] border border-slate-700/60 rounded-xl px-3 py-2.5">
-            <svg className="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Filter symbol..."
-              value={globalFilter}
-              onChange={(e) => setGlobalFilter(e.target.value)}
-              className="bg-transparent text-sm text-slate-300 focus:outline-none placeholder-slate-600 w-full"
-            />
-            {globalFilter && (
-              <button onClick={() => setGlobalFilter("")} className="text-slate-500 hover:text-white transition shrink-0">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-[#0d1118]">
-          <CountrySection title="USA"    stocks={usaStocks}    selectedSymbol={selectedSymbol} onStockClick={handleStockClick} globalFilter={globalFilter} />
-          <CountrySection title="Europe" stocks={europeStocks} selectedSymbol={selectedSymbol} onStockClick={handleStockClick} globalFilter={globalFilter} />
-          <CountrySection
-            title="Asia"
-            stocks={[...japanStocks, ...chinaStocks, ...singaporeStocks, ...vietnamStocks, ...taiwanStocks]}
-            selectedSymbol={selectedSymbol}
-            onStockClick={handleStockClick}
-            globalFilter={globalFilter}
-          />
-          <CountrySection title="ETC" stocks={etcStocks} selectedSymbol={selectedSymbol} onStockClick={handleStockClick} globalFilter={globalFilter} />
-        </div>
-
-        <div className="mx-3 mt-3 mb-2 flex justify-between items-center bg-[#1a1f2b] border border-slate-800 rounded-full px-4 py-2">
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-            <div className="w-6 h-0.5 bg-blue-500 rounded"></div>
-            <span>ราคาน้ำมัน</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-            <div className="w-6 h-0.5 bg-red-500 rounded"></div>
-            <span>PE Ratio</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-            <div className="w-6 h-0.5 bg-green-500 rounded"></div>
-            <span>Last</span>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3 px-3 pb-6">
-          {isLoadingCharts ? (
-            ['chart1', 'chart2', 'chart3'].map((chartKey, index) => (
-              <div key={chartKey} className="bg-[#1a1f2b] border border-slate-700/60 rounded-xl overflow-hidden">
-                <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-800 bg-[#1e2433]">
-                  <select disabled className="flex-1 mr-3 bg-[#0f151e] text-slate-300 border border-slate-700/50 rounded px-2 py-1.5 text-xs opacity-50 cursor-not-allowed">
-                    <option>Select a symbol...</option>
-                  </select>
-                  <div className="flex items-center gap-3 text-slate-600 opacity-50">
-                    <span className="text-sm">⛶</span>
-                    <span className="text-sm">⚙</span>
-                  </div>
-                </div>
-                <WaveSkeleton delay={index * 0.2} />
-              </div>
-            ))
-          ) : (
-            ['chart1', 'chart2', 'chart3'].map((chartKey, index) => (
-              <ChartCard
-                key={chartKey}
-                chartKey={chartKey}
-                chartSelections={chartSelections}
-                setChartSelections={setChartSelections}
-                chartData={chartData}
-                themeColor={themeColors[index]}
-                onFullscreen={setFullscreenChart}
-                onStockSelect={handleStockClick}
-              />
-            ))
-          )}
-        </div>
-      </div>
-      {/* END MOBILE LAYOUT */}
-
-      {/* DESKTOP LAYOUT */}
-      <div className="hidden md:flex md:flex-col h-screen p-3 overflow-hidden animate-fade-in">
-
-        <div className="flex items-center justify-center gap-6 mb-4 shrink-0">
-          <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
-            Map every Thai DR to its global parent stock, track arbitrage opportunities, monitor real-time valuations, and analyze multi-market trends
-          </ToolHint>
-
-          <div className="bg-[#111827] border border-slate-800 rounded-full px-4 py-2 flex items-center gap-2 shadow-sm">
-            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Filter symbol..."
-              value={globalFilter}
-              onChange={(e) => setGlobalFilter(e.target.value)}
-              className="bg-transparent text-xs text-slate-300 focus:outline-none placeholder-slate-600 w-40"
-            />
-            {globalFilter && (
-              <button onClick={() => setGlobalFilter("")} className="text-slate-500 hover:text-white transition shrink-0">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
-
-          {[{ label: "ราคาน้ำมัน", color: "bg-blue-500" }, { label: "PE Ratio", color: "bg-red-500" }, { label: "Last", color: "bg-green-500" }].map(item => (
-            <div key={item.label} className="bg-[#111827] px-5 py-2 rounded-full text-[11px] text-slate-400 border border-slate-800 flex items-center gap-3 shadow-sm whitespace-nowrap">
-              <span>{item.label}</span>
-              <div className={`w-8 h-0.5 ${item.color}`}></div>
+      {/* -----------------------------------------------
+          TABLET (640–1023px หรือ 950–1180px) — The Split View 
+      ----------------------------------------------- */}
+      {isTablet && (
+        <div className="flex flex-col h-screen overflow-hidden bg-[#0B1221] p-3 gap-3 animate-fade-in">
+          
+          {/* Top Bar: กล่องค้นหา และ Legend */}
+          <div className="flex items-center gap-4 shrink-0 bg-[#111827] border border-slate-800/80 rounded-xl p-2.5 shadow-sm">
+            <div className="w-[260px] shrink-0">
+              <SearchBar value={globalFilter} onChange={setGlobalFilter} />
             </div>
-          ))}
-        </div>
+            <div className="flex-1 flex justify-end pr-2">
+              <LegendPills />
+            </div>
+          </div>
 
-        <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
+          {/* Main Area: แบ่งซ้าย-ขวา */}
+          <div className="flex flex-1 gap-3 min-h-0">
+            
+            {/* ซ้าย: Sidebar รวมลิสต์หุ้นทั้งหมด (Scroll ได้อิสระ) */}
+            <div className="w-[260px] shrink-0 bg-[#111827] border border-slate-800/80 rounded-xl flex flex-col overflow-hidden shadow-lg">
+              <div className="px-4 py-3.5 border-b border-slate-800/60 bg-[#141b2a] shrink-0 flex items-center justify-between">
+                <span className="font-bold text-[13px] text-white">Symbol List</span>
+                <img src={drIcon} alt="dr" className="w-4 h-4" />
+              </div>
+              <div className="flex-1 overflow-y-auto bg-[#0d1220]" style={scrollbarHideStyle}>
+                <CountrySection title="🇺🇸 USA" stocks={usaStocks} selectedSymbol={selectedSymbol} onStockClick={handleStockClick} globalFilter={globalFilter} defaultOpen={true} />
+                <CountrySection title="🇪🇺 Europe" stocks={europeStocks} selectedSymbol={selectedSymbol} onStockClick={handleStockClick} globalFilter={globalFilter} />
+                <AsiaMobileSection selectedSymbol={selectedSymbol} onStockClick={handleStockClick} globalFilter={globalFilter} />
+                <CountrySection title="🪙 ETC" stocks={etcStocks} selectedSymbol={selectedSymbol} onStockClick={handleStockClick} globalFilter={globalFilter} />
+              </div>
+            </div>
 
-          {/* Left panel: USA / Europe / ETC */}
-          <div className="col-span-3 flex flex-col gap-4 h-full overflow-hidden">
-            {[
-              { title: "USA",    stocks: usaStocks,    flex: "flex-[4]" },
-              { title: "Europe", stocks: europeStocks, flex: "flex-[3]" },
-              { title: "ETC",    stocks: etcStocks,    flex: "flex-[2]" },
-            ].map(({ title, stocks, flex }) => {
-              const filtered = stocks.filter(s => s.dr.toLowerCase().includes(globalFilter.toLowerCase()));
-              return (
-                <div key={title} className={`bg-[#111827] border border-slate-800/80 rounded-xl flex flex-col overflow-hidden shadow-lg min-h-0 ${flex}`}>
-                  <div className="px-3 py-2.5 flex justify-between items-center border-b border-slate-800/60 bg-[#141b2a]">
-                    <span className="font-bold text-[12px] text-white">{title}</span>
-                    <img src={drIcon} alt="dr" className="w-4 h-4" />
-                  </div>
-                  <div className="flex justify-between text-[8px] text-slate-500 px-2 py-1 font-semibold uppercase tracking-wider sticky top-0 bg-[#111827] border-b border-slate-800/60 z-20">
-                    <span>DR/DRx</span>
-                    <span>TradingView</span>
-                  </div>
-                  <div className="overflow-y-auto flex-1 bg-[#0B1221] p-2" style={scrollbarHideStyle}>
-                    {filtered.map((stock, idx) => (
-                      <div
-                        key={stock.dr}
-                        onClick={() => handleStockClick(stock.dr)}
-                        className={`flex justify-between items-center text-[9px] p-1.5 rounded cursor-pointer transition-colors group ${selectedSymbol === stock.dr ? 'bg-cyan-500/20 border border-cyan-500/50' : 'hover:bg-slate-800/60'}`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={`w-1.5 h-1.5 rounded-full ${dotColors[idx % dotColors.length]}`}></div>
-                          <span className="text-slate-200 group-hover:text-white font-bold tracking-wide">{stock.dr}</span>
-                        </div>
-                        <span className="text-slate-500 truncate max-w-[80px] text-right">{stock.real}</span>
+            {/* ขวา: Charts Grid (กราฟ 1-2 อยู่บน, กราฟ 3 ขยายยาวอยู่ล่าง) */}
+            <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-3 min-w-0">
+              {isLoadingCharts ? (
+                ['chart1', 'chart2', 'chart3'].map((key, i) => (
+                  <div key={key} className={`bg-[#1a1f2b] border border-slate-700/60 rounded-xl flex flex-col overflow-hidden ${i === 2 ? 'col-span-2' : 'col-span-1'}`}>
+                    <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-800 bg-[#1e2433] shrink-0">
+                      <select disabled className="flex-1 mr-3 bg-[#0f151e] text-slate-300 border border-slate-700/50 rounded px-2 py-1.5 text-xs opacity-50 cursor-not-allowed">
+                        <option>Select a symbol...</option>
+                      </select>
+                      <div className="flex gap-3 text-slate-600 opacity-50">
+                        <span className="text-sm">⛶</span><span className="text-sm">⚙</span>
                       </div>
+                    </div>
+                    <div className="flex-1 min-h-0 w-full">
+                      <WaveSkeleton delay={i * 0.2} height="100%" />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                ['chart1', 'chart2', 'chart3'].map((chartKey, index) => (
+                  <ChartCard
+                    key={chartKey}
+                    chartKey={chartKey}
+                    chartSelections={chartSelections}
+                    setChartSelections={setChartSelections}
+                    chartData={chartData}
+                    themeColor={themeColors[index]}
+                    onFullscreen={setFullscreenChart}
+                    onStockSelect={handleStockClick}
+                    // 👇 ทำให้กราฟจัด Grid อัตโนมัติ (ตัวที่ 3 กินพื้นที่ 2 คอลัมน์) 👇
+                    containerClass={index === 2 ? "col-span-2 h-full" : "col-span-1 h-full"}
+                    customHeightClass="flex-1 min-h-0" 
+                  />
+                ))
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+      {/* -----------------------------------------------
+          LAPTOP / DESKTOP (≥1024px)
+      ----------------------------------------------- */}
+      {(!isMobile && !isTablet) && (
+        <div className={`flex flex-col h-screen overflow-hidden animate-fade-in ${isDesktop ? 'p-4 gap-4' : 'p-3 gap-3'}`}>
+          <div className="flex items-center justify-center gap-6 shrink-0">
+            <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
+              Map every Thai DR to its global parent stock, track arbitrage opportunities, monitor real-time valuations, and analyze multi-market trends
+            </ToolHint>
+            <div className="w-52"><SearchBar value={globalFilter} onChange={setGlobalFilter} /></div>
+            <LegendPills />
+          </div>
+
+          <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
+            {/* Left panel */}
+            <div className="col-span-3 flex flex-col gap-4 h-full overflow-hidden">
+              {[
+                { title: "USA",    stocks: usaStocks,    flex: "flex-[4]" },
+                { title: "Europe", stocks: europeStocks, flex: "flex-[3]" },
+                { title: "ETC",    stocks: etcStocks,    flex: "flex-[2]" },
+              ].map(({ title, stocks, flex }) => (
+                <StockPanel key={title} title={title} stocks={stocks} selectedSymbol={selectedSymbol} onStockClick={handleStockClick} globalFilter={globalFilter} flex={flex} />
+              ))}
+            </div>
+
+            {/* Center panel */}
+            <div className="col-span-6 flex flex-col gap-4 h-full overflow-hidden">
+              {isLoadingCharts ? (
+                ['chart1', 'chart2', 'chart3'].map((chartKey, index) => (
+                  <div key={chartKey} className="bg-[#111827] border border-slate-700 rounded-xl flex flex-col flex-1 overflow-hidden min-h-0">
+                    <div className="flex justify-between items-center px-4 py-2 border-b border-slate-800 bg-[#1e2433] shrink-0">
+                      <select disabled className="flex-1 mr-3 px-3 py-1.5 bg-[#1a2235] border border-slate-700/50 rounded text-sm text-slate-300 opacity-50 cursor-not-allowed"><option>Select a symbol...</option></select>
+                    </div>
+                    <WaveSkeleton delay={index * 0.2} height="100%" />
+                  </div>
+                ))
+              ) : (
+                ['chart1', 'chart2', 'chart3'].map((chartKey, index) => {
+                  const stockName = chartSelections[chartKey];
+                  const lineColor = themeColors[index];
+                  const data = chartData[chartKey];
+                  return (
+                    <div key={chartKey} className="bg-[#111827] border border-slate-700 rounded-xl flex flex-col flex-1 overflow-hidden min-h-0 relative">
+                      <div className="flex justify-between items-center px-4 py-2 border-b border-slate-800 bg-[#1e2433] shrink-0 z-40 relative">
+                        <select
+                          value={stockName}
+                          onChange={(e) => { handleStockClick(e.target.value); setChartSelections(prev => ({ ...prev, [chartKey]: e.target.value })); }}
+                          className="flex-1 mr-3 px-3 py-1.5 bg-[#1a2235] border border-slate-700/50 rounded text-sm text-slate-300 focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer"
+                          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', paddingRight: '28px' }}
+                        >
+                          <option value="" className="bg-[#1f2937] text-slate-300">Select a symbol...</option>
+                          {allStockOptions.map(s => <option key={s.dr} value={s.dr} className="bg-[#1f2937] text-slate-300">{s.dr} - {s.name}</option>)}
+                        </select>
+                        <div className="flex gap-3 text-white">
+                          <button onClick={() => setFullscreenChart(chartKey)} className="hover:text-cyan-400 transition">⛶</button>
+                          <button className="hover:text-cyan-400 transition"><SettingsIcon sx={{ fontSize: 18 }} /></button>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-h-0 bg-[#0B1221] border border-slate-800/40 rounded-b-xl relative overflow-hidden">
+                        {!stockName && <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"><span className="text-slate-500 text-sm">Select a symbol to display chart</span></div>}
+                        {stockName && data?.length > 0 && <TVChart data={data} themeColor={lineColor} />}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Right panel: Asia */}
+            <div className="col-span-3 flex flex-col h-full overflow-hidden">
+              <div className="bg-[#111827] border border-slate-800/80 rounded-xl flex flex-col h-full overflow-hidden shadow-xl">
+                <div className="text-center py-3 mb-0 border-b border-slate-800/60 shrink-0">
+                  <span className="font-bold text-base text-white tracking-wide">Asia</span>
+                </div>
+                <div className={`grid ${isDesktop ? 'grid-cols-2' : 'grid-cols-1'} gap-3 flex-1 overflow-hidden p-3`}>
+                  <div className="flex flex-col gap-3 overflow-hidden">
+                    {[
+                      { title: "Japan",     stocks: japanStocks     },
+                      { title: "Singapore", stocks: singaporeStocks },
+                      { title: "Vietnam",   stocks: vietnamStocks   },
+                    ].map(({ title, stocks }) => (
+                      <StockPanel key={title} title={title} stocks={stocks} selectedSymbol={selectedSymbol} onStockClick={handleStockClick} globalFilter={globalFilter} compact flex="flex-1" />
+                    ))}
+                  </div>
+                  <div className="flex flex-col gap-3 overflow-hidden">
+                    {[
+                      { title: "China",  stocks: chinaStocks,  flex: "flex-[3]" },
+                      { title: "Taiwan", stocks: taiwanStocks, flex: "flex-1"   },
+                    ].map(({ title, stocks, flex }) => (
+                      <StockPanel key={title} title={title} stocks={stocks} selectedSymbol={selectedSymbol} onStockClick={handleStockClick} globalFilter={globalFilter} compact flex={flex} />
                     ))}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-
-          {/* Center panel: Charts */}
-          <div className="col-span-6 flex flex-col gap-4 h-full overflow-hidden">
-            {isLoadingCharts ? (
-              ['chart1', 'chart2', 'chart3'].map((chartKey, index) => (
-                <div key={chartKey} className="bg-[#111827] border border-slate-700 rounded-xl p-4 flex flex-col flex-1 overflow-hidden min-h-0 relative">
-                  <div className="flex justify-between items-start shrink-0 z-40 relative mb-3">
-                    <select disabled className="flex-1 mr-3 px-3 py-1.5 bg-[#1a2235] border border-slate-700/50 rounded text-sm text-slate-300 opacity-50 cursor-not-allowed">
-                      <option>Select a symbol...</option>
-                    </select>
-                    <div className="flex gap-3 text-slate-600 opacity-50">
-                      <button disabled>⛶</button>
-                      <button disabled>⚙</button>
-                    </div>
-                  </div>
-                  <WaveSkeleton delay={index * 0.2} />
-                </div>
-              ))
-            ) : (
-              ['chart1', 'chart2', 'chart3'].map((chartKey, index) => {
-                const stockName = chartSelections[chartKey];
-                const lineColor = themeColors[index];
-                const data = chartData[chartKey];
-                return (
-                  <div key={chartKey} className="bg-[#111827] border border-slate-700 rounded-xl p-4 flex flex-col flex-1 overflow-hidden min-h-0 relative">
-                    <div className="flex justify-between items-start shrink-0 z-40 relative mb-3">
-                      <select
-                        value={stockName}
-                        onChange={(e) => setChartSelections({ ...chartSelections, [chartKey]: e.target.value })}
-                        className="flex-1 mr-3 px-3 py-1.5 bg-[#1a2235] border border-slate-700/50 rounded text-sm text-slate-300 focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer"
-                        style={{
-                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
-                          backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', paddingRight: '28px'
-                        }}
-                      >
-                        <option value="" className="bg-[#1f2937] text-slate-300">Select a symbol...</option>
-                        {allStockOptions.map(s => (
-                          <option key={s.dr} value={s.dr} className="bg-[#1f2937] text-slate-300">{s.dr} - {s.name}</option>
-                        ))}
-                      </select>
-                      <div className="flex gap-3 text-white">
-                        <button onClick={() => setFullscreenChart(chartKey)} className="hover:text-cyan-400 transition" title="Fullscreen">⛶</button>
-                        <button className="hover:text-cyan-400 transition">
-                          <SettingsIcon sx={{ fontSize: 18 }} />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex-1 w-full bg-[#0B1221] border border-slate-800/40 rounded-lg relative overflow-hidden flex items-end">
-                      {!stockName && (
-                        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                          <span className="text-slate-500 text-sm">Select a symbol to display chart</span>
-                        </div>
-                      )}
-                      {stockName && data?.length > 0 && (
-                        <TVChart data={data} themeColor={lineColor} />
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* Right panel: Asia */}
-          <div className="col-span-3 flex flex-col h-full bg-[#111827] border border-slate-800/80 rounded-xl p-4 shadow-xl overflow-hidden">
-            <div className="text-center pb-3 mb-4 border-b border-slate-800/60 shrink-0">
-              <span className="font-bold text-base text-white tracking-wide">Asia</span>
-            </div>
-            <div className="grid grid-cols-2 gap-4 flex-1 overflow-hidden">
-              <div className="flex flex-col gap-4 h-full overflow-hidden">
-                {[
-                  { title: "Japan",     stocks: japanStocks     },
-                  { title: "Singapore", stocks: singaporeStocks },
-                  { title: "Vietnam",   stocks: vietnamStocks   },
-                ].map(({ title, stocks }) => {
-                  const filtered = stocks.filter(s => s.dr.toLowerCase().includes(globalFilter.toLowerCase()));
-                  return (
-                    <div key={title} className="bg-[#111827] border border-slate-800/80 rounded-xl flex flex-col overflow-hidden shadow-lg min-h-0 flex-1">
-                      <div className="px-3 py-2.5 flex justify-between items-center border-b border-slate-800/60 bg-[#141b2a]">
-                        <span className="font-bold text-[13px] text-white">{title}</span>
-                        <img src={drIcon} alt="dr" className="w-4 h-4" />
-                      </div>
-                      <div className="overflow-y-auto flex-1 bg-[#0B1221] p-2" style={scrollbarHideStyle}>
-                        {filtered.map((stock, idx) => (
-                          <div
-                            key={stock.dr}
-                            onClick={() => handleStockClick(stock.dr)}
-                            className={`w-full flex items-center justify-between px-2 py-1.5 border-b border-slate-800/40 transition-colors cursor-pointer ${
-                              selectedSymbol === stock.dr
-                                ? "bg-cyan-500/15 border-l-2 border-l-cyan-400"
-                                : "hover:bg-[#1a2030]"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <div className={`w-1.5 h-1.5 rounded-full ${dotColors[idx % dotColors.length]}`}></div>
-                              <span className="text-[10px] text-slate-200 font-bold tracking-wide">{stock.dr}</span>
-                            </div>
-                            <span className="text-[10px] text-slate-500 truncate max-w-[55px] text-right">{stock.real}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex flex-col gap-4 h-full overflow-hidden">
-                {[
-                  { title: "China",  stocks: chinaStocks,  flex: "flex-[3]" },
-                  { title: "Taiwan", stocks: taiwanStocks, flex: "flex-1"   },
-                ].map(({ title, stocks, flex }) => {
-                  const filtered = stocks.filter(s => s.dr.toLowerCase().includes(globalFilter.toLowerCase()));
-                  return (
-                    <div key={title} className={`bg-[#111827] border border-slate-800/80 rounded-xl flex flex-col overflow-hidden shadow-lg min-h-0 ${flex}`}>
-                      <div className="px-3 py-2.5 flex justify-between items-center border-b border-slate-800/60 bg-[#141b2a]">
-                        <span className="font-bold text-[13px] text-white">{title}</span>
-                        <img src={drIcon} alt="dr" className="w-4 h-4" />
-                      </div>
-                      <div className="overflow-y-auto flex-1 bg-[#0B1221] p-2" style={scrollbarHideStyle}>
-                        {filtered.map((stock, idx) => (
-                          <div
-                            key={stock.dr}
-                            onClick={() => handleStockClick(stock.dr)}
-                            className={`flex justify-between items-center text-[10px] p-1.5 rounded cursor-pointer transition-colors group ${selectedSymbol === stock.dr ? 'bg-cyan-500/20 border border-cyan-500/50' : 'hover:bg-slate-800/60'}`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <div className={`w-1.5 h-1.5 rounded-full ${dotColors[idx % dotColors.length]}`}></div>
-                              <span className="text-slate-200 group-hover:text-white font-bold tracking-wide">{stock.dr}</span>
-                            </div>
-                            <span className="text-slate-500 truncate max-w-[55px] text-right">{stock.real}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
             </div>
-          </div>
-
-        </div>
-      </div>
-      {/* END DESKTOP LAYOUT */}
-
-      {/* FULLSCREEN MODAL */}
-      {fullscreenChart && (
-        <div className="fixed inset-0 bg-[#0d1117] z-[80] flex flex-col">
-          <div className="flex items-center gap-3 px-4 py-3 bg-[#0d1117] border-b border-slate-800 flex-shrink-0">
-            <button
-              onClick={() => setFullscreenChart(null)}
-              className="flex items-center gap-1.5 bg-[#1f2937] hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-xs text-slate-300 hover:text-white transition-all flex-shrink-0"
-            >
-              ← Back
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-400 text-white transition-all flex-shrink-0">
-              🔄
-            </button>
-            <div className="flex-1 flex flex-col items-center justify-center">
-              <h2 className="text-lg font-bold text-white tracking-widest">
-                {chartSelections[fullscreenChart]}
-              </h2>
-              <span className="text-[11px] text-slate-500">
-                {allStockOptions.find(s => s.dr === chartSelections[fullscreenChart])?.name || ""}
-              </span>
-            </div>
-            <div style={{ width: '140px' }} />
-          </div>
-          <div className="flex-1 min-h-0 bg-[#0d1117] relative overflow-hidden">
-            {(() => {
-              const index = ['chart1', 'chart2', 'chart3'].indexOf(fullscreenChart);
-              const lineColor = themeColors[index] ?? themeColors[0];
-              const data = chartData[fullscreenChart];
-              return <TVChart data={data} themeColor={lineColor} />;
-            })()}
           </div>
         </div>
       )}
 
+      {/* FULLSCREEN MODAL (Shared across all screen sizes) */}
+      <FullscreenModal
+        fullscreenChart={fullscreenChart}
+        onClose={() => setFullscreenChart(null)}
+        chartSelections={chartSelections}
+        chartData={chartData}
+        themeColors={themeColors}
+      />
+
+    </div>
+  );
+}
+
+/* ===============================
+    FULLSCREEN MODAL COMPONENT
+================================ */
+function FullscreenModal({ fullscreenChart, onClose, chartSelections, chartData, themeColors }) {
+  if (!fullscreenChart) return null;
+
+  const index = ['chart1', 'chart2', 'chart3'].indexOf(fullscreenChart);
+  const lineColor = themeColors[index] ?? themeColors[0];
+  const data = chartData[fullscreenChart];
+  const symbol = chartSelections[fullscreenChart];
+
+  return (
+    <div className="fixed inset-0 bg-[#0d1117] z-[80] flex flex-col">
+      <div className="flex items-center gap-3 px-4 py-3 bg-[#0d1117] border-b border-slate-800 flex-shrink-0">
+        <button
+          onClick={onClose}
+          className="flex items-center gap-1.5 bg-[#1f2937] hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-xs text-slate-300 hover:text-white transition-all flex-shrink-0"
+        >
+          ← Back
+        </button>
+        <button className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-400 text-white transition-all flex-shrink-0">
+          🔄
+        </button>
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <h2 className="text-lg font-bold text-white tracking-widest">{symbol}</h2>
+          <span className="text-[11px] text-slate-500">
+            {allStockOptions.find(s => s.dr === symbol)?.name || ""}
+          </span>
+        </div>
+        <div style={{ width: '140px' }} />
+      </div>
+      <div className="flex-1 min-h-0 bg-[#0d1117] relative overflow-hidden">
+        <TVChart data={data} themeColor={lineColor} />
+      </div>
     </div>
   );
 }

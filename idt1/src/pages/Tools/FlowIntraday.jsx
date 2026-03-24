@@ -1,4 +1,3 @@
-// src/pages/tools/FlowIntraday.jsx
 // ─── ALL CHARTS POWERED BY lightweight-charts (LWC) ─────────────────────────
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -205,18 +204,18 @@ function SymbolInput({ value, onChange }) {
   }, []);
 
   return (
-    <div ref={ref} className="relative flex items-center gap-1.5">
-      <input value={query} onChange={e => { setQuery(e.target.value.toUpperCase()); setOpen(true); setHiIdx(-1); }} onFocus={() => setOpen(true)} onKeyDown={handleKey} placeholder="Symbol..." className="w-[80px] bg-transparent text-xs font-bold text-white outline-none placeholder-slate-600 tracking-wider cursor-text"/>
-      <button onMouseDown={e => { e.preventDefault(); setOpen(v => !v); }} className="text-slate-600 hover:text-slate-300 transition-colors flex-shrink-0">
+    <div ref={ref} className="relative flex items-center gap-1.5 min-w-[70px]">
+      <input value={query} onChange={e => { setQuery(e.target.value.toUpperCase()); setOpen(true); setHiIdx(-1); }} onFocus={() => setOpen(true)} onKeyDown={handleKey} placeholder="Symbol..." className="w-full max-w-[80px] sm:w-[80px] bg-transparent text-xs sm:text-sm font-bold text-white outline-none placeholder-slate-600 tracking-wider cursor-text"/>
+      <button onMouseDown={e => { e.preventDefault(); setOpen(v => !v); }} className="text-slate-600 hover:text-slate-300 transition-colors flex-shrink-0 p-1">
         <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor"><path d={open ? "M4 0L8 5H0Z" : "M4 5L0 0H8Z"}/></svg>
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1.5 w-48 bg-[#0d1526] border border-slate-600/60 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.8)] z-[200] overflow-hidden">
+        <div className="absolute left-0 top-full mt-1.5 w-48 sm:w-52 bg-[#0d1526] border border-slate-600/60 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.8)] z-[200] overflow-hidden">
           <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-700/50">
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             <span className="text-[9px] text-slate-600 tracking-widest uppercase">{query ? `"${query}"` : "Popular"}</span>
           </div>
-          <div className="max-h-52 overflow-y-auto" style={scrollbarHideStyle}>
+          <div className="max-h-48 overflow-y-auto" style={scrollbarHideStyle}>
             {filtered.length === 0
               ? <div className="px-3 py-3 text-slate-600 text-[10px] text-center">No match — press Enter to use "{query}"</div>
               : filtered.map((sym, idx) => {
@@ -251,7 +250,7 @@ function ChartModeDropdown({ value, onChange }) {
   return (
     <div ref={ref} className="relative">
       <button onMouseDown={e => { e.preventDefault(); setOpen(v => !v); }}
-        className={`flex items-center gap-1 bg-[#1f2937] border rounded-md px-2 py-[3px] text-xs font-semibold transition-all min-w-[52px] justify-between
+        className={`flex items-center gap-1 bg-[#1f2937] border rounded-md px-2 py-[3px] text-[11px] sm:text-xs font-semibold transition-all min-w-[52px] justify-between
           ${open ? "border-slate-500 text-white" : "border-slate-700 text-slate-300 hover:border-slate-500 hover:text-white"}`}>
         <span>{current.label}</span>
         <svg width="7" height="4" viewBox="0 0 8 5" fill="currentColor" className={`text-slate-500 transition-transform ${open ? "rotate-180" : ""}`}><path d="M4 5L0 0H8Z"/></svg>
@@ -304,14 +303,14 @@ function FullscreenSymbolInput({ value, onChange }) {
   }, []);
 
   return (
-    <div ref={ref} className="relative flex items-center">
-      <div className={`flex items-center gap-2 bg-[#1a2235] border rounded-lg px-3 py-1.5 transition-all w-56 ${open ? "border-cyan-500/60" : "border-slate-700 hover:border-slate-500"}`}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" className="flex-shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input value={query} onChange={e => { setQuery(e.target.value.toUpperCase()); setOpen(true); setHiIdx(-1); }} onFocus={() => setOpen(true)} onKeyDown={handleKey} placeholder="พิมพ์ชื่อหุ้น..." className={`flex-1 bg-transparent text-sm outline-none placeholder-slate-600 pr-6 ${value && !open ? "font-bold text-white" : "text-white"}`}/>
-        {query && <button onMouseDown={() => commit("")} className="absolute right-3 text-slate-600 hover:text-slate-300 text-sm transition-colors">✕</button>}
+    <div ref={ref} className="relative flex items-center w-full max-w-[160px] sm:max-w-none sm:w-auto">
+      <div className={`flex items-center gap-2 bg-[#1a2235] border rounded-lg px-2 sm:px-3 py-1.5 transition-all w-full sm:w-56 ${open ? "border-cyan-500/60" : "border-slate-700 hover:border-slate-500"}`}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" className="flex-shrink-0 hidden sm:block"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input value={query} onChange={e => { setQuery(e.target.value.toUpperCase()); setOpen(true); setHiIdx(-1); }} onFocus={() => setOpen(true)} onKeyDown={handleKey} placeholder="พิมพ์ชื่อหุ้น..." className={`flex-1 min-w-0 bg-transparent text-xs sm:text-sm outline-none placeholder-slate-600 pr-4 sm:pr-6 ${value && !open ? "font-bold text-white" : "text-white"}`}/>
+        {query && <button onMouseDown={() => commit("")} className="absolute right-2 sm:right-3 text-slate-600 hover:text-slate-300 text-xs sm:text-sm transition-colors">✕</button>}
       </div>
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-56 bg-[#0d1526] border border-slate-600/60 rounded-xl shadow-2xl z-[200] overflow-hidden">
+        <div className="absolute left-0 top-full mt-2 w-full sm:w-56 bg-[#0d1526] border border-slate-600/60 rounded-xl shadow-2xl z-[200] overflow-hidden">
           <div className="max-h-64 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
             {filtered.length === 0
               ? <div className="px-3 py-3 text-slate-600 text-[11px] text-center">ไม่พบ — กด Enter เพื่อใช้ "{query}"</div>
@@ -361,7 +360,6 @@ function LWCChart({
     };
   }, [series]);
 
-  // Build / rebuild chart whenever symbol or chartType changes
   useEffect(() => {
     if (!containerRef.current || !lwcData) return;
     if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; primarySeriesRef.current = null; }
@@ -406,7 +404,6 @@ function LWCChart({
 
     primarySeriesRef.current = primarySeries;
 
-    // Draw HLine if value present
     if (hlineValue != null && primarySeries) {
       primarySeries.createPriceLine({
         price: hlineValue,
@@ -414,18 +411,16 @@ function LWCChart({
         lineWidth: 1,
         lineStyle: LineStyle.Dashed,
         axisLabelVisible: true, 
-        title: "H-Line",         
+        title: "H-Line",        
         axisLabelColor: "#8b5cf6",   
         axisLabelTextColor: "#ffffff"
       });
     }
 
-    // Crosshair sync
     chart.subscribeCrosshairMove(param => {
       if (!isSyncingRef.current && param.time && onCrosshairMove) onCrosshairMove(param.time);
     });
 
-    // Click handler — converts y pixel → price via coordinateToPrice
     chart.subscribeClick(param => {
       if (!param.point || !onChartClickRef.current || !primarySeriesRef.current) return;
       const price = primarySeriesRef.current.coordinateToPrice(param.point.y);
@@ -450,7 +445,6 @@ function LWCChart({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol, chartType, hlineValue]);
 
-  // Sync external crosshair time
   useEffect(() => {
     const chart = chartRef.current; if (!chart || !externalTime) return;
     isSyncingRef.current = true;
@@ -461,7 +455,7 @@ function LWCChart({
   if (isLoading) return <div className="w-full h-full"><ChartSkeleton /></div>;
   if (!series) return (
     <div className="text-slate-600 text-xs font-semibold flex flex-col items-center justify-center w-full h-full gap-1 bg-[#141b2d]">
-      <span className="text-2xl opacity-30">⌨</span><span>Type a symbol above</span>
+      <span className="text-2xl opacity-30">⌨</span><span className="text-center px-4">Type a symbol above</span>
     </div>
   );
 
@@ -499,44 +493,30 @@ export default function FlowIntraday() {
   const [activeWatchlist, setActiveWatchlist] = useState(null);
   const [loadingMap,      setLoadingMap]      = useState(Array(12).fill(false));
 
-  // ── HLine state ───────────────────────────────────────────────────────────
-  // hlineMap: { [gridIndex]: number | null }
-  // drawingIndex: which grid cell is in "click-to-place" mode (null = none)
   const [hlineMap,      setHlineMap]      = useState({});
   const [drawingIndex,  setDrawingIndex]  = useState(null);
-
-  // Same for fullscreen
-  const [fsHline,       setFsHline]       = useState(null);   // number | null
+  const [fsHline,       setFsHline]       = useState(null);
   const [fsDrawing,     setFsDrawing]     = useState(false);
 
   const chartInstanceRefs = useRef(new Map());
 
-  // ── Bell toggle ───────────────────────────────────────────────────────────
-  // If already has a hline → clear it.
-  // If in drawing mode for this cell → cancel drawing.
-  // Otherwise → enter drawing mode.
   const handleBellClick = useCallback((index, sym) => {
     if (!sym) return;
     if (hlineMap[index] != null) {
-      // Clear existing hline
       setHlineMap(prev => ({ ...prev, [index]: null }));
       setDrawingIndex(null);
     } else if (drawingIndex === index) {
-      // Cancel drawing mode
       setDrawingIndex(null);
     } else {
-      // Enter drawing mode
       setDrawingIndex(index);
     }
   }, [hlineMap, drawingIndex]);
 
-  // ── Chart click handler ───────────────────────────────────────────────────
   const makeChartClickHandler = useCallback((index) => (price) => {
     setHlineMap(prev => ({ ...prev, [index]: price }));
     setDrawingIndex(null);
   }, []);
 
-  // Fullscreen bell
   const handleFsBell = useCallback(() => {
     if (fsHline != null) {
       setFsHline(null);
@@ -568,23 +548,20 @@ export default function FlowIntraday() {
     return windowWidth >= 640 ? 2 : 1;
   }, [isMobile, layout, windowWidth]);
   const gridRows = Math.ceil(boxCount / gridCols);
-  const rowHeight = isMobile ? 260 : 220;
+  
+  // ให้หน้าจอมือถือมีความสูงต่อกล่องที่พอดีมากขึ้น ไม่แคบเกินไป
+  const minRowHeight = isMobile ? '280px' : '260px';
 
   const handleCrosshairMove = useCallback((time) => { setExternalTime(time ?? null); }, []);
   const handleModeChange    = useCallback((index, mode) => { setChartModes(prev => { const u = [...prev]; u[index] = mode; return u; }); }, []);
   const handleRefresh = useCallback((index) => {
-    // 1. ดึง Instance ของกราฟตัวที่เรากดออกมาจาก Map
     const chart = chartInstanceRefs.current.get(`grid-${index}`);
-    
     if (chart) {
-      // 2. สั่งให้เลื่อนแกนเวลากลับมาขวาสุด (เวลาปัจจุบัน)
       chart.timeScale().scrollToRealTime();
-      // 3. รีเซ็ตระยะการซูมให้กลับมาพอดีกับหน้าจอ
       chart.timeScale().fitContent();
     }
   }, []);
   const handleFullscreenReset = useCallback(() => {
-    // อ้างอิงถึง chartId="fullscreen" ที่เราตั้งไว้ในคอมโพเนนต์ LWCChart
     const chart = chartInstanceRefs.current.get("fullscreen");
     if (chart) {
       chart.timeScale().scrollToRealTime();
@@ -660,7 +637,6 @@ export default function FlowIntraday() {
     if (!nextValue) {
       setSymbols(prev => { const u = [...prev]; u[index] = ""; return u; });
       setLoadingMap(prev => { const u = [...prev]; u[index] = false; return u; });
-      // Clear hline if symbol removed
       setHlineMap(prev => ({ ...prev, [index]: null }));
       if (drawingIndex === index) setDrawingIndex(null);
       return;
@@ -680,33 +656,33 @@ export default function FlowIntraday() {
   ];
 
   const featuresSectionJSX = (
-    <div className="w-full max-w-5xl mb-12">
+    <div className="w-full max-w-5xl mb-12 px-2 md:px-0">
       <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left border-l-4 border-cyan-500 pl-4">3 Main Features</h2>
       <div className="relative group" onMouseEnter={() => (isPaused.current = true)} onMouseLeave={() => (isPaused.current = false)}>
-        <button onClick={() => scroll("left")} className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${showLeft ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/></svg>
+        <button onClick={() => scroll("left")} className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-12 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full md:rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${showLeft ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+          <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/></svg>
         </button>
-        <div ref={scrollContainerRef} onScroll={checkScroll} className="flex overflow-x-auto gap-6 py-4 px-1" style={scrollbarHideStyle}>
+        <div ref={scrollContainerRef} onScroll={checkScroll} className="flex overflow-x-auto gap-4 md:gap-6 py-4 px-1" style={scrollbarHideStyle}>
           {features.map((item, i) => (
-            <div key={i} className="w-[350px] md:w-[400px] flex-shrink-0 group/card bg-[#0f172a]/60 border border-slate-700/50 p-8 rounded-xl hover:border-cyan-500/30 transition duration-300">
-              <h3 className="text-xl font-bold text-white mb-3 group-hover/card:text-cyan-400 transition-colors">{item.title}</h3>
-              <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
+            <div key={i} className="w-[300px] md:w-[400px] flex-shrink-0 group/card bg-[#0f172a]/60 border border-slate-700/50 p-6 md:p-8 rounded-xl hover:border-cyan-500/30 transition duration-300">
+              <h3 className="text-lg md:text-xl font-bold text-white mb-2 md:mb-3 group-hover/card:text-cyan-400 transition-colors">{item.title}</h3>
+              <p className="text-slate-400 text-xs md:text-sm leading-relaxed">{item.desc}</p>
             </div>
           ))}
         </div>
-        <button onClick={() => scroll("right")} className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${showRight ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+        <button onClick={() => scroll("right")} className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-12 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full md:rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${showRight ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+          <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
         </button>
       </div>
     </div>
   );
 
   const dashboardPreviewJSX = (
-    <div className="relative group w-full max-w-5xl mb-16">
+    <div className="relative group w-full max-w-5xl mb-16 px-2 md:px-0">
       <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700"/>
       <div className="relative bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
-        <div className="bg-[#0f172a] px-4 py-3 flex items-center border-b border-slate-700/50">
-          <div className="flex gap-2"><div className="w-3 h-3 rounded-full bg-red-500/80"/><div className="w-3 h-3 rounded-full bg-yellow-500/80"/><div className="w-3 h-3 rounded-full bg-green-500/80"/></div>
+        <div className="bg-[#0f172a] px-3 md:px-4 py-2 md:py-3 flex items-center border-b border-slate-700/50">
+          <div className="flex gap-1.5 md:gap-2"><div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-red-500/80"/><div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-yellow-500/80"/><div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-500/80"/></div>
         </div>
         <div className="aspect-[16/9] w-full bg-[#0B1221] relative overflow-hidden"><FlowIntradayDashboard /></div>
       </div>
@@ -745,7 +721,7 @@ export default function FlowIntraday() {
           </div>
           {dashboardPreviewJSX}{featuresSectionJSX}
           <div className="text-center w-full max-w-md mx-auto mt-4">
-            <button onClick={() => setEnteredTool(true)} className="group relative inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] hover:scale-105 transition-all duration-300">
+            <button onClick={() => setEnteredTool(true)} className="group relative inline-flex items-center justify-center w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] hover:scale-105 transition-all duration-300">
               <span className="mr-2">Start Using Tool</span>
               <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
             </button>
@@ -757,75 +733,86 @@ export default function FlowIntraday() {
 
   // ─── Dashboard ───────────────────────────────────────────────────────────────
   return (
-    <div className="w-full h-screen bg-[#0b111a] text-white px-3 py-3 flex flex-col overflow-hidden">
+    <div className="w-full h-screen bg-[#0b111a] text-white px-2 sm:px-3 py-2 sm:py-3 flex flex-col overflow-hidden">
       <div className="w-full flex flex-col flex-1 min-h-0">
 
-        {/* Top Controls */}
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-3 flex-shrink-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
-              Intraday order flow monitor. Flow mode: Net/Buy/Sell lines. Price mode: dual-axis with price overlay. Click bell icon then click chart to place a horizontal alert line. Click bell again to remove it.
-            </ToolHint>
+{/* Top Controls - Responsive Wrap */}
+        <div className="flex flex-row items-center justify-between gap-2 mb-3 flex-shrink-0">
+          
+          {/* ฝั่งซ้าย: ToolHint + Layout + Legend */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2">
+              <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
+                Intraday order flow monitor. Flow mode: Net/Buy/Sell lines. Price mode: dual-axis with price overlay. Click bell icon then click chart to place a horizontal alert line. Click bell again to remove it.
+              </ToolHint>
 
-            {/* Layout */}
-            <div className="flex items-center gap-2 bg-[#111827] border border-slate-700 px-3 py-2 rounded-lg">
-              <span className="text-xs text-slate-400 hidden sm:inline">Layout:</span>
-              <div className="flex gap-1.5">
-                {["12","6","4"].map(col => (
-                  <button key={col} onClick={() => setLayout(col)} className={`w-7 h-7 rounded text-xs flex items-center justify-center transition ${layout === col ? "bg-purple-600 text-white" : "bg-[#1f2937] text-slate-400 hover:text-white"}`}>
-                    {col === "12" ? "▦" : col === "6" ? "▤" : "☰"}
-                  </button>
-                ))}
+              {/* Layout Toggle */}
+              <div className="flex items-center gap-1.5 bg-[#111827] border border-slate-700 px-1.5 py-1 rounded-lg">
+                <span className="text-[10px] text-slate-500 font-medium ml-1 hidden sm:inline">VIEW</span>
+                <div className="flex gap-1">
+                  {["12","6","4"].map(col => (
+                    <button key={col} onClick={() => setLayout(col)} 
+                      className={`w-7 h-7 sm:w-6 sm:h-6 rounded flex items-center justify-center transition ${layout === col ? "bg-purple-600 text-white" : "bg-[#1f2937] text-slate-400 hover:text-white"}`}>
+                      {col === "12" ? "▦" : col === "6" ? "▤" : "☰"}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Legend */}
-            <div className="hidden sm:flex items-center gap-6 text-[13px] font-medium text-blue-200/80">
-              <span className="flex items-center gap-2">
+            {/* Legend - ปรับให้แสดงบนมือถือด้วย แต่ย่อขนาดลง */}
+            <div className="hidden sm:flex items-center gap-3 sm:gap-6 text-[11px] sm:text-[13px] font-medium text-blue-200/80">
+              <span className="flex items-center gap-1.5 sm:gap-2">
                 Price
-                <svg width="24" height="2" viewBox="0 0 24 2">
+                <svg width="18" height="2" viewBox="0 0 24 2" className="sm:w-[24px]">
                   <line x1="0" y1="1" x2="24" y2="1" stroke="#ffffff" strokeWidth="2" />
                 </svg>
               </span>
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-1.5 sm:gap-2">
                 Value
-                <div className="flex flex-col gap-[4px]">
-                  <svg width="20" height="2" viewBox="0 0 20 2">
+                <div className="flex flex-col gap-[3px] sm:gap-[4px]">
+                  <svg width="14" height="2" viewBox="0 0 20 2" className="sm:w-[20px]">
                     <line x1="0" y1="1" x2="20" y2="1" stroke="#4ade80" strokeWidth="2" />
                   </svg>
-                  <svg width="20" height="2" viewBox="0 0 20 2">
+                  <svg width="14" height="2" viewBox="0 0 20 2" className="sm:w-[20px]">
                     <line x1="0" y1="1" x2="20" y2="1" stroke="#f87171" strokeWidth="2" />
                   </svg>
                 </div>
               </span>
             </div>
           </div>
-
+        
+          
+          {/* ฝั่งขวา: Watchlist + ADD */}
           <div className="flex items-center gap-2">
-            {/* Watchlist */}
-            <div className="relative flex items-center gap-2" data-watchpanel>
-              <button onClick={() => setShowWatchPanel(v => !v)} className="flex items-center gap-1.5 bg-[#111827] border border-slate-700 hover:border-slate-500 px-3 py-2 rounded-lg text-xs transition-all">
-                <span className="text-slate-400">♥</span>
-                <span className="text-slate-400 hidden sm:inline">Watchlists</span>
-                {watchlists.length > 0 && <span className="bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{watchlists.length}</span>}
+            <div className="relative" data-watchpanel>
+              <button onClick={() => setShowWatchPanel(v => !v)} className="flex items-center gap-1.5 bg-[#111827] border border-slate-700 hover:border-slate-500 px-2.5 py-1.5 rounded-lg text-xs transition-all">
+                <span className="text-red-400">♥</span>
+                <span className="text-slate-300">Watchlists</span>
+                {watchlists.length > 0 && (
+                  <span className="bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+                    {watchlists.length}
+                  </span>
+                )}
                 <svg className={`w-3 h-3 text-slate-400 transition-transform ${showWatchPanel ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/></svg>
               </button>
 
+              {/* Watchlist Modal Dropdown */}
               {showWatchPanel && (
-                <div className="absolute right-[72px] top-full mt-2 w-72 bg-[#111827] border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+                <div className="absolute right-0 top-full mt-2 w-[90vw] max-w-[300px] sm:w-72 bg-[#111827] border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden">
                   <div className="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
                     <span className="text-sm font-bold text-white">My Watchlists</span>
                     <button onClick={() => setShowWatchPanel(false)} className="text-slate-500 hover:text-white text-lg">✕</button>
                   </div>
                   {watchlists.length === 0
                     ? <div className="px-4 py-6 text-center text-slate-500 text-sm">No watchlists yet.<br/>Select symbols and press ♥ ADD.</div>
-                    : <ul className="max-h-72 overflow-y-auto">
+                    : <ul className="max-h-72 overflow-y-auto" style={scrollbarHideStyle}>
                       {watchlists.map(wl => (
                         <li key={wl.id} className="border-b border-slate-800 last:border-0">
                           <div className="flex items-center justify-between px-4 py-2.5 hover:bg-[#1e293b] cursor-pointer transition" onClick={() => setActiveWatchlist(activeWatchlist === wl.id ? null : wl.id)}>
                             <div className="flex items-center gap-2">
                               <svg className={`w-3 h-3 text-slate-400 transition-transform ${activeWatchlist === wl.id ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
-                              <span className="text-sm font-semibold text-white truncate max-w-[140px]">{wl.name}</span>
+                              <span className="text-sm font-semibold text-white truncate max-w-[120px] sm:max-w-[140px]">{wl.name}</span>
                               <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded-full">{wl.symbols.length}</span>
                             </div>
                             <button onClick={e => { e.stopPropagation(); handleDeleteWatchlist(wl.id); }} className="text-slate-600 hover:text-red-400 transition text-sm px-1">🗑</button>
@@ -840,23 +827,23 @@ export default function FlowIntraday() {
                     </ul>}
                 </div>
               )}
-
-              <button onClick={handleOpenAddModal} className="bg-red-500 hover:bg-red-600 active:scale-95 px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1">
-                <span>♥</span><span>ADD</span>
-              </button>
             </div>
+
+            <button onClick={handleOpenAddModal} className="bg-red-500 hover:bg-red-600 active:scale-95 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-lg shadow-red-500/10">
+              <span>+</span><span>ADD</span>
+            </button>
           </div>
         </div>
 
-        {/* Watchlist Modal */}
+        {/* Watchlist Modal (Save Mode) */}
         {showAddModal && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center px-4">
-            <div className="bg-[#1c1c1e] border border-slate-700/60 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <div className="bg-[#1c1c1e] border border-slate-700/60 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden m-4">
               <div className="flex justify-end px-4 pt-4">
                 <button onClick={() => setShowAddModal(false)} className="w-7 h-7 rounded-full bg-slate-700/60 hover:bg-slate-600 flex items-center justify-center text-slate-400 hover:text-white transition text-sm">✕</button>
               </div>
               <div className="flex flex-col items-center px-6 pb-6 pt-1">
-                <div className="w-16 h-16 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center mb-4"><span className="text-2xl">♥</span></div>
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center mb-4"><span className="text-2xl">♥</span></div>
                 <h3 className="text-xl font-bold text-white mb-1">Save Watchlist</h3>
                 <p className="text-slate-400 text-sm text-center mb-5">Saving <span className="text-white font-semibold">{selectedSymbols.length} symbol{selectedSymbols.length !== 1 ? "s" : ""}</span> to a new watchlist.</p>
                 <div className="flex flex-wrap justify-center gap-1.5 mb-5 w-full">
@@ -870,13 +857,11 @@ export default function FlowIntraday() {
             </div>
           </div>
         )}
-
         {/* ── Chart Grid ── */}
         <div className="flex-1 min-h-0 overflow-y-auto" style={scrollbarHideStyle}>
-          <div className="grid gap-3 h-full pb-2" style={{ 
+          <div className="grid gap-2 sm:gap-3 min-h-full pb-2" style={{
             gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`, 
-            // แบ่งความสูงเต็มจออัตโนมัติ (1fr) แต่ถ้าเป็นมือถือให้มีขั้นต่ำ 260px จะได้ไม่บี้แบนเกินไป
-            gridTemplateRows: `repeat(${gridRows}, minmax(${isMobile ? '260px' : '0'}, 1fr))` 
+            gridTemplateRows: `repeat(${gridRows}, minmax(${minRowHeight}, 1fr))` 
           }}>
             {boxes.map((_, index) => {
               const sym       = symbols[index];
@@ -887,20 +872,20 @@ export default function FlowIntraday() {
 
               return (
                 <div key={index}
-                     className="bg-[#111827] border border-slate-700 rounded-xl overflow-hidden hover:border-slate-500 transition flex flex-col">
+                     className="bg-[#111827] border border-slate-700 rounded-xl overflow-hidden hover:border-slate-500 transition flex flex-col min-h-[260px]">
 
                   {/* Card Header */}
-                  <div className="flex items-center justify-between px-3 py-2 bg-[#0f172a] border-b border-slate-700 flex-shrink-0">
+                  <div className="flex items-center justify-between px-2 sm:px-3 py-1.5 sm:py-2 bg-[#0f172a] border-b border-slate-700 flex-shrink-0">
                     <SymbolInput value={sym} onChange={v => handleSymbolChange(index, v)} />
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1 sm:gap-1.5">
                       <ChartModeDropdown value={mode} onChange={v => handleModeChange(index, v)} />
 
-                      {/* Bell — click-to-place HLine */}
+                      {/* Bell */}
                       <button
                         onClick={() => handleBellClick(index, sym)}
                         title={isDrawing ? "คลิกที่กราฟเพื่อวาง HLine" : hline != null ? "คลิกเพื่อลบ HLine" : "คลิกเพื่อวาง HLine"}
-                        className={`relative flex items-center rounded px-0.5 py-0.5 transition-all
+                        className={`relative flex items-center rounded p-1 sm:p-0.5 transition-all
                           ${!sym ? "opacity-30 cursor-not-allowed" : "cursor-pointer"}
                           ${isDrawing ? "animate-pulse" : ""}`}
                         style={{ color: bellColor }}
@@ -909,9 +894,8 @@ export default function FlowIntraday() {
                           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                           <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                         </svg>
-                        {/* dot indicator when hline is active */}
                         {hline != null && !isDrawing && (
-                          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-violet-400 border border-[#0f172a]" />
+                          <span className="absolute 0 sm:-top-1 sm:-right-1 w-2 h-2 rounded-full bg-violet-400 border border-[#0f172a]" />
                         )}
                       </button>
 
@@ -919,26 +903,26 @@ export default function FlowIntraday() {
                       <button
                         onClick={() => { if (sym) { setFullscreenIndex(index); setFullscreenMode(mode); setFsHline(hline); setFsDrawing(false); } }}
                         title="Fullscreen"
-                        className={`flex items-center rounded px-0.5 py-0.5 transition-all ${!sym ? "opacity-30 cursor-not-allowed" : "text-slate-400 hover:text-cyan-400 cursor-pointer"}`}>
-                        <ZoomInIcon sx={{ fontSize: 16 }}/>
+                        className={`flex items-center rounded p-1 sm:p-0.5 transition-all ${!sym ? "opacity-30 cursor-not-allowed" : "text-slate-400 hover:text-cyan-400 cursor-pointer"}`}>
+                        <ZoomInIcon sx={{ fontSize: isMobile ? 18 : 16 }}/>
                       </button>
 
                       {/* Refresh */}
-                      <button onClick={() => handleRefresh(index)} title="Refresh" className="flex items-center text-slate-400 hover:text-slate-200 transition-colors rounded px-0.5 py-0.5">
-                        <RefreshIcon sx={{ fontSize: 16 }}/>
+                      <button onClick={() => handleRefresh(index)} title="Refresh" className="flex items-center text-slate-400 hover:text-slate-200 transition-colors rounded p-1 sm:p-0.5">
+                        <RefreshIcon sx={{ fontSize: isMobile ? 18 : 16 }}/>
                       </button>
                     </div>
                   </div>
 
                   {/* Drawing mode hint bar */}
                   {isDrawing && (
-                    <div className="flex items-center justify-center gap-1.5 px-3 py-1 bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-400 text-[10px] font-semibold flex-shrink-0">
-                      <span className="text-xs">✛</span>
+                    <div className="flex items-center justify-center gap-1.5 px-3 py-1 bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-400 text-[10px] sm:text-xs font-semibold flex-shrink-0">
+                      <span>✛</span>
                       <span>คลิกบนกราฟเพื่อวาง HLine</span>
                     </div>
                   )}
 
-                  <div className="flex-1 min-h-0">
+                  <div className="flex-1 min-h-[200px]">
                     <LWCChart
                       symbol={sym}
                       chartId={`grid-${index}`}
@@ -959,50 +943,57 @@ export default function FlowIntraday() {
         </div>
       </div>
 
-{/* Fullscreen Modal */}
+      {/* Fullscreen Modal - Responsive Wrap สำหรับเมนูด้านบน */}
       {fullscreenIndex !== null && symbols[fullscreenIndex] && (
-        <div className="fixed inset-0 bg-[#0d1117] z-50 flex flex-col">
-          <div className="flex items-center gap-3 px-4 py-3 bg-[#0d1117] border-b border-slate-800 flex-shrink-0">
+        <div className="fixed inset-0 bg-[#0d1117] z-[999] flex flex-col">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 bg-[#0d1117] border-b border-slate-800 flex-shrink-0 shadow-lg">
             <button onClick={() => { setFullscreenIndex(null); setFsDrawing(false); setFsHline(null); }}
-                    className="flex items-center gap-1.5 bg-[#1f2937] hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-xs text-slate-300 hover:text-white transition-all flex-shrink-0">← Back</button>
-            <FullscreenSymbolInput value={symbols[fullscreenIndex]} onChange={v => handleSymbolChange(fullscreenIndex, v)}/>
-            <h2 className="text-lg font-bold text-white tracking-widest uppercase flex-1 text-center">{symbols[fullscreenIndex]}</h2>
-
-            {/* Fullscreen bell */}
-            <button
-              onClick={handleFsBell}
-              title={fsDrawing ? "คลิกที่กราฟ" : fsHline != null ? "ลบ HLine" : "วาง HLine"}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
-                fsDrawing
-                  ? "border-yellow-500/60 bg-yellow-500/10 text-yellow-400 animate-pulse"
-                  : fsHline != null
-                    ? "border-violet-500/60 bg-violet-500/10 text-violet-400"
-                    : "border-slate-700 bg-[#1f2937] text-slate-400 hover:text-white hover:border-slate-500"
-              }`}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-              <span>{fsDrawing ? "คลิกกราฟ..." : fsHline != null ? `HLine: ${Math.round(fsHline).toLocaleString()}` : "HLine"}</span>
+                    className="flex items-center gap-1 bg-[#1f2937] hover:bg-slate-700 border border-slate-700 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs text-slate-300 hover:text-white transition-all flex-shrink-0">
+              ← <span className="hidden sm:inline">Back</span>
             </button>
-
-            <ChartModeDropdown value={fullscreenMode} onChange={v => setFullscreenMode(v)} />
             
-            {/* ✅ ปุ่ม Reset ย้ายเข้ามาอยู่ในกล่อง Flex เดียวกันแล้ว */}
-            <button 
-              onClick={handleFullscreenReset} 
-              title="Reset View" 
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1f2937] border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 transition-all flex-shrink-0"
-            >
-              <RefreshIcon sx={{ fontSize: 18 }}/>
-            </button>
+            <FullscreenSymbolInput value={symbols[fullscreenIndex]} onChange={v => handleSymbolChange(fullscreenIndex, v)}/>
+            
+            <h2 className="hidden md:block text-lg font-bold text-white tracking-widest uppercase flex-1 text-center truncate">{symbols[fullscreenIndex]}</h2>
+            
+            <div className="flex-1 md:hidden"></div> {/* ดันของบนมือถือให้ไปชิดขวาถ้ามีพื้นที่ */}
+
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              {/* Fullscreen bell */}
+              <button
+                onClick={handleFsBell}
+                title={fsDrawing ? "คลิกที่กราฟ" : fsHline != null ? "ลบ HLine" : "วาง HLine"}
+                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg border text-[10px] sm:text-xs font-semibold transition-all ${
+                  fsDrawing
+                    ? "border-yellow-500/60 bg-yellow-500/10 text-yellow-400 animate-pulse"
+                    : fsHline != null
+                      ? "border-violet-500/60 bg-violet-500/10 text-violet-400"
+                      : "border-slate-700 bg-[#1f2937] text-slate-400 hover:text-white hover:border-slate-500"
+                }`}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sm:w-[14px] sm:h-[14px]">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                <span className="hidden sm:inline">{fsDrawing ? "คลิกกราฟ..." : fsHline != null ? `HLine: ${Math.round(fsHline).toLocaleString()}` : "HLine"}</span>
+              </button>
+
+              <ChartModeDropdown value={fullscreenMode} onChange={v => setFullscreenMode(v)} />
+              
+              <button 
+                onClick={handleFullscreenReset} 
+                title="Reset View" 
+                className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#1f2937] border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 transition-all flex-shrink-0"
+              >
+                <RefreshIcon sx={{ fontSize: isMobile ? 16 : 18 }}/>
+              </button>
+            </div>
           </div>
 
           {/* Fullscreen drawing hint */}
           {fsDrawing && (
-            <div className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-400 text-xs font-semibold flex-shrink-0">
-              <span>✛</span><span>คลิกบนกราฟเพื่อวาง HLine — กด Esc เพื่อยกเลิก</span>
+            <div className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-400 text-[10px] sm:text-xs font-semibold flex-shrink-0">
+              <span>✛</span><span>คลิกบนกราฟเพื่อวาง HLine — {isMobile ? "กดปุ่มอีกครั้ง" : "กด Esc"} เพื่อยกเลิก</span>
             </div>
           )}
 
