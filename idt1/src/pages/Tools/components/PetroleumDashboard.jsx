@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { AreaLWC, LineLWC } from '../../../components/LWChart';
 import { ChevronDown, X, TrendingUp } from 'lucide-react';
 
+//import { AreaLWC, LineLWC } from '../../../components/LWChart';
 // --- Mock Data (matching screenshot shape) ---
 
 const dataRefin = [

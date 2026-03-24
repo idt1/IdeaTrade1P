@@ -11,7 +11,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import ToolHint from "@/components/ToolHint.jsx";
 
-import { HistogramLWC } from '../../components/LWChart';
+//import { HistogramLWC } from '../../components/LWChart';
 
 // Style ซ่อน Scrollbar และเปิดใช้ Smooth Scroll บน Mobile
 const scrollbarHideStyle = {
