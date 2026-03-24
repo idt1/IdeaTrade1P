@@ -1,6 +1,6 @@
 // src/pages/tools/components/GoldDashboard.jsx
 import { useState, useEffect, useMemo } from "react";
-import { AreaLWC } from "@/components/LWChart.jsx";
+import { AreaLWC } from "@/components/LWChart";
 
 /* ─────────────────────────────────────────────
    DATA HELPERS

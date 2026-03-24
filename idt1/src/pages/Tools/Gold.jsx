@@ -5,7 +5,7 @@ import { useSubscription } from "../../context/SubscriptionContext";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import ToolHint from "@/components/ToolHint.jsx";
 import GoldDashboard from "./components/GoldDashboard.jsx";
-//import { AreaLWC } from "../../components/LWChart";
+import { AreaLWC } from "../../components/LWChart";
 
 const scrollbarHideStyle = { msOverflowStyle: "none", scrollbarWidth: "none" };
 
