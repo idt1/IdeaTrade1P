@@ -1468,65 +1468,74 @@ export default function HisRealFlow() {
       `}</style>
 
       <div className="max-w-[1600px] mx-auto px-3 sm:px-4 py-4 sm:py-6">
-        <header className="mb-6 sm:mb-8">
+<header className="mb-6 sm:mb-8">
+  {/* ── Main Container ── */}
+  <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 sm:gap-3">
 
-     {/* ── Row 1: Search + DatePicker + Real Flow button ── */}
-<div className="flex items-center gap-2 sm:gap-3">
+    {/* 1. ToolHint (ซ้ายสุดเสมอ) */}
+    <div className="order-1 shrink-0">
+      <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
+        His Real Flow tracks stock market money flow historically.
+        Select a trading date to view that day's flow data.
+        Charts and rankings update based on the selected date.
+      </ToolHint>
+    </div>
 
-  <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
-    His Real Flow tracks stock market money flow historically.
-    Select a trading date to view that day's flow data.
-    Charts and rankings update based on the selected date.
-  </ToolHint>
+    {/* 2. Search Box */}
+    <div className="order-2 relative flex-1 min-w-0 max-w-[160px] sm:max-w-[200px] lg:max-w-[220px]">
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </span>
+      <input type="text" placeholder="Search..." value={searchQuery}
+        onChange={e => setSearchQuery(e.target.value)}
+        className="w-full bg-[#1e293b] rounded-lg py-1.5 sm:py-2 pl-8 sm:pl-9 pr-7 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 border border-slate-700 transition-all" />
+      {searchQuery && (
+        <button onClick={() => setSearchQuery("")}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs transition-colors">✕</button>
+      )}
+    </div>
 
-  {/* Search */}
-  <div className="relative flex-1 min-w-0 max-w-[160px] sm:max-w-[200px] lg:max-w-[220px]">
-    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    {/* 3. DatePicker (เลื่อนมาซ้าย ต่อจาก Search) */}
+    <div className="order-3 shrink-0">
+      <DatePicker dates={availableDates} selected={selectedDate} onChange={setSelectedDate} />
+    </div>
+
+    {/* 4. Category pills 
+        มือถือ (order-5): บังคับขึ้นบรรทัดใหม่ด้วย w-full
+        Desktop (lg:order-4): แทรกกลางระหว่าง ปฏิทิน กับ ปุ่ม Real Flow 
+    */}
+    <div className="order-5 lg:order-4 w-full lg:w-auto mt-2 lg:mt-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar lg:min-w-0">
+      {CATEGORIES.map(cat => {
+        const isActive = activeCategory === cat;
+        return (
+          <button key={cat} onClick={() => setActiveCategory(prev => prev === cat ? null : cat)}
+            className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-all border focus:outline-none whitespace-nowrap flex-shrink-0
+              ${isActive
+                ? "bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-900/50 cat-pill-active"
+                : "bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white"}`}>
+            {cat}
+          </button>
+        );
+      })}
+    </div>
+
+    {/* 5. Real Flow button (ขวาสุด) 
+        ใช้ ml-auto เพื่อดันปุ่มนี้ไปชิดขวาเสมอ
+    */}
+    <button
+      onClick={() => navigate("/real-flow")}
+      className="order-4 lg:order-5 flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all border bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white focus:outline-none ml-auto shrink-0"
+      title="Back to Real Flow">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
       </svg>
-    </span>
-    <input type="text" placeholder="Search..." value={searchQuery}
-      onChange={e => setSearchQuery(e.target.value)}
-      className="w-full bg-[#1e293b] rounded-lg py-1.5 sm:py-2 pl-8 sm:pl-9 pr-7 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 border border-slate-700 transition-all" />
-    {searchQuery && (
-      <button onClick={() => setSearchQuery("")}
-        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs transition-colors">✕</button>
-    )}
+      <span className="hidden sm:inline">Real Flow</span>
+    </button>
+
   </div>
-
-  {/* DatePicker */}
-  <DatePicker dates={availableDates} selected={selectedDate} onChange={setSelectedDate} />
-
-  {/* Real Flow button */}
-  <button
-    onClick={() => navigate("/real-flow")}
-    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all border bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white focus:outline-none ml-auto shrink-0"
-    title="Back to Real Flow">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-    </svg>
-    <span className="hidden sm:inline">Real Flow</span>
-  </button>
-</div>
-
-{/* ── Row 2: Category pills — ทุก breakpoint ── */}
-<div className="flex items-center gap-1.5 mt-2 overflow-x-auto no-scrollbar">
-  {CATEGORIES.map(cat => {
-    const isActive = activeCategory === cat;
-    return (
-      <button key={cat} onClick={() => setActiveCategory(prev => prev === cat ? null : cat)}
-        className={`px-3 lg:px-5 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-all border focus:outline-none whitespace-nowrap flex-shrink-0
-          ${isActive
-            ? "bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-900/50 cat-pill-active"
-            : "bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white"}`}>
-        {cat}
-      </button>
-    );
-  })}
-</div>
-          </header>
-
+</header>
         <div className="space-y-4 sm:space-y-6 pb-12">
           {visibleSections.length > 0 ? (
             visibleSections.map(({ category, type }) => {
