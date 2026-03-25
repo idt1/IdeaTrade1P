@@ -7,6 +7,7 @@ import { Settings as SettingsIcon } from '@mui/icons-material';
 import ToolHint from "@/components/ToolHint.jsx";
 import DRInsightDashboard from "./components/DRInsightDashboard.jsx";
 import { createChart, AreaSeries } from 'lightweight-charts';
+import RefreshIcon from "@mui/icons-material/Refresh";
 
 const scrollbarHideStyle = {
   msOverflowStyle: "none",
@@ -1181,6 +1182,8 @@ export default function DRInsight() {
 function FullscreenModal({ fullscreenChart, onClose, chartSelections, chartData, themeColors }) {
   if (!fullscreenChart) return null;
 
+  const [isSyncing, setIsSyncing] = useState(false); 
+
   const index = ['chart1', 'chart2', 'chart3'].indexOf(fullscreenChart);
   const lineColor = themeColors[index] ?? themeColors[0];
   const data = chartData[fullscreenChart];
@@ -1195,8 +1198,27 @@ function FullscreenModal({ fullscreenChart, onClose, chartSelections, chartData,
         >
           ← Back
         </button>
-        <button className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-400 text-white transition-all flex-shrink-0">
-          🔄
+        <button
+          onClick={() => { 
+            if (!selectedSymbol) return;
+            setIsSyncing(true);
+            setGlobalHoverIndex(null);
+            setTimeout(() => {
+              setDataVersion((prev) => prev + 1);
+              setIsSyncing(false);
+            }, 700);
+          }}
+          className="w-10 h-10 bg-[#0f172a] border border-slate-700 rounded-lg flex items-center justify-center hover:border-cyan-500 transition-all flex-shrink-0 group"
+          title="รีเฟรชข้อมูล"
+        >
+          <RefreshIcon 
+            sx={{ 
+              fontSize: 16, 
+              color: isSyncing ? "#3b82f6" : "#ffffff",
+              transition: "color 0.3s ease"
+            }} 
+            className={`${isSyncing ? "animate-spin" : "group-hover:text-cyan-400"}`} 
+          />
         </button>
         <div className="flex-1 flex flex-col items-center justify-center">
           <h2 className="text-lg font-bold text-white tracking-widest">{symbol}</h2>

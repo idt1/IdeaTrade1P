@@ -10,6 +10,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import ToolHint from "@/components/ToolHint.jsx";
+import RefreshIcon from "@mui/icons-material/Refresh";
 
 const scrollbarHideStyle = {
   msOverflowStyle: "none",
@@ -776,9 +777,27 @@ export default function TickMatch() {
             className="flex items-center gap-1.5 bg-[#1f2937] hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-xs text-slate-300 hover:text-white transition-all flex-shrink-0">
             ← Back
           </button>
-          <button onClick={() => { setIsSyncing(true); setTimeout(() => setIsSyncing(false), 500); }}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-400 text-white transition-all flex-shrink-0" title="รีเฟรชข้อมูล">
-            🔄
+          <button
+            onClick={() => { 
+              if (!selectedSymbol) return;
+              setIsSyncing(true);
+              setGlobalHoverIndex(null);
+              setTimeout(() => {
+                setDataVersion((prev) => prev + 1);
+                setIsSyncing(false);
+              }, 700);
+            }}
+            className="w-10 h-10 bg-[#0f172a] border border-slate-700 rounded-lg flex items-center justify-center hover:border-cyan-500 transition-all flex-shrink-0 group"
+            title="รีเฟรชข้อมูล"
+          >
+            <RefreshIcon 
+              sx={{ 
+                fontSize: 16, 
+                color: isSyncing ? "#3b82f6" : "#ffffff",
+                transition: "color 0.3s ease"
+              }} 
+              className={`${isSyncing ? "animate-spin" : "group-hover:text-cyan-400"}`} 
+            />
           </button>
           <FullscreenSymbolInput value={activeSymbol} onChange={(v) => {
             setSymbol(v);
