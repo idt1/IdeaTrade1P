@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import mit from "@/assets/images/mit.png";
+import mit from "@/assets/images/MIT.png";
 
 export default function MITLanding() {
   const navigate = useNavigate();
