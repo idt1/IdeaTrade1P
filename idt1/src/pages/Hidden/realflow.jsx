@@ -898,18 +898,21 @@ export default function RealFlow() {
             lg/xl  : [? icon] [Search________] [SET100][NON-SET100][MAI][WARRANT] [History]
         ══════════════════════════════════════════════════════ */}
 
-  <header className="mb-6 sm:mb-8">
+ <header className="mb-6 sm:mb-8">
+  {/* ── Main Container: ห่อทุกอย่างไว้ด้วยกัน ── */}
+  {/* มือถือใช้ flex-wrap เพื่อปัดบรรทัด, Desktop ใช้ flex-nowrap ให้อยู่บรรทัดเดียว */}
+  <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 sm:gap-3">
 
-  {/* ── Row 1: ToolHint + Search + History button ── */}
-  <div className="flex items-center gap-2 sm:gap-3">
+    {/* 1. ToolHint (อยู่ซ้ายสุดเสมอ) */}
+    <div className="order-1 shrink-0">
+      <ToolHint onViewDetails={() => { window.scrollTo({ top: 0 }); }}>
+        Real Flow tracks stock market money flow in real-time.
+        Prices update automatically every 10–15 seconds.
+      </ToolHint>
+    </div>
 
-    <ToolHint onViewDetails={() => { window.scrollTo({ top: 0 }); }}>
-      Real Flow tracks stock market money flow in real-time.
-      Prices update automatically every 10–15 seconds.
-    </ToolHint>
-
-    {/* Search */}
-    <div className="relative flex-1 min-w-0 max-w-[160px] sm:max-w-[200px] lg:max-w-[220px]">
+    {/* 2. Search Box (อยู่ถัดมา) */}
+    <div className="order-2 relative flex-1 min-w-0 max-w-[160px] sm:max-w-[200px] lg:max-w-[220px]">
       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
         <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -924,34 +927,40 @@ export default function RealFlow() {
       )}
     </div>
 
-    {/* History button */}
+    {/* 3. History button 
+        มือถือ (order-3): อยู่บรรทัดบน ชิดขวา
+        Desktop (lg:order-4): ย้ายไปอยู่ท้ายสุดของแถว และใช้ ml-auto ดันชิดขวา 
+    */}
     <button
       onClick={() => navigate("/hisrealflow")}
-      className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all border bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white focus:outline-none ml-auto shrink-0"
+      className="order-3 lg:order-4 flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all border bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white focus:outline-none ml-auto shrink-0"
       title="View History">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
       </svg>
       <span className="hidden sm:inline">History</span>
     </button>
-  </div>
 
-  {/* ── Row 2: Category pills — ทุก breakpoint ── */}
-  <div className="flex items-center gap-1.5 mt-2 overflow-x-auto no-scrollbar">
-    {CATEGORIES.map(cat => {
-      const isActive = activeCategory === cat;
-      return (
-        <button key={cat} onClick={() => setActiveCategory(prev => prev === cat ? null : cat)}
-          className={`px-3 lg:px-5 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-all border focus:outline-none whitespace-nowrap flex-shrink-0
-            ${isActive
-              ? "bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-900/50 cat-pill-active"
-              : "bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white"}`}>
-          {cat}
-        </button>
-      );
-    })}
-  </div>
+    {/* 4. Category pills 
+        มือถือ (order-4): บังคับขึ้นบรรทัดใหม่ด้วย w-full
+        Desktop (lg:order-3): แทรกกลางระหว่าง Search กับ History และแก้ความกว้างเป็น w-auto 
+    */}
+    <div className="order-4 lg:order-3 w-full lg:w-auto mt-2 lg:mt-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar lg:min-w-0">
+      {CATEGORIES.map(cat => {
+        const isActive = activeCategory === cat;
+        return (
+          <button key={cat} onClick={() => setActiveCategory(prev => prev === cat ? null : cat)}
+            className={`px-3 lg:px-5 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-all border focus:outline-none whitespace-nowrap flex-shrink-0
+              ${isActive
+                ? "bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-900/50 cat-pill-active"
+                : "bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white"}`}>
+            {cat}
+          </button>
+        );
+      })}
+    </div>
 
+  </div>
 </header>
       
         {/* ── Sections ── */}
