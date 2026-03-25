@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Rocket from "./Rocket";
+import Rocket from "./rocket";
 
 // ✅ Import Firebase เพิ่มเติม
 import { db } from "@/firebase"; 
