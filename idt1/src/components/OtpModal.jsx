@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { auth, db } from "@/firebase"; // 🟢 มั่นใจว่าได้ import db มาจาก firebase config
+import { auth, db } from "@/firebase"; 
 import { signInWithCustomToken } from "firebase/auth";
-// 🟢 เพิ่ม import คำสั่ง firestore
 import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
+
+// ดึง URL ของ Backend จาก Environment Variable
+// ถ้าไม่มี (เช่น รันในเครื่อง) จะใช้ localhost:5000 แทนอัตโนมัติ
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function OtpModal({ open, onClose, onSuccess, email }) { 
   const OTP_LENGTH = 6;
@@ -38,7 +41,8 @@ export default function OtpModal({ open, onClose, onSuccess, email }) {
   const verifyOtp = async (code) => {
     setStatus("loading");
     try {
-      const response = await fetch("/ideatrade-9548f/us-central1/verifyOTP", {
+      // 🟢 แก้ไข: ใช้ Template Literal เชื่อม API_URL เข้ากับ Path
+      const response = await fetch(`${API_URL}/ideatrade-9548f/us-central1/verifyOTP`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -57,24 +61,17 @@ export default function OtpModal({ open, onClose, onSuccess, email }) {
       const userCredential = await signInWithCustomToken(auth, data.token);
       const user = userCredential.user;
 
-      // 🟢 2. กระบวนการย้ายข้อมูลจาก [ชื่อไฟล์เป็น Email] -> [ชื่อไฟล์เป็น UID]
+      // 2. กระบวนการย้ายข้อมูลจาก [ชื่อไฟล์เป็น Email] -> [ชื่อไฟล์เป็น UID]
       if (user) {
         const formattedEmail = email.trim().toLowerCase();
-        
-        // อ้างอิงไปยัง Document เดิมที่สมัครไว้ (ชื่อไฟล์เป็นอีเมล)
         const emailDocRef = doc(db, "users", formattedEmail);
         const emailDocSnap = await getDoc(emailDocRef);
 
         if (emailDocSnap.exists()) {
           const userData = emailDocSnap.data();
-
-          // อ้างอิงไปยัง Document ใหม่ (ชื่อไฟล์เป็น UID)
           const uidDocRef = doc(db, "users", user.uid);
           
-          // นำข้อมูลโปรไฟล์จากไฟล์อีเมล มาบันทึกลงไฟล์ UID (ใช้ merge: true เพื่อป้องกันข้อมูลอื่นหาย)
           await setDoc(uidDocRef, userData, { merge: true });
-
-          // ลบ Document ชื่ออีเมลทิ้ง เพื่อไม่ให้เก็บข้อมูลซ้ำซ้อน
           await deleteDoc(emailDocRef);
           console.log("Successfully merged user data from Email to UID");
         }
@@ -98,7 +95,8 @@ export default function OtpModal({ open, onClose, onSuccess, email }) {
     setResent(true);
     hiddenInputRef.current?.focus();
     try {
-      await fetch("/ideatrade-9548f/us-central1/requestOTP", {
+      // 🟢 แก้ไข: ใส่ API_URL นำหน้า Path เช่นกัน
+      await fetch(`${API_URL}/ideatrade-9548f/us-central1/requestOTP`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase() })
@@ -122,7 +120,7 @@ export default function OtpModal({ open, onClose, onSuccess, email }) {
             <span className="w-5 h-5 rounded-full border border-white/40 flex items-center justify-center text-xs cursor-pointer opacity-60 hover:opacity-100">?</span>
             {showTip && (
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 p-3 rounded-lg text-xs text-gray-200 bg-slate-700 shadow-xl z-50">
-                OTP (One-Time Password) is a secure 6-digit key delivered to your email.
+                OTP is a 6-digit key sent to your email.
               </div>
             )}
           </div>
@@ -135,7 +133,6 @@ export default function OtpModal({ open, onClose, onSuccess, email }) {
             ref={hiddenInputRef}
             type="text"
             inputMode="numeric"
-            autoComplete="one-time-code"
             value={otp.join("")}
             onChange={(e) => {
               const value = e.target.value.replace(/\D/g, "");
