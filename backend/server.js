@@ -13,10 +13,12 @@ app.use(express.json());
 
 // 👈 2. สร้าง Transporter สำหรับส่งอีเมล (ดึงค่าจากไฟล์ .env)
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // ใช้ SSL
   auth: {
-    user: process.env.EMAIL_USER, 
-    pass: process.env.EMAIL_PASS, 
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 
