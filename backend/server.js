@@ -1,8 +1,22 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import admin from "firebase-admin"; // 👈 นำเข้า Firebase Admin
 
 dotenv.config();
+
+// 🌟 1. ตั้งค่า Firebase Admin (ใช้ข้อมูลจาก .env)
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      // แปลงตัวอักษร \n ให้กลายเป็นขึ้นบรรทัดใหม่จริงๆ เพื่อให้ระบบอ่านออก
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
+  console.log("🔥 Firebase Admin Initialized!");
+}
 
 const app = express();
 
@@ -12,7 +26,7 @@ app.use(express.json());
 
 // 1. Route เช็คสถานะเซิร์ฟเวอร์
 app.get("/", (req, res) => {
-  res.send("Backend Running on Render 🚀 (Powered by Google Apps Script)");
+  res.send("Backend Running on Render 🚀 (Powered by Google Apps Script & Firebase Admin)");
 });
 
 // 2. API สำหรับทดสอบระบบ
@@ -28,10 +42,8 @@ app.post("/api/request-otp", async (req, res) => {
   // สร้างรหัส OTP 6 หลักแบบสุ่ม
   const otpCode = Math.floor(100000 + Math.random() * 900000);
 
-  // 👇 1. นำ URL ที่ได้จาก Google Apps Script มาใส่ในนี้ (ต้องอยู่ในเครื่องหมายคำพูด "")
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyWFvhTdfmWyIOlQT6feXrQCy-qVfMR7f_5y0-v74HqZGLkpMF4USXcBYXdADJKgxiH/exec"; 
 
-  // 👇 2. จัดเตรียมเนื้อหาอีเมลที่จะส่งไปให้ Google Apps Script
   const emailPayload = {
     to: email,
     subject: "รหัส OTP สำหรับเข้าสู่ระบบ IdeaTrade",
@@ -46,11 +58,9 @@ app.post("/api/request-otp", async (req, res) => {
   };
 
   try {
-    // 👇 3. ยิงคำขอ (HTTP POST) ไปที่ Google Apps Script ของเราแทน Nodemailer
     const response = await fetch(GOOGLE_SCRIPT_URL, {
       method: "POST",
       headers: {
-        // สำคัญ: ใช้ text/plain เลี่ยงปัญหา CORS ตอนยิงทะลุข้ามโดเมน
         "Content-Type": "text/plain;charset=utf-8", 
       },
       body: JSON.stringify(emailPayload),
@@ -83,15 +93,33 @@ app.post("/api/request-otp", async (req, res) => {
   }
 });
 
-// 4. API สำหรับยืนยัน OTP (จุดที่หน้าบ้าน OtpModal.jsx จะยิงมา)
-app.post("/api/verify-otp", (req, res) => {
+// 🌟 4. API สำหรับยืนยัน OTP (อัปเดตเป็นของจริงแล้ว)
+app.post("/api/verify-otp", async (req, res) => { // 👈 เติม async ตรงนี้
   const { email, otp } = req.body;
   console.log("🔑 กำลังเช็ค OTP:", otp, "ของอีเมล:", email);
   
-  res.json({ 
-    success: true, 
-    token: "mock-firebase-custom-token-for-" + email 
-  });
+  // (ณ ตอนนี้ระบบจะยอมให้ผ่านเลยถ้ากดยืนยัน OTP อนาคตเราค่อยมาเพิ่มการเช็คเลข OTP ให้ตรงกัน)
+
+  try {
+    // 🌟 เสก Custom Token ของจริง! (ใช้ email เป็นรหัสประจำตัวผู้ใช้)
+    const customToken = await admin.auth().createCustomToken(email);
+    
+    console.log("✅ สร้าง Token ของจริงสำเร็จสำหรับ:", email);
+    
+    // ส่ง Token กลับไปให้หน้าบ้าน
+    res.json({ 
+      success: true, 
+      token: customToken 
+    });
+
+  } catch (error) {
+    console.error("❌ สร้าง Token พลาด:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "ไม่สามารถยืนยันตัวตนได้",
+      error: error.message
+    });
+  }
 });
 
 // 5. API สำหรับหน้า Login (เดิมของคุณ)
