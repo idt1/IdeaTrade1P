@@ -7,15 +7,24 @@ dotenv.config();
 
 // 🌟 1. ตั้งค่า Firebase Admin (ใช้ข้อมูลจาก .env)
 if (!admin.apps.length) {
+  // ดึงคีย์มาเก็บในตัวแปรก่อน
+  let formattedKey = process.env.FIREBASE_PRIVATE_KEY;
+  
+  if (formattedKey) {
+    // ทริคปราบเซียน: ลบเครื่องหมายคำพูด (") ที่หัวและท้ายออกให้หมด (เผื่อติดมาตอนก๊อปใส่ Render)
+    formattedKey = formattedKey.replace(/^"|"$/g, '');
+    // แปลงอักขระ \n ให้กลายเป็นการขึ้นบรรทัดใหม่จริงๆ
+    formattedKey = formattedKey.replace(/\\n/g, '\n');
+  }
+
   admin.initializeApp({
     credential: admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      // แปลงตัวอักษร \n ให้กลายเป็นขึ้นบรรทัดใหม่จริงๆ เพื่อให้ระบบอ่านออก
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      privateKey: formattedKey, // 👈 ใช้คีย์ที่ล้างทำความสะอาดแล้ว
     }),
   });
-  console.log("🔥 Firebase Admin Initialized!");
+  console.log("🔥 Firebase Admin Initialized! (With Auto-Format Key)");
 }
 
 const app = express();
