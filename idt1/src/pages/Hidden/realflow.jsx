@@ -63,6 +63,63 @@ function filterLWCByTime(seriesData, fromH, fromM, toH, toM) {
   );
 }
 
+/* ================= CHARTFLIP SPARKLINE DATA ================= */
+function mkChartFlipSparklines(seed, count = 20) {
+  const r = rng(seed + 9999);
+  return Array.from({ length: count }, () => {
+    let v = 50;
+    return Array.from({ length: 20 }, () => {
+      v += (r() - 0.5) * 12;
+      v = Math.max(5, Math.min(95, v));
+      return +v.toFixed(2);
+    });
+  });
+}
+
+/* ================= CHARTFLIP ICON ================= */
+const ChartFlipIcon = ({ size = 14, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3 3V16C3 18.7614 5.23858 21 8 21H21" stroke={color} strokeWidth="1.2"/>
+    <path d="M8 16.5C8 17.3284 7.32843 18 6.5 18C5.67157 18 5 17.3284 5 16.5C5 15.6716 5.67157 15 6.5 15C7.32843 15 8 15.6716 8 16.5Z" fill={color}/>
+    <path d="M11 8.5C11 9.32843 10.3284 10 9.5 10C8.67157 10 8 9.32843 8 8.5C8 7.67157 8.67157 7 9.5 7C10.3284 7 11 7.67157 11 8.5Z" fill={color}/>
+    <path d="M17 13.5C17 14.3284 16.3284 15 15.5 15C14.6716 15 14 14.3284 14 13.5C14 12.6716 14.6716 12 15.5 12C16.3284 12 17 12.6716 17 13.5Z" fill={color}/>
+    <path d="M21 6.5C21 7.32843 20.3284 8 19.5 8C18.6716 8 18 7.32843 18 6.5C18 5.67157 18.6716 5 19.5 5C20.3284 5 21 5.67157 21 6.5Z" fill={color}/>
+    <path d="M6.99847 15.5008L8.99962 9.49933M14.5 12.5L10.5012 8.9985M16 12.5L19 7.5" stroke={color} strokeWidth="0.8" strokeLinecap="round"/>
+  </svg>
+);
+
+/* ================= MINI SPARKLINE ================= */
+const MiniSparkline = ({ values, isUp, width = 80, height = 32 }) => {
+  if (!values || values.length < 2) return <span style={{ fontSize: 9, color: "#334155" }}>—</span>;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * (width - 6) + 3;
+    const y = height - 5 - ((v - min) / range) * (height - 10);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  const color = isUp === true ? "#4ade80" : isUp === false ? "#f87171" : "#64748b";
+  const fillColor = isUp === true ? "rgba(74,222,128,0.08)" : isUp === false ? "rgba(248,113,113,0.08)" : "rgba(100,116,139,0.06)";
+  // build fill path
+  const firstPt = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * (width - 6) + 3;
+    const y = height - 5 - ((v - min) / range) * (height - 10);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const fillPath = `M ${firstPt[0]} L ${firstPt.join(" L ")} L ${((values.length-1)/(values.length-1))*(width-6)+3},${height-2} L 3,${height-2} Z`;
+  const lastV = values[values.length - 1];
+  const lastX = (width - 6) + 3;
+  const lastY = height - 5 - ((lastV - min) / range) * (height - 10);
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: "block" }}>
+      <path d={fillPath} fill={fillColor} />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={lastX} cy={lastY} r="2.5" fill={color} />
+    </svg>
+  );
+};
+
 /* ================= ANIMATED NUMBER ================= */
 function useAnimatedValue(target, duration = 400) {
   const [display, setDisplay] = useState(target);
@@ -99,7 +156,7 @@ const AnimatedCell = ({ value, flash }) => {
     return () => clearTimeout(timerRef.current);
   }, [flash]);
   return (
-    <span style={{ fontFamily: "monospace", fontSize: 12, color, transition: "color 1.2s ease", fontWeight: flash ? 700 : 400 }}>
+    <span style={{ fontFamily: "monospace", fontSize: 11, color, transition: "color 1.2s ease", fontWeight: flash ? 700 : 400, fontVariantNumeric: "tabular-nums" }}>
       {display}
     </span>
   );
@@ -181,32 +238,29 @@ const InfoTooltip = ({ children, lines = [], linkText = "", linkHref = "#" }) =>
 };
 
 /* ================= RANK TABLE ================= */
-/**
- * Responsive variants:
- *  mobile  → collapsed: show only top-5, max-height ~200px, compact rows
- *  tablet+ → full list with toggle-expand
- *  lg+     → full sidebar (35% width)
- */
-const RankTable = ({ data, flashMap = {}, recentMap = {}, top5Len, highlighted, extraVisible, onRowClick, compact = false }) => {
+const RankTable = ({ data, flashMap = {}, recentMap = {}, top5Len, highlighted, extraVisible, onRowClick, compact = false, sparklines = [] }) => {
   const [expanded, setExpanded] = useState(false);
-  // On mobile we only show top-5 by default; user can expand
   const visibleData = compact && !expanded ? data.slice(0, top5Len) : data;
 
   return (
     <div className={`
-      w-full bg-[#0f172a] rounded-lg border border-slate-700 overflow-hidden flex flex-col
-      ${compact ? "max-h-[220px] sm:max-h-[260px]" : "lg:w-[35%]"}
-    `}
-      style={compact ? undefined : undefined}
-    >
-      <div className={`overflow-y-auto flex-1 custom-scrollbar ${compact ? "" : ""}`}>
-        <table className="w-full text-sm">
+      bg-[#0f172a] rounded-lg border border-slate-700 overflow-hidden flex flex-col
+      ${compact ? "w-full max-h-[220px] sm:max-h-[260px]" : "h-full"}
+    `}>
+      <div className="overflow-y-auto flex-1 custom-scrollbar">
+        <table className="w-full text-sm table-fixed">
           <thead className="sticky top-0 z-10">
-            <tr className="bg-slate-800 text-[10px] sm:text-[11px] text-slate-300 font-semibold uppercase tracking-wider">
-              <th className="py-2 sm:py-3 px-1 sm:px-2 text-center font-semibold w-8 sm:w-10">#</th>
-              <th className="py-2 sm:py-3 px-1 sm:px-2 text-left font-semibold">Symbol</th>
-              <th className="py-2 sm:py-3 px-1 sm:px-2 text-right font-semibold">Value</th>
-              <th className="py-2 sm:py-3 px-1 sm:px-2 text-right font-semibold">%Chg</th>
+            <tr className="bg-slate-800 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+              <th className="py-2.5 pl-3 pr-2 text-center" style={{ width: 28 }}>#</th>
+              <th className="py-2.5 pl-1 pr-1 text-left" style={{ width: "22%" }}>Symbol</th>
+              <th className="py-2.5 pl-1 pr-1 text-right" style={{ width: "25%" }}>Value</th>
+              <th className="py-2.5 pl-1 pr-4 text-right" style={{ width: "25%" }}>%Chg</th>
+              <th className="py-2.5 pl-1 pr-3 text-right" style={{ width: 52 }}>
+                <span className="flex flex-col items-end justify-center leading-none text-slate-400" style={{ gap: 1 }}>
+                  <span>Chart</span>
+                  <span>flip</span>
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -225,12 +279,12 @@ const RankTable = ({ data, flashMap = {}, recentMap = {}, top5Len, highlighted, 
               return (
                 <tr key={i} onClick={() => onRowClick?.(i)}
                   className={`border-b border-slate-700/50 cursor-pointer transition-colors ${bg}`}>
-                  <td className="py-1.5 sm:py-2 px-1 sm:px-2 text-center text-slate-400 text-xs w-8 sm:w-10">{row.rank}</td>
-                  <td className="py-1.5 sm:py-2 px-1 sm:px-2 font-bold text-white">
+                  <td className="py-2.5 pl-3 pr-2 text-center text-slate-500 text-[11px]">{row.rank}</td>
+                  <td className="py-2.5 pl-1 pr-1 font-semibold text-white max-w-0">
                     <span className="flex items-center gap-1">
-                      {isTop5  && <span className="inline-block w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full flex-shrink-0" style={{ background: PALETTE[i] }} />}
-                      {isExtra && <span className="inline-block w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full flex-shrink-0" style={{ background: EXTRA_COLOR }} />}
-                      <span className="text-xs sm:text-sm">{row.symbol}</span>
+                      {isTop5  && <span className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: PALETTE[i] }} />}
+                      {isExtra && <span className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: EXTRA_COLOR }} />}
+                      <span className="text-[11px] truncate">{row.symbol}</span>
                       {recent && !flash && (
                         <span className={`text-[8px] sm:text-[9px] font-bold px-0.5 sm:px-1 py-0.5 rounded ml-0.5 ${recent === "up" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
                           {recent === "up" ? "▲" : "▼"}
@@ -243,11 +297,21 @@ const RankTable = ({ data, flashMap = {}, recentMap = {}, top5Len, highlighted, 
                       )}
                     </span>
                   </td>
-                  <td className="py-1.5 sm:py-2 px-1 sm:px-2 text-right">
+                  <td className="py-2.5 pl-1 pr-1 text-right">
                     <AnimatedCell value={row.value} flash={flash} />
                   </td>
-                  <td className={`py-1.5 sm:py-2 px-1 sm:px-2 text-right font-semibold text-xs ${cc}`}>
+                  <td className={`py-2.5 pl-1 pr-4 text-right font-semibold text-[11px] tabular-nums ${cc}`}>
                     {row.isUp === true ? "+" : ""}{row.change}%
+                  </td>
+                  <td className="py-1.5 pl-1 pr-3 text-right" style={{ width: 52 }}>
+                    <button
+                      onClick={e => { e.stopPropagation(); onRowClick?.(i); }}
+                      className="inline-flex items-center justify-center rounded-lg border border-slate-600/80 bg-slate-800/70 hover:bg-slate-700 hover:border-slate-500 transition-all group"
+                      style={{ width: 30, height: 30 }}
+                      title={`ChartFlip: ${row.symbol}`}
+                    >
+                      <ChartFlipIcon size={14} color={row.isUp === true ? "#4ade80" : row.isUp === false ? "#f87171" : "#64748b"} />
+                    </button>
                   </td>
                 </tr>
               );
@@ -255,23 +319,13 @@ const RankTable = ({ data, flashMap = {}, recentMap = {}, top5Len, highlighted, 
           </tbody>
         </table>
       </div>
-
-      {/* Expand/collapse toggle — only in compact mode */}
       {compact && data.length > top5Len && (
-        <button
-          onClick={() => setExpanded(p => !p)}
-          className="flex items-center justify-center gap-1.5 py-1.5 text-[10px] text-slate-500 hover:text-slate-300 border-t border-slate-700/60 bg-slate-800/50 hover:bg-slate-700/30 transition-all"
-        >
+        <button onClick={() => setExpanded(p => !p)}
+          className="flex items-center justify-center gap-1.5 py-1.5 text-[10px] text-slate-500 hover:text-slate-300 border-t border-slate-700/60 bg-slate-800/50 hover:bg-slate-700/30 transition-all">
           {expanded ? (
-            <>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg>
-              Show less
-            </>
+            <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg>Show less</>
           ) : (
-            <>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-              +{data.length - top5Len} more stocks
-            </>
+            <><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>+{data.length - top5Len} more stocks</>
           )}
         </button>
       )}
@@ -455,7 +509,7 @@ const LWCChart = ({
   return (
     <div
       ref={containerRef}
-      className={`${fullWidth ? "w-full" : "w-full lg:w-[65%]"} rounded-lg overflow-hidden border border-slate-600/60`}
+      className={`${fullWidth ? "w-full" : "w-full"} rounded-lg overflow-hidden border border-slate-600/60`}
       style={{ height: typeof height === "number" ? height : "100%", cursor: "default" }}
     />
   );
@@ -526,7 +580,7 @@ const ZoomModal = ({
   }, [onClose]);
 
   if (!card) return null;
-  const { category, type, data, allSeriesData } = card;
+  const { category, type, data, allSeriesData, sparklines = [] } = card;
   const isPos = type === "+";
   const modalBp = useBreakpoint();
   const modalIsMobile = modalBp === "xs" || modalBp === "sm";
@@ -542,7 +596,7 @@ const ZoomModal = ({
     ? { data: filteredSeries[extraVisible], symbol: data[extraVisible]?.symbol }
     : null;
 
-  const handleModalZoom = useCallback((deltaY, chartApi) => {
+  const handleModalZoom = useCallback((deltaY) => {
     setModalBarWidth(prev => {
       const factor = deltaY > 0 ? 0.82 : 1.22;
       const next = Math.max(3, Math.min(200, prev * factor));
@@ -565,9 +619,7 @@ const ZoomModal = ({
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#060d16", display: "flex", flexDirection: "column", fontFamily: "'JetBrains Mono', monospace" }}>
-      {/* Modal topbar — responsive: single row on desktop, two rows on mobile */}
       <div style={{ flexShrink: 0, background: "#07111c", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        {/* Row 1: Back | Title | BUY/SELL | (spacer) | Reset */}
         <div style={{ display: "flex", alignItems: "center", padding: "0 12px", height: 44, gap: 8, overflow: "hidden" }}>
           <button onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", background: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: "#94a3b8", cursor: "pointer", fontSize: 11, fontWeight: 600, fontFamily: "monospace", flexShrink: 0 }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -575,11 +627,10 @@ const ZoomModal = ({
             </svg>
             Back
           </button>
-          <span style={{ color: "#e2e8f0", fontSize: modalIsMobile ? 13 : 15, fontWeight: 800, letterSpacing: "0.08em", flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: modalIsMobile ? 80 : "none" }}>{category}</span>
+          <span style={{ color: "#e2e8f0", fontSize: modalIsMobile ? 13 : 15, fontWeight: 800, letterSpacing: "0.08em", flexShrink: 0 }}>{category}</span>
           <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 99, flexShrink: 0, background: isPos ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color: isPos ? "#4ade80" : "#f87171", border: `1px solid ${isPos ? "rgba(74,222,128,0.25)" : "rgba(248,113,113,0.25)"}`, whiteSpace: "nowrap" }}>
             {isPos ? (modalIsMobile ? "▲ BUY" : "▲ BUY FLOW") : (modalIsMobile ? "▼ SELL" : "▼ SELL FLOW")}
           </span>
-          {/* Time filters inline on desktop */}
           {!modalIsMobile && (
             <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 4 }}>
               {TIME_FILTERS.map(tf => {
@@ -596,7 +647,6 @@ const ZoomModal = ({
           <div style={{ flex: 1 }} />
           <SpinButton onClick={handleModalReset} title="Reset" label="Reset" />
         </div>
-        {/* Row 2 (mobile only): time filter pills */}
         {modalIsMobile && (
           <div style={{ display: "flex", gap: 4, padding: "6px 12px", overflowX: "auto", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
             {TIME_FILTERS.map(tf => {
@@ -612,9 +662,9 @@ const ZoomModal = ({
         )}
       </div>
 
-      {/* Body — stacked on mobile, side-by-side on desktop */}
       <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden", flexDirection: modalIsMobile ? "column" : "row" }}>
-        <div style={{ flex: 1, minWidth: 0, minHeight: modalIsMobile ? 0 : "auto", padding: modalIsMobile ? 6 : 8, display: "flex", flexDirection: "column" }}>
+        {/* Chart */}
+        <div style={{ flex: 1, minWidth: 0, padding: modalIsMobile ? 6 : 8, display: "flex", flexDirection: "column" }}>
           <LWCChart
             key={`modal-chart-${timeFilter}`}
             seriesData={filteredSeries.slice(0, 5)}
@@ -630,8 +680,9 @@ const ZoomModal = ({
           />
         </div>
 
-        <div style={{ width: modalIsMobile ? "100%" : 300, height: modalIsMobile ? 220 : "auto", flexShrink: modalIsMobile ? 0 : 0, display: "flex", flexDirection: "column", minHeight: 0, border: "1px solid rgba(255,255,255,0.15)", margin: modalIsMobile ? "0 6px 6px 6px" : "8px 8px 8px 0", borderRadius: 8, overflow: "hidden" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 18px 8px", borderBottom: "1px solid rgba(255,255,255,0.15)", flexShrink: 0 }}>
+        {/* Rankings */}
+        <div style={{ width: modalIsMobile ? "100%" : 240, flexShrink: 0, display: "flex", flexDirection: "column", minHeight: 0, border: "1px solid rgba(255,255,255,0.08)", margin: modalIsMobile ? "0 6px 6px" : "8px 0 8px 0", borderRadius: 8, overflow: "hidden", background: "#0f172a" }}>
+          <div style={{ padding: "8px 12px 6px", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0, display: "flex", justifyContent: "space-between" }}>
             <span style={{ color: "#475569", fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" }}>Rankings</span>
             <span style={{ color: "#1e3a5f", fontSize: 10 }}>{data.length} stocks</span>
           </div>
@@ -648,18 +699,48 @@ const ZoomModal = ({
               const cc = row.isUp === true ? "#4ade80" : row.isUp === false ? "#f87171" : "#334155";
               return (
                 <React.Fragment key={i}>
-                  {i === 5 && <div style={{ margin: "4px 18px", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center" }}><span style={{ fontSize: 9, color: "#334155", fontFamily: "monospace", letterSpacing: "0.1em" }}>OTHER</span></div>}
-                  <div onClick={() => onRowClick?.(i)} style={{ display: "grid", gridTemplateColumns: "32px 10px 1fr auto auto", alignItems: "center", gap: "0 10px", padding: "9px 18px", borderBottom: "1px solid rgba(255,255,255,0.15)", borderLeft: leftBorder, background: rowBg, cursor: "pointer", transition: "background .3s" }}>
-                    <span style={{ color: isTop5 ? "#94a3b8" : "#334155", fontSize: isTop5 ? 12 : 11, fontWeight: isTop5 ? 700 : 400, textAlign: "right", fontFamily: "monospace", borderRight: "1px solid rgba(255,255,255,0.08)", paddingRight: 6 }}>{row.rank}</span>
+                  {i === 5 && <div style={{ margin: "4px 12px", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center" }}><span style={{ fontSize: 9, color: "#334155", fontFamily: "monospace", letterSpacing: "0.1em" }}>OTHER</span></div>}
+                  <div onClick={() => onRowClick?.(i)} style={{ display: "grid", gridTemplateColumns: "28px 8px 1fr auto auto", alignItems: "center", gap: "0 8px", padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.08)", borderLeft: leftBorder, background: rowBg, cursor: "pointer", transition: "background .3s" }}>
+                    <span style={{ color: isTop5 ? "#94a3b8" : "#334155", fontSize: 11, fontWeight: isTop5 ? 700 : 400, textAlign: "right", fontFamily: "monospace" }}>{row.rank}</span>
                     <span style={{ width: 8, height: 8, borderRadius: "50%", background: dotColor, justifySelf: "center" }} />
-                    <span style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 700, letterSpacing: "0.04em", fontFamily: "monospace" }}>
+                    <span style={{ color: "#e2e8f0", fontSize: 12, fontWeight: 700, fontFamily: "monospace" }}>
                       {row.symbol}
-                      {(flash || recent) && <span style={{ marginLeft: 5, fontSize: 9, color: (flash || recent) === "up" ? "#4ade80" : "#f87171" }}>{(flash || recent) === "up" ? "▲" : "▼"}</span>}
+                      {(flash || recent) && <span style={{ marginLeft: 4, fontSize: 9, color: (flash || recent) === "up" ? "#4ade80" : "#f87171" }}>{(flash || recent) === "up" ? "▲" : "▼"}</span>}
                     </span>
-                    <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "monospace", textAlign: "right", color: flash === "up" ? "#86efac" : flash === "down" ? "#fca5a5" : "#64748b", borderRight: "1px solid rgba(255,255,255,0.08)", paddingRight: 8 }}>{row.value}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "monospace", textAlign: "right", minWidth: 56, color: cc }}>{row.isUp === true ? "+" : ""}{row.change}%</span>
+                    <span style={{ fontSize: 11, fontFamily: "monospace", textAlign: "right", color: flash === "up" ? "#86efac" : flash === "down" ? "#fca5a5" : "#64748b" }}>{row.value}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "monospace", textAlign: "right", minWidth: 48, color: cc }}>{row.isUp === true ? "+" : ""}{row.change}%</span>
                   </div>
                 </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ChartFlip Panel in modal */}
+        <div style={{ width: modalIsMobile ? "100%" : 200, flexShrink: 0, display: "flex", flexDirection: "column", minHeight: 0, border: "1px solid rgba(255,255,255,0.08)", margin: modalIsMobile ? "0 6px 6px" : "8px 8px 8px 4px", borderRadius: 8, overflow: "hidden", background: "#0f172a" }}>
+          <div style={{ padding: "8px 12px 6px", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
+            <ChartFlipIcon size={11} color="#64748b" />
+            <span style={{ color: "#475569", fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" }}>ChartFlip</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }} className="custom-scrollbar">
+            {data.map((row, i) => {
+              const isTop5 = i < 5;
+              const flash  = flashMap?.[i];
+              const cc = row.isUp === true ? "#4ade80" : row.isUp === false ? "#f87171" : "#64748b";
+              const rowBg = flash === "up" ? "rgba(34,197,94,0.1)" : flash === "down" ? "rgba(239,68,68,0.1)" : "transparent";
+              return (
+                <div key={i} onClick={() => onRowClick?.(i)}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: rowBg, cursor: "pointer", transition: "background .3s" }}>
+                  <span style={{ color: "#475569", fontSize: 10, fontFamily: "monospace", width: 16, textAlign: "right", flexShrink: 0 }}>{row.rank}</span>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: isTop5 ? PALETTE[i] : EXTRA_COLOR, flexShrink: 0 }} />
+                  <span style={{ color: "#e2e8f0", fontSize: 11, fontWeight: 700, fontFamily: "monospace", width: 44, flexShrink: 0 }}>{row.symbol}</span>
+                  <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+                    <MiniSparkline values={sparklines[i]} isUp={row.isUp} width={60} height={28} />
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "monospace", color: cc, flexShrink: 0, width: 42, textAlign: "right" }}>
+                    {row.isUp === true ? "+" : ""}{row.change}%
+                  </span>
+                </div>
               );
             })}
           </div>
@@ -688,7 +769,7 @@ const LastUpdateBadge = ({ lastUpdated }) => {
   return <span className="text-[10px] text-slate-500 font-mono">updated {display}</span>;
 };
 
-/* ================= TOPBAR HOOK: ตรวจจับขนาดหน้าจอ ================= */
+/* ================= BREAKPOINT HOOK ================= */
 function useBreakpoint() {
   const [bp, setBp] = useState(() => {
     if (typeof window === "undefined") return "lg";
@@ -727,12 +808,14 @@ const SectionCard = ({
   const bp       = useBreakpoint();
   const isMobile = bp === "xs" || bp === "sm";
   const isTablet = bp === "md";
+  const isDesktop = !isMobile && !isTablet;
 
   const isPos  = type === "+";
   const POINTS = 390;
 
   const baseData      = useMemo(() => mkFlowData(initSeed), [initSeed]);
   const allSeriesData = useMemo(() => mkLWCData(initSeed, 20, POINTS, isPos), [initSeed, isPos]);
+  const sparklines    = useMemo(() => mkChartFlipSparklines(initSeed), [initSeed]);
   const cardKey       = `${category}-${type}-${initSeed}`;
   const chartId       = `card-${category}-${type}`;
 
@@ -766,11 +849,12 @@ const SectionCard = ({
   return (
     <>
       <div className="bg-[#1e293b] rounded-xl p-3 sm:p-4 lg:p-5 border border-slate-700/60 shadow-lg hover:border-slate-600 transition-colors">
+        {/* Card header */}
         <div className="flex justify-between items-center mb-2 sm:mb-3">
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
             <h3 className="text-sm sm:text-base font-bold text-white shrink-0">{category}</h3>
             <span className={`text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full border shrink-0 ${isPos ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-red-500/20 text-red-400 border-red-500/30"}`}>
-              {isMobile ? (isPos ? "\u25b2 BUY" : "\u25bc SELL") : (isPos ? "\u25b2 BUY FLOW" : "\u25bc SELL FLOW")}
+              {isMobile ? (isPos ? "▲ BUY" : "▼ SELL") : (isPos ? "▲ BUY FLOW" : "▼ SELL FLOW")}
             </span>
             <LastUpdateBadge lastUpdated={lastUpdated} />
           </div>
@@ -787,30 +871,62 @@ const SectionCard = ({
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-2 sm:gap-3 lg:gap-4 lg:h-64">
-          <LWCChart
-            seriesData={allSeriesData.slice(0, 5)}
-            highlighted={highlighted}
-            extraData={extraData}
-            height={chartHeight}
-            chartId={chartId}
-            chartRefs={chartRefs}
-            onZoom={onZoom}
-            globalLogical={globalLogical}
-            setGlobalLogical={setGlobalLogical}
-          />
-          <RankTable
-            data={liveData} flashMap={flashMap} recentMap={recentMap}
-            top5Len={5} highlighted={highlighted} extraVisible={extraVisible}
-            onRowClick={handleRowClick}
-            compact={isMobile || isTablet}
-          />
-        </div>
+        {/* ── Body Layout ──
+            Mobile/Tablet : chart → rankTable (stacked) → chartflip panel (stacked)
+            Desktop (lg+) : [chart 50%] [rankTable 25%] [chartflip 25%]  side-by-side
+        */}
+        {isDesktop ? (
+          /* Desktop: 3-column side by side */
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 380px", gap: 12, height: 256 }}>
+            {/* Chart */}
+            <LWCChart
+              seriesData={allSeriesData.slice(0, 5)}
+              highlighted={highlighted}
+              extraData={extraData}
+              height={256}
+              chartId={chartId}
+              chartRefs={chartRefs}
+              onZoom={onZoom}
+              globalLogical={globalLogical}
+              setGlobalLogical={setGlobalLogical}
+            />
+            {/* Rank Table with ChartFlip column */}
+            <RankTable
+              data={liveData} flashMap={flashMap} recentMap={recentMap}
+              top5Len={5} highlighted={highlighted} extraVisible={extraVisible}
+              onRowClick={handleRowClick}
+              compact={false}
+              sparklines={sparklines}
+            />
+          </div>
+        ) : (
+          /* Mobile/Tablet: stacked */
+          <div className="flex flex-col gap-2">
+            <LWCChart
+              seriesData={allSeriesData.slice(0, 5)}
+              highlighted={highlighted}
+              extraData={extraData}
+              height={chartHeight}
+              chartId={chartId}
+              chartRefs={chartRefs}
+              onZoom={onZoom}
+              globalLogical={globalLogical}
+              setGlobalLogical={setGlobalLogical}
+            />
+            <RankTable
+              data={liveData} flashMap={flashMap} recentMap={recentMap}
+              top5Len={5} highlighted={highlighted} extraVisible={extraVisible}
+              onRowClick={handleRowClick}
+              compact={true}
+              sparklines={sparklines}
+            />
+          </div>
+        )}
       </div>
 
       {modalOpen && (
         <ZoomModal
-          card={{ category, type, data: liveData, allSeriesData }}
+          card={{ category, type, data: liveData, allSeriesData, sparklines }}
           onClose={() => setModalOpen(false)}
           highlighted={highlighted} extraVisible={extraVisible}
           onRowClick={handleRowClick} onReset={handleRefresh}
@@ -828,14 +944,12 @@ export default function RealFlow() {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState(null);
   const [searchQuery, setSearchQuery]        = useState("");
-
-  const [globalLogical, setGlobalLogical] = useState(null);
+  const [globalLogical, setGlobalLogical]    = useState(null);
   const chartRefs = useRef({});
   const [barWidth, setBarWidth] = useState(80);
-
   const bp = useBreakpoint();
 
-  const handleZoom = useCallback((deltaY, _chartApi) => {
+  const handleZoom = useCallback((deltaY) => {
     setBarWidth(prev => {
       const factor = deltaY > 0 ? 0.82 : 1.22;
       const next = Math.max(3, Math.min(200, prev * factor));
@@ -876,94 +990,60 @@ export default function RealFlow() {
         .animate-bounce-icon { animation: bounce-icon 0.4s ease-in-out 3; }
         @keyframes spin-once { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .spin-once { animation: spin-once 0.5s ease-in-out; }
-
-        /* Mobile menu slide-down */
-        @keyframes slide-down {
-          from { opacity: 0; transform: translateY(-8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes slide-down { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
         .mobile-menu-enter { animation: slide-down 0.18s ease-out forwards; }
-
-        /* Category pill active indicator */
         .cat-pill-active { box-shadow: 0 0 0 1px rgba(59,130,246,0.5), 0 2px 8px rgba(59,130,246,0.2); }
       `}</style>
 
       <div className="max-w-[1600px] mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <header className="mb-6 sm:mb-8">
+          <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 sm:gap-3">
+            <div className="order-1 shrink-0">
+              <ToolHint onViewDetails={() => { window.scrollTo({ top: 0 }); }}>
+                Real Flow tracks stock market money flow in real-time.
+                Prices update automatically every 10–15 seconds.
+              </ToolHint>
+            </div>
+            <div className="order-2 relative flex-1 min-w-0 max-w-[160px] sm:max-w-[200px] lg:max-w-[220px]">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </span>
+              <input type="text" placeholder="Search..." value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full bg-[#1e293b] rounded-lg py-1.5 sm:py-2 pl-8 sm:pl-9 pr-7 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 border border-slate-700 transition-all" />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs transition-colors">✕</button>
+              )}
+            </div>
+            <button
+              onClick={() => navigate("/hisrealflow")}
+              className="order-3 lg:order-4 flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all border bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white focus:outline-none ml-auto shrink-0"
+              title="View History">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <span className="hidden sm:inline">History</span>
+            </button>
+            <div className="order-4 lg:order-3 w-full lg:w-auto mt-2 lg:mt-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar lg:min-w-0">
+              {CATEGORIES.map(cat => {
+                const isActive = activeCategory === cat;
+                return (
+                  <button key={cat} onClick={() => setActiveCategory(prev => prev === cat ? null : cat)}
+                    className={`px-3 lg:px-5 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-all border focus:outline-none whitespace-nowrap flex-shrink-0
+                      ${isActive
+                        ? "bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-900/50 cat-pill-active"
+                        : "bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white"}`}>
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </header>
 
-        {/* ══════════════════════════════════════════════════════
-            TOPBAR — Responsive Layout
-            xs/sm  : [? icon] [Search__________] [☰ menu]
-                     Row2 (expanded): category pills + History
-            md     : [? icon] [Search____] [S100][NON][MAI][WAR] [History]
-            lg/xl  : [? icon] [Search________] [SET100][NON-SET100][MAI][WARRANT] [History]
-        ══════════════════════════════════════════════════════ */}
-
- <header className="mb-6 sm:mb-8">
-  {/* ── Main Container: ห่อทุกอย่างไว้ด้วยกัน ── */}
-  {/* มือถือใช้ flex-wrap เพื่อปัดบรรทัด, Desktop ใช้ flex-nowrap ให้อยู่บรรทัดเดียว */}
-  <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 sm:gap-3">
-
-    {/* 1. ToolHint (อยู่ซ้ายสุดเสมอ) */}
-    <div className="order-1 shrink-0">
-      <ToolHint onViewDetails={() => { window.scrollTo({ top: 0 }); }}>
-        Real Flow tracks stock market money flow in real-time.
-        Prices update automatically every 10–15 seconds.
-      </ToolHint>
-    </div>
-
-    {/* 2. Search Box (อยู่ถัดมา) */}
-    <div className="order-2 relative flex-1 min-w-0 max-w-[160px] sm:max-w-[200px] lg:max-w-[220px]">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-      </span>
-      <input type="text" placeholder="Search..." value={searchQuery}
-        onChange={e => setSearchQuery(e.target.value)}
-        className="w-full bg-[#1e293b] rounded-lg py-1.5 sm:py-2 pl-8 sm:pl-9 pr-7 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 border border-slate-700 transition-all" />
-      {searchQuery && (
-        <button onClick={() => setSearchQuery("")}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs transition-colors">✕</button>
-      )}
-    </div>
-
-    {/* 3. History button 
-        มือถือ (order-3): อยู่บรรทัดบน ชิดขวา
-        Desktop (lg:order-4): ย้ายไปอยู่ท้ายสุดของแถว และใช้ ml-auto ดันชิดขวา 
-    */}
-    <button
-      onClick={() => navigate("/hisrealflow")}
-      className="order-3 lg:order-4 flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all border bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white focus:outline-none ml-auto shrink-0"
-      title="View History">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-      </svg>
-      <span className="hidden sm:inline">History</span>
-    </button>
-
-    {/* 4. Category pills 
-        มือถือ (order-4): บังคับขึ้นบรรทัดใหม่ด้วย w-full
-        Desktop (lg:order-3): แทรกกลางระหว่าง Search กับ History และแก้ความกว้างเป็น w-auto 
-    */}
-    <div className="order-4 lg:order-3 w-full lg:w-auto mt-2 lg:mt-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar lg:min-w-0">
-      {CATEGORIES.map(cat => {
-        const isActive = activeCategory === cat;
-        return (
-          <button key={cat} onClick={() => setActiveCategory(prev => prev === cat ? null : cat)}
-            className={`px-3 lg:px-5 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-all border focus:outline-none whitespace-nowrap flex-shrink-0
-              ${isActive
-                ? "bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-900/50 cat-pill-active"
-                : "bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white"}`}>
-            {cat}
-          </button>
-        );
-      })}
-    </div>
-
-  </div>
-</header>
-      
-        {/* ── Sections ── */}
         <div className="space-y-4 sm:space-y-6 pb-12">
           {visibleSections.length > 0 ? (
             visibleSections.map(({ category, type }) => {
