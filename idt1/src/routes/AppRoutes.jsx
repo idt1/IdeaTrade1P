@@ -75,6 +75,8 @@ export default function AppRoutes() {
       {/* ✅ แก้ redirect ให้ชี้ไป /chart-flip-id */}
       <Route path="/chartid" element={<Navigate to="/chart-flip-id" replace />} />
       <Route path="/real-flow" element={<Dashboard initialPage="real-flow" />} />
+      <Route path="/ideatradepoint" element={<Dashboard initialPage="ideatradepoint" />} />
+      <Route path="/hisideatradepoint" element={<Dashboard initialPage="hisideatradepoint" />} />
       
       {/* === Fallback (กันหลง) === */}
       <Route path="*" element={<Navigate to="/" replace />} />
