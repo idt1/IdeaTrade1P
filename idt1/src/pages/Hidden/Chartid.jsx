@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import ToolHint from "@/components/ToolHint.jsx";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const PAD     = { l: 14, t: 16, b: 32 };
@@ -14,27 +16,29 @@ const TICK_LABELS = Array.from({ length: 14 }, (_, i) => {
   return `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
 });
 
-// ─── Design Tokens (RealFlow style) ──────────────────────────────────────────
+// ─── Design Tokens ────────────────────────────────────────────────────────────
 const C = {
-  bg:        "#0f172a",
-  surface:   "#0f1e2e",
-  panel:     "#1e293b",
-  header:    "#0a1628",
-  border:    "rgba(255,255,255,0.07)",
-  borderHi:  "rgba(255,255,255,0.14)",
+  bg:        "#080f1a",
+  surface:   "#0b1525",
+  panel:     "#0f1c2e",
+  header:    "#0f1c2e",
+  border:    "rgba(255,255,255,0.11)",
+  borderHi:  "rgba(255,255,255,0.20)",
   grid:      "rgba(255,255,255,0.04)",
-  axis:      "rgba(255,255,255,0.10)",
-  dimText:   "#334155",
-  mutedText: "#475569",
-  bodyText:  "#94a3b8",
-  t1:        "#34d399",
-  t1d:       "#065f46",
-  id:        "#fbbf24",
-  idd:       "#78350f",
+  axis:      "rgba(255,255,255,0.13)",
+  dimText:   "#1e3a5f",
+  mutedText: "#4d6484",
+  bodyText:  "#7a96b8",
+  t1:        "#22c55e",
+  t1d:       "#14532d",
+  id:        "#eab308",
+  idd:       "#713f12",
   zero:      "#6366f1",
-  zeroglow:  "rgba(99,102,241,0.12)",
+  zeroglow:  "rgba(99,102,241,0.10)",
   crosshair: "rgba(255,255,255,0.18)",
-  tagBg:     "#0c1828",
+  tagBg:     "#1a2d45",
+  navBg:     "#131f30",
+  navBorder: "rgba(255,255,255,0.11)",
 };
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
@@ -100,21 +104,75 @@ const IconBack = () => (
     <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
   </svg>
 );
+const IconInfo = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+  </svg>
+);
+const IconLabel = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+    <line x1="7" y1="7" x2="7.01" y2="7"/>
+  </svg>
+);
+const IconSearch = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+  </svg>
+);
+const IconCompare = () => (
+  <svg width="15" height="15" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M19.7477 11.25C19.7477 11.25 19.75 10.75 19.75 10.25C19.75 5.77166 19.75 3.53249 18.3588 2.14124C16.9675 0.75 14.7283 0.75 10.25 0.75C5.77166 0.75 3.53249 0.75 2.14124 2.14124C0.75 3.53249 0.75 5.77166 0.75 10.25C0.75 14.7283 0.75 16.9675 2.14124 18.3588C3.53249 19.75 5.77166 19.75 10.25 19.75C10.7807 19.75 11.25 19.7477 11.25 19.7477" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M0.75 5.75H19.75" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+    <path d="M8.75 14.75H10.25M4.75 14.75H5.75M8.75 10.75H14.75M4.75 10.75H5.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M13.75 17.25H20.75M17.25 20.75L17.25 13.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
 
-// ─── Toggle Button (RealFlow pill style) ──────────────────────────────────────
+// ─── Small icon button ────────────────────────────────────────────────────────
+function IconBtn({ onClick, title, children, active }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        width: 28, height: 28,
+        background: active ? "rgba(255,255,255,0.07)" : "transparent",
+        border: `1px solid ${active ? "rgba(255,255,255,0.15)" : C.border}`,
+        borderRadius: 6,
+        color: active ? "#e2e8f0" : C.mutedText,
+        cursor: "pointer", flexShrink: 0,
+        transition: "all .15s",
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.color = "#e2e8f0";
+        e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)";
+        e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.color = active ? "#e2e8f0" : C.mutedText;
+        e.currentTarget.style.borderColor = active ? "rgba(255,255,255,0.15)" : C.border;
+        e.currentTarget.style.background = active ? "rgba(255,255,255,0.07)" : "transparent";
+      }}
+    >{children}</button>
+  );
+}
+
+// ─── Toggle pill ──────────────────────────────────────────────────────────────
 function ToggleBtn({ active, color, onClick, label }) {
   return (
     <button onClick={onClick} style={{
       display: "flex", alignItems: "center", gap: 5,
-      padding: "4px 10px 4px 8px",
+      padding: "3px 10px 3px 8px",
       borderRadius: 99,
-      border: active ? `1px solid ${color}50` : `1px solid rgba(255,255,255,0.08)`,
-      background: active ? `${color}15` : "transparent",
+      border: active ? `1px solid ${color}40` : `1px solid rgba(255,255,255,0.07)`,
+      background: active ? `${color}12` : "transparent",
       color: active ? color : C.mutedText,
       cursor: "pointer",
       fontSize: 11, fontWeight: 700,
-      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-      letterSpacing: "0.04em",
+      fontFamily: "'JetBrains Mono', monospace",
+      letterSpacing: "0.03em",
       transition: "all .15s",
       flexShrink: 0,
     }}>
@@ -122,7 +180,7 @@ function ToggleBtn({ active, color, onClick, label }) {
         width: 6, height: 6, borderRadius: "50%",
         background: active ? color : C.dimText,
         flexShrink: 0,
-        boxShadow: active ? `0 0 6px ${color}` : "none",
+        boxShadow: active ? `0 0 5px ${color}` : "none",
         transition: "all .15s",
       }} />
       {label}
@@ -130,8 +188,53 @@ function ToggleBtn({ active, color, onClick, label }) {
   );
 }
 
+// ─── Info Tooltip ─────────────────────────────────────────────────────────────
+function InfoTooltip({ text }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div style={{ position: "relative", flexShrink: 0 }}>
+      <button
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "center",
+          width: 18, height: 18, borderRadius: "50%",
+          background: "transparent",
+          border: `1px solid rgba(255,255,255,0.10)`,
+          color: C.mutedText, cursor: "pointer", padding: 0,
+        }}
+      >
+        <IconInfo />
+      </button>
+      {show && (
+        <div style={{
+          position: "absolute", top: 24, left: 0,
+          background: "#0a1422",
+          border: `1px solid rgba(255,255,255,0.12)`,
+          borderRadius: 6, padding: "5px 10px",
+          whiteSpace: "nowrap", zIndex: 999,
+          color: C.bodyText, fontSize: 10,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontWeight: 600, letterSpacing: "0.06em",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+          pointerEvents: "none",
+        }}>
+          {text}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Chart Panel ──────────────────────────────────────────────────────────────
-function ChartPanel({ title, subtitle, t1Data, idData, smooth, pointGap, handleZoom, chartRefs, chartId, isExpanded, onExpand, onClose, showT1, showId, onToggleT1, onToggleId, onReset }) {
+function ChartPanel({
+  title, subtitle, t1Data, idData, smooth,
+  pointGap, handleZoom, chartRefs, chartId,
+  isExpanded, onExpand, onClose,
+  showT1, showId, showLabels,
+  onToggleT1, onToggleId, onToggleLabels,
+  onReset,
+}) {
   const scrollRef  = useRef(null);
   const bodyRef    = useRef(null);
   const [hover, setHover]           = useState(null);
@@ -212,11 +315,11 @@ function ChartPanel({ title, subtitle, t1Data, idData, smooth, pointGap, handleZ
   };
   const handleMouseLeave = () => { if (!isDragging) setSharedHover(null); };
 
-  const bodyH = dim.h;
-  const ys    = calcYScale(t1Data, idData);
+  const bodyH   = dim.h;
+  const ys      = calcYScale(t1Data, idData);
   const lastIdx = Math.min(visibleRightIdx, N - 1);
-  const svgW  = Math.max(dim.w - YAXIS_W, PAD.l + (N - 1) * pointGap);
-  const zeroY = normY(0, ys, bodyH);
+  const svgW    = Math.max(dim.w - YAXIS_W, PAD.l + (N - 1) * pointGap);
+  const zeroY   = normY(0, ys, bodyH);
 
   const yTicks = Array.from({ length: 7 }, (_, i) => {
     const v = ys.max - (i * (ys.max - ys.min)) / 6;
@@ -230,10 +333,9 @@ function ChartPanel({ title, subtitle, t1Data, idData, smooth, pointGap, handleZ
   const lastT1Y    = normY(t1Data?.[lastIdx] ?? 0, ys, bodyH);
   const lastIdY    = normY(idData?.[lastIdx]  ?? 0, ys, bodyH);
 
-  // End tags with collision avoidance
   const endTags = [];
-  if (showT1 && t1Data) endTags.push({ id:"t1", y:lastT1Y, val:t1Data[lastIdx]?.toFixed(0), label:"T-1→T", color:C.t1, dark:C.t1d });
-  if (showId  && idData)  endTags.push({ id:"id", y:lastIdY, val:idData[lastIdx]?.toFixed(0),  label:"ID",    color:C.id,  dark:C.idd });
+  if (showT1 && t1Data) endTags.push({ id:"t1", y:lastT1Y, val:t1Data[lastIdx]?.toFixed(0), label:"Flip T-1→T", color:C.t1, dark:C.t1d });
+  if (showId  && idData) endTags.push({ id:"id", y:lastIdY, val:idData[lastIdx]?.toFixed(0),  label:"Intraday",   color:C.id,  dark:C.idd });
   endTags.sort((a, b) => a.y - b.y);
   if (endTags.length > 1) {
     const diff = endTags[1].y - endTags[0].y;
@@ -246,29 +348,27 @@ function ChartPanel({ title, subtitle, t1Data, idData, smooth, pointGap, handleZ
     <div style={{
       flex: 1,
       background: C.panel,
-      border: isExpanded ? "none" : `1px solid rgba(71,85,105,0.5)`,
-      borderRadius: isExpanded ? 0 : 12,
+      border: isExpanded ? "none" : `1px solid ${C.border}`,
+      borderRadius: isExpanded ? 0 : 10,
       display: "flex", flexDirection: "column",
       overflow: "hidden", minHeight: 0,
-      boxShadow: isExpanded ? "none" : "0 4px 24px rgba(0,0,0,0.4)",
-      transition: "border-color .2s",
+      boxShadow: isExpanded ? "none" : "0 2px 16px rgba(0,0,0,0.5)",
     }}>
       {/* ── Header ── */}
       <div style={{
         background: C.header,
-        height: 44, padding: "0 10px 0 14px",
+        height: 42, padding: "0 10px 0 14px",
         borderBottom: `1px solid ${C.border}`,
         display: "flex", alignItems: "center", justifyContent: "space-between",
         flexShrink: 0, gap: 8,
       }}>
-        {/* Left */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
           {isExpanded && (
             <button onClick={onClose} style={{
               display: "flex", alignItems: "center", gap: 5,
               padding: "4px 10px", background: "transparent",
-              border: `1px solid rgba(255,255,255,0.1)`, borderRadius: 6,
-              color: "#94a3b8", cursor: "pointer",
+              border: `1px solid rgba(255,255,255,0.09)`, borderRadius: 6,
+              color: "#64748b", cursor: "pointer",
               fontSize: 11, fontWeight: 600, fontFamily: "monospace",
               flexShrink: 0,
             }}>
@@ -276,44 +376,44 @@ function ChartPanel({ title, subtitle, t1Data, idData, smooth, pointGap, handleZ
             </button>
           )}
           <span style={{
-            color: "#e2e8f0", fontSize: 14, fontWeight: 800,
-            letterSpacing: "0.12em",
-            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+            color: "#e2e8f0", fontSize: 13, fontWeight: 800,
+            letterSpacing: "0.10em",
+            fontFamily: "'JetBrains Mono', monospace",
           }}>{title}</span>
-          {subtitle && (
-            <span style={{
-              color: C.dimText, fontSize: 9, letterSpacing: "0.08em",
-              fontFamily: "monospace", fontWeight: 600,
-            }}>{subtitle}</span>
-          )}
+
+          {/* ── Info Tooltip แทน button เดิม ── */}
+          <InfoTooltip text={subtitle} />
         </div>
 
-        {/* Right */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+          <IconBtn onClick={handleResetClick} title="Reset">
+            <IconReset spinning={isResetting} />
+          </IconBtn>
+          {!isExpanded && (
+            <IconBtn onClick={onExpand} title="Fullscreen">
+              <IconExpand />
+            </IconBtn>
+          )}
+          <div style={{ width: 1, height: 18, background: "rgba(255,255,255,0.06)", margin: "0 2px" }} />
           <ToggleBtn active={showT1} color={C.t1} onClick={onToggleT1} label="Flip T-1→T" />
           <ToggleBtn active={showId}  color={C.id}  onClick={onToggleId}  label="Intraday" />
-          <button onClick={handleResetClick}
-            className="icon-btn" title="Reset"
+          <div style={{ width: 1, height: 18, background: "rgba(255,255,255,0.06)", margin: "0 2px" }} />
+          <button
+            onClick={onToggleLabels}
             style={{
-              display: "flex", alignItems: "center", justifyContent: "center",
-              width: 30, height: 30, background: "transparent",
-              border: `1px solid ${C.border}`, borderRadius: 7,
-              color: C.mutedText, cursor: "pointer", flexShrink: 0,
-            }}>
-            <IconReset spinning={isResetting} />
+              display: "flex", alignItems: "center", gap: 5,
+              padding: "3px 10px 3px 8px", borderRadius: 99,
+              border: `1px solid rgba(255,255,255,0.07)`,
+              background: showLabels ? "rgba(255,255,255,0.05)" : "transparent",
+              color: showLabels ? "#94a3b8" : C.mutedText,
+              cursor: "pointer", fontSize: 11, fontWeight: 700,
+              fontFamily: "'JetBrains Mono', monospace",
+              letterSpacing: "0.03em", transition: "all .15s", flexShrink: 0,
+            }}
+          >
+            <IconLabel />
+            {showLabels ? "Hide labels" : "Show labels"}
           </button>
-          {!isExpanded && (
-            <button onClick={onExpand}
-              className="icon-btn" title="Fullscreen"
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center",
-                width: 30, height: 30, background: "transparent",
-                border: `1px solid ${C.border}`, borderRadius: 7,
-                color: C.mutedText, cursor: "pointer", flexShrink: 0,
-              }}>
-              <IconExpand />
-            </button>
-          )}
         </div>
       </div>
 
@@ -330,7 +430,6 @@ function ChartPanel({ title, subtitle, t1Data, idData, smooth, pointGap, handleZ
           userSelect: "none",
         }}
       >
-        {/* Scrollable SVG area */}
         <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, right: YAXIS_W, overflow: "hidden" }}>
           <div
             ref={scrollRef}
@@ -348,27 +447,15 @@ function ChartPanel({ title, subtitle, t1Data, idData, smooth, pointGap, handleZ
               cursor: "inherit", userSelect: "none",
             }}
           >
-            <style>{`
-              .chart-scroll-${chartId}::-webkit-scrollbar { display: none }
-              @keyframes spin-once { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
-              .icon-btn:hover { color: #fff !important; border-color: rgba(255,255,255,0.25) !important; background: rgba(255,255,255,0.05) !important; }
-            `}</style>
+            <style>{`@keyframes spin-once { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }`}</style>
 
-            <svg className={`chart-scroll-${chartId}`} width={svgW} height={bodyH}
-              style={{ display: "block", overflow: "visible", pointerEvents: "none" }}>
-
-              {/* Grid */}
+            <svg width={svgW} height={bodyH} style={{ display: "block", overflow: "visible", pointerEvents: "none" }}>
               {yTicks.map(({ y }, i) => (
                 <line key={i} x1={0} y1={y} x2={svgW} y2={y} stroke={C.grid} strokeWidth={1} />
               ))}
-
-              {/* Zero line */}
-              <line x1={0} y1={zeroY} x2={svgW} y2={zeroY} stroke={C.zero} strokeWidth={1} opacity={0.55} strokeDasharray="3 6" />
-
-              {/* Bottom axis */}
+              <line x1={0} y1={zeroY} x2={svgW} y2={zeroY} stroke={C.zero} strokeWidth={1} opacity={0.5} strokeDasharray="3 6" />
               <line x1={0} y1={bodyH - PAD.b} x2={svgW} y2={bodyH - PAD.b} stroke={C.axis} strokeWidth={1} />
 
-              {/* Time ticks */}
               {TICK_LABELS.map((label, i) => {
                 const dataIdx = i * 30;
                 if (dataIdx >= N) return null;
@@ -377,33 +464,19 @@ function ChartPanel({ title, subtitle, t1Data, idData, smooth, pointGap, handleZ
                 return (
                   <g key={i}>
                     <line x1={x} y1={bodyH - PAD.b} x2={x} y2={bodyH - PAD.b + (isHour ? 6 : 4)} stroke={isHour ? C.axis : C.dimText} strokeWidth={1} />
-                    {isHour && (
-                      <text x={x} y={bodyH - PAD.b + 20} fill={C.mutedText} fontSize={9} fontFamily="'JetBrains Mono', monospace" textAnchor="middle" fontWeight="700">
-                        {label}
-                      </text>
-                    )}
-                    {!isHour && (
-                      <text x={x} y={bodyH - PAD.b + 19} fill={C.dimText} fontSize={8.5} fontFamily="'JetBrains Mono', monospace" textAnchor="middle">
-                        {label}
-                      </text>
-                    )}
+                    {isHour && <text x={x} y={bodyH - PAD.b + 20} fill={C.mutedText} fontSize={9} fontFamily="monospace" textAnchor="middle" fontWeight="700">{label}</text>}
+                    {!isHour && <text x={x} y={bodyH - PAD.b + 19} fill={C.dimText} fontSize={8.5} fontFamily="monospace" textAnchor="middle">{label}</text>}
                   </g>
                 );
               })}
 
-              {/* Lines */}
               {showT1 && t1Data && <path d={buildPath(t1Data, ys, bodyH, pointGap, smooth)} fill="none" stroke={C.t1} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />}
               {showId  && idData  && <path d={buildPath(idData,  ys, bodyH, pointGap, false)} fill="none" stroke={C.id}  strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />}
-
-              {/* End dots */}
               {showT1 && t1Data && <circle cx={PAD.l + lastIdx * pointGap} cy={lastT1Y} r={4} fill={C.t1} stroke={C.surface} strokeWidth={2} />}
               {showId  && idData  && <circle cx={PAD.l + lastIdx * pointGap} cy={lastIdY} r={4} fill={C.id}  stroke={C.surface} strokeWidth={2} />}
+              {showT1 && <line x1={PAD.l + lastIdx * pointGap} y1={lastT1Y} x2={svgW} y2={lastT1Y} stroke={C.t1} strokeDasharray="2 5" strokeWidth={1} opacity={0.3} />}
+              {showId  && <line x1={PAD.l + lastIdx * pointGap} y1={lastIdY} x2={svgW} y2={lastIdY} stroke={C.id}  strokeDasharray="2 5" strokeWidth={1} opacity={0.3} />}
 
-              {/* Trailing dashes */}
-              {showT1 && <line x1={PAD.l + lastIdx * pointGap} y1={lastT1Y} x2={svgW} y2={lastT1Y} stroke={C.t1} strokeDasharray="2 5" strokeWidth={1} opacity={0.35} />}
-              {showId  && <line x1={PAD.l + lastIdx * pointGap} y1={lastIdY} x2={svgW} y2={lastIdY} stroke={C.id}  strokeDasharray="2 5" strokeWidth={1} opacity={0.35} />}
-
-              {/* Crosshair */}
               {isHovering && (
                 <g>
                   <line x1={hoverX} y1={PAD.t} x2={hoverX} y2={bodyH - PAD.b} stroke={C.crosshair} strokeWidth={1} strokeDasharray="4 4" />
@@ -415,7 +488,6 @@ function ChartPanel({ title, subtitle, t1Data, idData, smooth, pointGap, handleZ
                     <line x1={0} y1={hoverYId} x2={svgW} y2={hoverYId} stroke={C.crosshair} strokeWidth={1} />
                     <circle cx={hoverX} cy={hoverYId} r={4.5} fill={C.id} stroke={C.surface} strokeWidth={2} />
                   </>}
-                  {/* Time badge */}
                   <g transform={`translate(${hoverX}, ${bodyH - PAD.b + 17})`}>
                     <rect x={-26} y={-9} width={52} height={18} rx={4} fill={C.header} stroke={C.borderHi} strokeWidth={1} />
                     <text x={0} y={0.5} fill="#e2e8f0" fontSize={9.5} fontFamily="monospace" textAnchor="middle" dominantBaseline="central" fontWeight="700">
@@ -428,11 +500,11 @@ function ChartPanel({ title, subtitle, t1Data, idData, smooth, pointGap, handleZ
           </div>
         </div>
 
-        {/* Hover tooltip overlay */}
+        {/* Hover tooltip */}
         {isHovering && (
           <div style={{
             position: "absolute", top: 8, left: 10,
-            background: "rgba(14,26,42,0.95)",
+            background: "rgba(8,15,26,0.96)",
             border: `1px solid ${C.borderHi}`,
             borderRadius: 8, padding: "6px 10px",
             pointerEvents: "none", zIndex: 20,
@@ -443,12 +515,12 @@ function ChartPanel({ title, subtitle, t1Data, idData, smooth, pointGap, handleZ
             </div>
             {showT1 && t1Data && (
               <div style={{ color: C.t1, fontSize: 12, fontWeight: 700, fontFamily: "monospace", lineHeight: 1.4 }}>
-                T-1→T&nbsp;&nbsp;{(t1Data[hover] >= 0 ? "+" : "") + t1Data[hover]?.toFixed(2)}
+                Flip T-1→T&nbsp;&nbsp;{(t1Data[hover] >= 0 ? "+" : "") + t1Data[hover]?.toFixed(2)}
               </div>
             )}
             {showId && idData && (
               <div style={{ color: C.id, fontSize: 12, fontWeight: 700, fontFamily: "monospace", lineHeight: 1.4 }}>
-                ID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{(idData[hover] >= 0 ? "+" : "") + idData[hover]?.toFixed(2)}
+                Intraday&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{(idData[hover] >= 0 ? "+" : "") + idData[hover]?.toFixed(2)}
               </div>
             )}
           </div>
@@ -469,10 +541,9 @@ function ChartPanel({ title, subtitle, t1Data, idData, smooth, pointGap, handleZ
           <div style={{
             position: "absolute", inset: 0,
             background: C.tagBg,
-            borderLeft: `1px solid rgba(255,255,255,0.06)`,
+            borderLeft: `1px solid rgba(255,255,255,0.05)`,
           }} />
           <svg width={YAXIS_W} height={bodyH} style={{ position: "absolute", top: 0, left: 0, overflow: "visible" }}>
-            {/* Y ticks */}
             {yTicks.map(({ y, v }, i) => {
               if (avoidYs.some(ay => Math.abs(y - ay) < 14)) return null;
               return (
@@ -483,27 +554,30 @@ function ChartPanel({ title, subtitle, t1Data, idData, smooth, pointGap, handleZ
               );
             })}
 
-            {/* Zero badge */}
             <g transform={`translate(4, ${zeroY - 9})`}>
-              <rect width={YAXIS_W - 8} height={18} rx={3} fill={C.zeroglow} stroke={`${C.zero}45`} strokeWidth={1} />
+              <rect width={YAXIS_W - 8} height={18} rx={3} fill={C.zeroglow} stroke={`${C.zero}40`} strokeWidth={1} />
               <text x={(YAXIS_W - 8) / 2} y={9} fill={C.zero} fontSize={9.5} fontFamily="monospace"
                 textAnchor="middle" dominantBaseline="central" fontWeight="800">0</text>
             </g>
 
-            {/* End tags (RealFlow style — label pill + value pill) */}
-            {endTags.map(({ id, y, val, label, color, dark }) => {
-              const LW = 44, VW = YAXIS_W - 6, TH = 20, r = 4;
+            {/* endTags — ตัวเลขแสดงเสมอ, ป้ายชื่อแสดงเฉพาะเมื่อ showLabels=true */}
+            {endTags.map(({ id, y, val, label, color }) => {
+              const LW = 52, VW = YAXIS_W - 6, TH = 20, r = 4;
               return (
                 <g key={id}>
-                  {/* Label pill floats left of axis */}
-                  <rect x={-LW - 2} y={y - TH/2} width={LW} height={TH} rx={r} fill={color} />
-                  <text x={-LW/2 - 2} y={y} fill="#000d1a" fontSize={9} fontWeight="800"
-                    textAnchor="middle" dominantBaseline="central" fontFamily="monospace" letterSpacing="0.03em">
-                    {label}
-                  </text>
-                  {/* Value pill inside axis */}
+                  {/* ป้ายชื่อ — ซ่อนเมื่อ showLabels=false */}
+                  {showLabels && (
+                    <>
+                      <rect x={-LW - 2} y={y - TH/2} width={LW} height={TH} rx={r} fill={color} />
+                      <text x={-LW/2 - 2} y={y} fill="#000d1a" fontSize={8.5} fontWeight="800"
+                        textAnchor="middle" dominantBaseline="central" fontFamily="monospace" letterSpacing="0.02em">
+                        {label}
+                      </text>
+                    </>
+                  )}
+                  {/* ตัวเลขค่า — แสดงเสมอ */}
                   <rect x={3} y={y - TH/2} width={VW} height={TH} rx={r}
-                    fill="transparent" stroke={color} strokeWidth="0.8" strokeOpacity="0.45" />
+                    fill="transparent" stroke={color} strokeWidth="0.8" strokeOpacity="0.4" />
                   <text x={3 + VW/2} y={y} fill={color} fontSize={11} fontWeight="700"
                     textAnchor="middle" dominantBaseline="central" fontFamily="monospace">
                     {val}
@@ -512,10 +586,9 @@ function ChartPanel({ title, subtitle, t1Data, idData, smooth, pointGap, handleZ
               );
             })}
 
-            {/* Hover Y badges */}
             {isHovering && hoverYT1 != null && showT1 && (
               <g transform={`translate(2, ${hoverYT1 - 9})`}>
-                <rect width={YAXIS_W - 4} height={18} rx={3} fill={C.header} stroke={`${C.t1}55`} strokeWidth={1} />
+                <rect width={YAXIS_W - 4} height={18} rx={3} fill={C.header} stroke={`${C.t1}50`} strokeWidth={1} />
                 <text x={(YAXIS_W - 4)/2} y={9} fill={C.t1} fontSize={10} fontFamily="monospace"
                   textAnchor="middle" dominantBaseline="central" fontWeight="700">
                   {t1Data[hover]?.toFixed(1)}
@@ -524,7 +597,7 @@ function ChartPanel({ title, subtitle, t1Data, idData, smooth, pointGap, handleZ
             )}
             {isHovering && hoverYId != null && showId && (
               <g transform={`translate(2, ${hoverYId - 9})`}>
-                <rect width={YAXIS_W - 4} height={18} rx={3} fill={C.header} stroke={`${C.id}55`} strokeWidth={1} />
+                <rect width={YAXIS_W - 4} height={18} rx={3} fill={C.header} stroke={`${C.id}50`} strokeWidth={1} />
                 <text x={(YAXIS_W - 4)/2} y={9} fill={C.id} fontSize={10} fontFamily="monospace"
                   textAnchor="middle" dominantBaseline="central" fontWeight="700">
                   {idData[hover]?.toFixed(1)}
@@ -538,8 +611,8 @@ function ChartPanel({ title, subtitle, t1Data, idData, smooth, pointGap, handleZ
   );
 }
 
-// ─── Fullscreen Modal ──────────────────────────────────────────────────────────
-function FullscreenModal({ panel, pointGap, handleZoom, chartRefs, onClose, showT1, showId, onToggleT1, onToggleId, onReset }) {
+// ─── Fullscreen Modal ─────────────────────────────────────────────────────────
+function FullscreenModal({ panel, pointGap, handleZoom, chartRefs, onClose, panelState, onToggleT1, onToggleId, onToggleLabels, onReset }) {
   useEffect(() => {
     const fn = e => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", fn);
@@ -549,9 +622,9 @@ function FullscreenModal({ panel, pointGap, handleZoom, chartRefs, onClose, show
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9999,
-      background: "#060d16",
+      background: C.bg,
       display: "flex", flexDirection: "column",
-      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+      fontFamily: "'JetBrains Mono', monospace",
     }}>
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
         <ChartPanel
@@ -567,11 +640,145 @@ function FullscreenModal({ panel, pointGap, handleZoom, chartRefs, onClose, show
           isExpanded={true}
           onClose={onClose}
           onReset={onReset}
-          showT1={showT1}
-          showId={showId}
+          showT1={panelState.showT1}
+          showId={panelState.showId}
+          showLabels={panelState.showLabels}
           onToggleT1={onToggleT1}
           onToggleId={onToggleId}
+          onToggleLabels={onToggleLabels}
         />
+      </div>
+    </div>
+  );
+}
+
+// ─── Navbar ───────────────────────────────────────────────────────────────────
+function Navbar({ symbol, onBack, onSymbolChange, symbolInput, setSymbolInput, onOpenInfo }) {
+  const [dropOpen, setDropOpen] = useState(false);
+  const SYMBOLS = ["PTT","AOT","CPALL","ADVANC","GULF","SCB","KBANK","TRUE","MINT","BDMS","BH","CPN","MAJOR","HANA","SCC"];
+
+  return (
+    <div style={{
+      height: 48,
+      background: C.navBg,
+      borderBottom: `1px solid ${C.navBorder}`,
+      display: "flex", alignItems: "center",
+      padding: "0 14px", gap: 8,
+      flexShrink: 0, zIndex: 100, position: "relative",
+    }}>
+      <ToolHint onViewDetails={onOpenInfo}>
+        ---
+      </ToolHint>
+
+      {/* ← Back */}
+      <button
+        onClick={onBack}
+        style={{
+          display: "flex", alignItems: "center", gap: 5,
+          padding: "4px 12px", borderRadius: 7,
+          border: `1px solid ${C.border}`,
+          background: "transparent",
+          color: "#64748b", cursor: "pointer",
+          fontSize: 12, fontWeight: 600, fontFamily: "monospace",
+          flexShrink: 0, transition: "all .15s",
+        }}
+        onMouseEnter={e => { e.currentTarget.style.color = "#e2e8f0"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; }}
+        onMouseLeave={e => { e.currentTarget.style.color = "#64748b"; e.currentTarget.style.borderColor = C.border; }}
+      >
+        <IconBack /> back
+      </button>
+
+      {/* Symbol search */}
+      <div style={{ position: "relative", flexShrink: 0 }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6,
+          background: "#0a1422",
+          border: `1px solid ${C.border}`,
+          borderRadius: 7, padding: "0 10px",
+          height: 30, width: 180, cursor: "text",
+        }}>
+          <IconSearch />
+          <input
+            value={symbolInput}
+            onChange={e => setSymbolInput(e.target.value.toUpperCase())}
+            onKeyDown={e => { if (e.key === "Enter" && symbolInput) { onSymbolChange(symbolInput); setDropOpen(false); } }}
+            placeholder="Type a Symbol..."
+            style={{
+              background: "transparent", border: "none", outline: "none",
+              color: "#e2e8f0", fontSize: 11, fontFamily: "monospace", fontWeight: 600,
+              width: "100%", letterSpacing: "0.04em",
+            }}
+          />
+          <button
+            onClick={() => setDropOpen(v => !v)}
+            style={{ background: "transparent", border: "none", color: C.mutedText, cursor: "pointer", fontSize: 10, padding: 0, lineHeight: 1 }}
+          >▼</button>
+        </div>
+
+        {dropOpen && (
+          <div style={{
+            position: "absolute", top: 34, left: 0, width: 180,
+            background: "#0a1422",
+            border: `1px solid rgba(255,255,255,0.10)`,
+            borderRadius: 8, overflow: "hidden",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+            zIndex: 200,
+          }}>
+            {SYMBOLS.filter(s => s.includes(symbolInput)).map(s => (
+              <div
+                key={s}
+                onClick={() => { onSymbolChange(s); setSymbolInput(s); setDropOpen(false); }}
+                style={{
+                  padding: "7px 12px", fontSize: 11,
+                  fontFamily: "monospace", fontWeight: 600,
+                  color: "#94a3b8", cursor: "pointer",
+                  letterSpacing: "0.05em", transition: "background .1s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#e2e8f0"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#94a3b8"; }}
+              >{s}</div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Compare */}
+      <button
+        onClick={() => {
+          const url = new URL(window.location.href);
+          if (symbol) url.searchParams.set("symbol", symbol);
+          window.open(url.toString(), "_blank");
+        }}
+        title="Open Compare in new tab"
+        style={{
+          width: 30, height: 30, borderRadius: 6,
+          border: `1px solid ${C.border}`,
+          background: "transparent",
+          color: C.mutedText, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexShrink: 0, transition: "all .15s",
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.color = "#e2e8f0";
+          e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)";
+          e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.color = C.mutedText;
+          e.currentTarget.style.borderColor = C.border;
+          e.currentTarget.style.background = "transparent";
+        }}
+      >
+        <IconCompare />
+      </button>
+
+      {/* Symbol name — center */}
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{
+          fontSize: 15, fontWeight: 800,
+          color: "#e2e8f0", fontFamily: "'JetBrains Mono', monospace",
+          letterSpacing: "0.12em",
+        }}>{symbol || "Symbol Name"}</span>
       </div>
     </div>
   );
@@ -584,13 +791,33 @@ const PANEL_META = {
   warrant: { subtitle: "DERIVATIVES & WARRANTS" },
 };
 
+const DEFAULT_PANEL_STATE = { showT1: true, showId: true, showLabels: true };
+
 export default function ChartFlipId() {
-  const chartRefs = useRef({});
-  const [mockData]     = useState(() => generateMockData());
-  const [pointGap,     setPointGap]    = useState(12);
-  const [expandedKey,  setExpandedKey] = useState(null);
-  const [showT1,       setShowT1]      = useState(true);
-  const [showId,       setShowId]      = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const chartRefs  = useRef({});
+  const [mockData] = useState(() => generateMockData());
+  const [pointGap,    setPointGap]   = useState(12);
+  const [expandedKey, setExpandedKey] = useState(null);
+  const [infoOpen,    setInfoOpen]   = useState(false);
+  const initSymbol = location.state?.symbol || new URLSearchParams(location.search).get("symbol") || "";
+  const [symbol,      setSymbol]     = useState(initSymbol);
+  const [symbolInput, setSymbolInput] = useState(initSymbol);
+
+  const [panelStates, setPanelStates] = useState({
+    set:     { ...DEFAULT_PANEL_STATE },
+    mai:     { ...DEFAULT_PANEL_STATE },
+    warrant: { ...DEFAULT_PANEL_STATE },
+  });
+
+  const makeToggle = useCallback((key, field) => () => {
+    setPanelStates(prev => ({
+      ...prev,
+      [key]: { ...prev[key], [field]: !prev[key][field] },
+    }));
+  }, []);
 
   const handleZoom = useCallback((deltaY, mouseClientX, scrollEl) => {
     setPointGap(prev => {
@@ -635,45 +862,59 @@ export default function ChartFlipId() {
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         @keyframes spin-once { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
+        ::-webkit-scrollbar { display: none; }
       `}</style>
 
       <div style={{
-        width: "100%",
-        height: "100vh",
-        minHeight: 520,
-        background: C.bg,
-        color: "#fff",
-        display: "flex",
-        flexDirection: "column",
+        width: "100%", height: "100vh",
+        background: C.bg, color: "#fff",
+        display: "flex", flexDirection: "column",
         overflow: "hidden",
-        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+        fontFamily: "'JetBrains Mono', monospace",
       }}>
-        {/* Charts */}
+        <Navbar
+          symbol={symbol}
+          onBack={() => {
+            const from = location.state?.from;
+            if (from) navigate(`/${from}`);
+            else navigate(-1);
+          }}
+          onSymbolChange={setSymbol}
+          symbolInput={symbolInput}
+          setSymbolInput={setSymbolInput}
+          onOpenInfo={() => setInfoOpen(true)}
+        />
+
         <div style={{
           flex: 1, display: "flex", flexDirection: "column",
-          gap: 10, minHeight: 0, padding: "10px 10px 10px 10px",
+          gap: 8, minHeight: 0, padding: "8px",
         }}>
-          {panels.map(({ key, title, subtitle, t1, id, smooth }) => (
-            <ChartPanel
-              key={key}
-              chartId={key}
-              title={title}
-              subtitle={subtitle}
-              t1Data={t1}
-              idData={id}
-              smooth={smooth}
-              pointGap={pointGap}
-              handleZoom={handleZoom}
-              chartRefs={chartRefs}
-              isExpanded={false}
-              onExpand={() => setExpandedKey(key)}
-              onReset={handleReset}
-              showT1={showT1}
-              showId={showId}
-              onToggleT1={() => setShowT1(v => !v)}
-              onToggleId={() => setShowId(v => !v)}
-            />
-          ))}
+          {panels.map(({ key, title, subtitle, t1, id, smooth }) => {
+            const ps = panelStates[key];
+            return (
+              <ChartPanel
+                key={key}
+                chartId={key}
+                title={title}
+                subtitle={subtitle}
+                t1Data={t1}
+                idData={id}
+                smooth={smooth}
+                pointGap={pointGap}
+                handleZoom={handleZoom}
+                chartRefs={chartRefs}
+                isExpanded={false}
+                onExpand={() => setExpandedKey(key)}
+                onReset={handleReset}
+                showT1={ps.showT1}
+                showId={ps.showId}
+                showLabels={ps.showLabels}
+                onToggleT1={makeToggle(key, "showT1")}
+                onToggleId={makeToggle(key, "showId")}
+                onToggleLabels={makeToggle(key, "showLabels")}
+              />
+            );
+          })}
         </div>
       </div>
 
@@ -685,10 +926,10 @@ export default function ChartFlipId() {
           chartRefs={chartRefs}
           onClose={() => setExpandedKey(null)}
           onReset={handleReset}
-          showT1={showT1}
-          showId={showId}
-          onToggleT1={() => setShowT1(v => !v)}
-          onToggleId={() => setShowId(v => !v)}
+          panelState={panelStates[expandedPanel.key]}
+          onToggleT1={makeToggle(expandedPanel.key, "showT1")}
+          onToggleId={makeToggle(expandedPanel.key, "showId")}
+          onToggleLabels={makeToggle(expandedPanel.key, "showLabels")}
         />
       )}
     </>

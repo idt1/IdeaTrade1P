@@ -605,35 +605,49 @@ const LWCChart = ({
 };
 
 /* ================= RANK TABLE ================= */
-const COL = "36px 1fr 1fr 80px 64px";
+// [FIX 1] ลบ const COL ออกจาก top-level — ย้ายเข้าไปใน RankTable เป็น dynamic
 const ROW_H   = 40;
 const TABLE_H = 36 + VISIBLE_ROWS * ROW_H;
 
+// [FIX 2] RankTable ใหม่ — responsive columns, ซ่อน CHART FLIP บน xs/sm/md
 const RankTable = ({ data, flashMap = {}, recentMap = {}, highlighted, extraVisible, totalCount, onRowClick, onChartFlipClick }) => {
+  const bp     = useBreakpoint();
+  const isTiny = bp === "xs" || bp === "sm" || bp === "md";
+
+  // ซ่อน CHART FLIP column บน tiny screen เพื่อให้ %CHG ไม่ตัด
+  const COL = isTiny
+    ? "30px 1fr 90px 68px"
+    : "36px 1fr 90px 72px 56px";
+
   return (
     <div style={{
-      width: 480, flexShrink: 0,
+      width: "100%",          // [FIX] เปลี่ยนจาก width:480 fixed → 100% เสมอ
       background: "#0d1b2a",
       border: "1px solid rgba(255,255,255,0.07)",
       borderRadius: 4, overflow: "hidden",
       display: "flex", flexDirection: "column",
       height: TABLE_H,
     }}>
+      {/* header */}
       <div style={{
         display: "grid", gridTemplateColumns: COL,
-        alignItems: "center", padding: "0 12px", height: 36,
+        alignItems: "center", padding: "0 10px", height: 36,
         background: "#0a1525",
         borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0,
       }}>
-        <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600, textAlign: "center" }}>#</span>
-        <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600, paddingLeft: 10 }}>SYMBOL</span>
-        <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600, textAlign: "center" }}>VALUE</span>
-        <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600, textAlign: "center" }}>%CHG</span>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1.2 }}>
-          <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>CHART</span>
-          <span style={{ fontSize: 9, color: "#64748b" }}>FLIP</span>
-        </div>
+        <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600, textAlign: "center" }}>#</span>
+        <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600, paddingLeft: 8 }}>SYMBOL</span>
+        <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600, textAlign: "right", paddingRight: 8 }}>VALUE</span>
+        <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600, textAlign: "right", paddingRight: isTiny ? 4 : 0 }}>%CHG</span>
+        {!isTiny && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1.2 }}>
+            <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>CHART</span>
+            <span style={{ fontSize: 9, color: "#64748b" }}>FLIP</span>
+          </div>
+        )}
       </div>
+
+      {/* rows */}
       <div style={{ overflowY: "auto", flex: 1 }}>
         {data.slice(0, totalCount).map((row, i) => {
           const isTop5  = i < 5;
@@ -641,57 +655,59 @@ const RankTable = ({ data, flashMap = {}, recentMap = {}, highlighted, extraVisi
           const isExtra = !isTop5 && extraVisible === i;
           const flash   = flashMap[i];
           const recent  = recentMap[i];
-          const cc      = row.isUp === true ? "#4ade80" : row.isUp === false ? "#f87171" : "#64748b";
-          const chartColor = row.isUp === true ? "#4ade80" : row.isUp === false ? "#f87171" : "#64748b";
+          const cc         = row.isUp === true ? "#4ade80" : row.isUp === false ? "#f87171" : "#64748b";
+          const chartColor = cc;
           const rowBg   = flash === "up" ? "rgba(34,197,94,0.10)" : flash === "down" ? "rgba(239,68,68,0.10)" : isHi ? "rgba(59,130,246,0.07)" : isExtra ? "rgba(148,163,184,0.07)" : "transparent";
           const borderLeft = isHi ? `3px solid ${PALETTE[i]}` : isExtra ? `3px solid ${EXTRA_COLOR}` : "3px solid transparent";
           return (
             <div key={i} onClick={() => onRowClick?.(i)} style={{
               display: "grid", gridTemplateColumns: COL,
-              alignItems: "center", padding: "0 12px", height: ROW_H,
+              alignItems: "center", padding: "0 10px", height: ROW_H,
               borderBottom: "1px solid rgba(255,255,255,0.04)",
               background: rowBg, borderLeft,
               cursor: "pointer", transition: "background 0.3s",
             }}>
-              <span style={{ textAlign: "center", fontSize: 12, color: "#475569", fontWeight: 500 }}>{row.rank}</span>
-              <span style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 10 }}>
-                {isTop5  && <span style={{ width: 8, height: 8, borderRadius: "50%", background: PALETTE[i], flexShrink: 0 }} />}
-                {isExtra && <span style={{ width: 8, height: 8, borderRadius: "50%", background: EXTRA_COLOR, flexShrink: 0 }} />}
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", letterSpacing: "0.04em" }}>
+              <span style={{ textAlign: "center", fontSize: 11, color: "#475569", fontWeight: 500 }}>{row.rank}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: 8, minWidth: 0 }}>
+                {isTop5  && <span style={{ width: 7, height: 7, borderRadius: "50%", background: PALETTE[i], flexShrink: 0 }} />}
+                {isExtra && <span style={{ width: 7, height: 7, borderRadius: "50%", background: EXTRA_COLOR, flexShrink: 0 }} />}
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0", letterSpacing: "0.04em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {row.symbol}
-                  {flash && <span style={{ marginLeft: 4, fontSize: 10, color: flash === "up" ? "#4ade80" : "#f87171" }}>{flash === "up" ? "▲" : "▼"}</span>}
-                  {!flash && recent && <span style={{ marginLeft: 4, fontSize: 9, color: recent === "up" ? "#4ade80" : "#f87171", opacity: 0.7 }}>{recent === "up" ? "▲" : "▼"}</span>}
+                  {flash  && <span style={{ marginLeft: 3, fontSize: 9,  color: flash  === "up" ? "#4ade80" : "#f87171" }}>{flash  === "up" ? "▲" : "▼"}</span>}
+                  {!flash && recent && <span style={{ marginLeft: 3, fontSize: 8, color: recent === "up" ? "#4ade80" : "#f87171", opacity: 0.7 }}>{recent === "up" ? "▲" : "▼"}</span>}
                 </span>
               </span>
-              <span style={{ textAlign: "center", fontSize: 13, color: "#cbd5e1" }}>
+              <span style={{ textAlign: "right", fontSize: 12, color: "#cbd5e1", paddingRight: 8 }}>
                 <AnimatedCell value={row.value} flash={flash} />
               </span>
-              <span style={{ textAlign: "center", fontSize: 13, fontWeight: 700, color: cc }}>
+              <span style={{ textAlign: "right", fontSize: 12, fontWeight: 700, color: cc, paddingRight: isTiny ? 4 : 0, whiteSpace: "nowrap" }}>
                 {row.isUp === true ? "+" : ""}{row.change}%
               </span>
-              <span style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-                <button
-                  onClick={e => { e.stopPropagation(); onChartFlipClick?.(row.symbol); }}
-                  style={{
-                    background: "transparent",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    borderRadius: 4, padding: "4px 7px",
-                    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                  }}
-                  title={`Chart Flip — ${row.symbol}`}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#34d399"; e.currentTarget.style.background = "rgba(52,211,153,0.08)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.background = "transparent"; }}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                    <path d="M3 3V16C3 18.7614 5.23858 21 8 21H21" stroke={chartColor} strokeWidth="1.5"/>
-                    <path d="M8 16.5C8 17.3284 7.32843 18 6.5 18C5.67157 18 5 17.3284 5 16.5C5 15.6716 5.67157 15 6.5 15C7.32843 15 8 15.6716 8 16.5Z" fill={chartColor}/>
-                    <path d="M11 8.5C11 9.32843 10.3284 10 9.5 10C8.67157 10 8 9.32843 8 8.5C8 7.67157 8.67157 7 9.5 7C10.3284 7 11 7.67157 11 8.5Z" fill={chartColor}/>
-                    <path d="M17 13.5C17 14.3284 16.3284 15 15.5 15C14.6716 15 14 14.3284 14 13.5C14 12.6716 14.6716 12 15.5 12C16.3284 12 17 12.6716 17 13.5Z" fill={chartColor}/>
-                    <path d="M21 6.5C21 7.32843 20.3284 8 19.5 8C18.6716 8 18 7.32843 18 6.5C18 5.67157 18.6716 5 19.5 5C20.3284 5 21 5.67157 21 6.5Z" fill={chartColor}/>
-                    <path d="M6.99847 15.5008L8.99962 9.49933M14.5 12.5L10.5012 8.9985M16 12.5L19 7.5" stroke={chartColor} strokeWidth="0.8"/>
-                  </svg>
-                </button>
-              </span>
+              {!isTiny && (
+                <span style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                  <button
+                    onClick={e => { e.stopPropagation(); onChartFlipClick?.(row.symbol); }}
+                    style={{
+                      background: "transparent",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      borderRadius: 4, padding: "3px 6px",
+                      cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                    title={`Chart Flip — ${row.symbol}`}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#34d399"; e.currentTarget.style.background = "rgba(52,211,153,0.08)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M3 3V16C3 18.7614 5.23858 21 8 21H21" stroke={chartColor} strokeWidth="1.5"/>
+                      <path d="M8 16.5C8 17.3284 7.32843 18 6.5 18C5.67157 18 5 17.3284 5 16.5C5 15.6716 5.67157 15 6.5 15C7.32843 15 8 15.6716 8 16.5Z" fill={chartColor}/>
+                      <path d="M11 8.5C11 9.32843 10.3284 10 9.5 10C8.67157 10 8 9.32843 8 8.5C8 7.67157 8.67157 7 9.5 7C10.3284 7 11 7.67157 11 8.5Z" fill={chartColor}/>
+                      <path d="M17 13.5C17 14.3284 16.3284 15 15.5 15C14.6716 15 14 14.3284 14 13.5C14 12.6716 14.6716 12 15.5 12C16.3284 12 17 12.6716 17 13.5Z" fill={chartColor}/>
+                      <path d="M21 6.5C21 7.32843 20.3284 8 19.5 8C18.6716 8 18 7.32843 18 6.5C18 5.67157 18.6716 5 19.5 5C20.3284 5 21 5.67157 21 6.5Z" fill={chartColor}/>
+                      <path d="M6.99847 15.5008L8.99962 9.49933M14.5 12.5L10.5012 8.9985M16 12.5L19 7.5" stroke={chartColor} strokeWidth="0.8"/>
+                    </svg>
+                  </button>
+                </span>
+              )}
             </div>
           );
         })}
@@ -865,19 +881,23 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
 
   /* ── FULLSCREEN LAYOUT ── */
   if (isFullscreen) {
+    const isNarrowFS = bp === "xs" || bp === "sm" || bp === "md";
+
     return (
       <div style={{
         position: "fixed", inset: 0, zIndex: 1000,
         background: "#060e1a",
         display: "flex", flexDirection: "column",
       }}>
+        {/* top bar */}
         <div style={{
-          height: 52,
+          minHeight: 52,
           background: "#07111c",
           borderBottom: "1px solid rgba(255,255,255,0.07)",
-          display: "flex", alignItems: "center", gap: 10,
-          padding: "0 16px",
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "8px 16px",
           flexShrink: 0,
+          flexWrap: "wrap",
         }}>
           <button
             onClick={() => setIsFullscreen(false)}
@@ -911,11 +931,11 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
             {isPos ? "BUY FLOW" : "SELL FLOW"}
           </span>
 
-          <LastUpdateBadge lastUpdated={lastUpdated} />
+          {!isNarrowFS && <LastUpdateBadge lastUpdated={lastUpdated} />}
 
-          <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.08)", margin: "0 4px" }} />
+          <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.08)", margin: "0 4px", flexShrink: 0 }} />
 
-          <div style={{ display: "flex", gap: 4 }}>
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             {TIME_PERIODS.map(({ key, label, sub }) => {
               const isActive = timePeriod === key;
               return (
@@ -925,7 +945,7 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
                   style={{
                     background: isActive ? "#1d4ed8" : "transparent",
                     border: isActive ? "1px solid #3b82f6" : "1px solid rgba(255,255,255,0.10)",
-                    borderRadius: 6, padding: "4px 14px",
+                    borderRadius: 6, padding: isNarrowFS ? "4px 10px" : "4px 14px",
                     cursor: "pointer",
                     color: isActive ? "#fff" : "#64748b",
                     fontSize: 12, fontFamily: "inherit",
@@ -937,7 +957,7 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
                   onMouseLeave={e => { if (!isActive) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.10)"; e.currentTarget.style.color = "#64748b"; } }}
                 >
                   <span style={{ fontWeight: 600 }}>{label}</span>
-                  <span style={{ fontSize: 10, opacity: 0.8 }}>{sub}</span>
+                  {!isNarrowFS && <span style={{ fontSize: 10, opacity: 0.8 }}>{sub}</span>}
                 </button>
               );
             })}
@@ -963,8 +983,18 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
           </button>
         </div>
 
-        <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
-          <div style={{ flex: 1, minWidth: 0, padding: "12px 0 12px 12px", display: "flex" }}>
+        {/* body: chart + sidebar */}
+        <div style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: isNarrowFS ? "column" : "row",
+          minHeight: 0,
+        }}>
+          <div style={{
+            flex: 1, minWidth: 0, minHeight: 0,
+            padding: isNarrowFS ? "8px 8px 0" : "12px 0 12px 12px",
+            display: "flex",
+          }}>
             <LWCChart
               seriesData={allSeriesData}
               highlighted={highlighted}
@@ -981,10 +1011,15 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
               timePeriod={timePeriod}
             />
           </div>
+
           <div style={{
-            width: 300, flexShrink: 0,
+            width:      isNarrowFS ? "100%" : 300,
+            height:     isNarrowFS ? 260    : undefined,
+            flexShrink: 0,
             background: "#07111c",
-            borderLeft: "1px solid rgba(255,255,255,0.07)",
+            borderLeft: isNarrowFS ? "none" : "1px solid rgba(255,255,255,0.07)",
+            borderTop:  isNarrowFS ? "1px solid rgba(255,255,255,0.10)" : "none",
+            overflow: "hidden",
           }}>
             <FullscreenRankings
               data={liveData}
@@ -1003,6 +1038,8 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
   }
 
   /* ── NORMAL (card) LAYOUT ── */
+  // [FIX 3] card header — alignItems flex-start + flex:1 ให้ badge wrap ได้ถูกต้อง
+  // [FIX 4] chart+table — column เสมอ, table full width ใต้ chart
   return (
     <div style={{ marginBottom: 16 }}>
       <div style={{
@@ -1012,74 +1049,88 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
         padding: "16px 20px",
         display: "flex", flexDirection: "column",
       }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 15, fontWeight: 800, color: "#e2e8f0", letterSpacing: "0.04em", fontFamily: "monospace" }}>{category}</span>
+        {/* ── card header ── */}
+        <div style={{
+          display: "flex", alignItems: "flex-start",   // [FIX] center → flex-start
+          justifyContent: "space-between",
+          marginBottom: 12, flexShrink: 0, gap: 8,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", flex: 1, minWidth: 0 }}>  {/* [FIX] เพิ่ม flex:1 */}
+            <span style={{ fontSize: 14, fontWeight: 800, color: "#e2e8f0", letterSpacing: "0.04em", fontFamily: "monospace" }}>{category}</span>
             <span style={{
-              fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 99,
+              fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99,
               background: isPos ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
               color: isPos ? "#4ade80" : "#f87171",
               border: `1px solid ${isPos ? "rgba(74,222,128,0.3)" : "rgba(248,113,113,0.3)"}`,
-              display: "flex", alignItems: "center", gap: 4,
+              display: "flex", alignItems: "center", gap: 3,
+              whiteSpace: "nowrap",
             }}>
-              <span style={{ fontSize: 9 }}>{isPos ? "▲" : "▼"}</span>
+              <span style={{ fontSize: 8 }}>{isPos ? "▲" : "▼"}</span>
               {isPos ? "BUY FLOW" : "SELL FLOW"}
             </span>
             <LastUpdateBadge lastUpdated={lastUpdated} />
           </div>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>  {/* [FIX] flexShrink:0 */}
             <button
               onClick={handleFullscreen}
-              style={{ width: 32, height: 32, borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}
+              style={{ width: 30, height: 30, borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}
               title="Fullscreen"
             >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                 <path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5"/>
               </svg>
             </button>
             <button
               onClick={handleRefresh}
-              style={{ width: 32, height: 32, borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}
+              style={{ width: 30, height: 30, borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}
               title="Refresh"
             >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M13.5 6A6 6 0 1 0 14 10"/><path d="M14 4v3h-3"/>
               </svg>
             </button>
           </div>
         </div>
 
+        {/* ── chart + table ── */}
+        {/* [FIX 4] เปลี่ยนจาก row+flexWrap → column เสมอ: chart บน, table ล่าง full width */}
         <div style={{
           display: "flex",
-          flexDirection: bp === "xs" || bp === "sm" || bp === "md" ? "column" : "row",
-          gap: 16,
-          height: bp === "xs" || bp === "sm" || bp === "md" ? "auto" : TABLE_H,
+          flexDirection: "column",
+          gap: 12,
         }}>
-          <LWCChart
-            seriesData={allSeriesData}
-            highlighted={highlighted}
-            extraVisible={extraVisible}
-            allData={liveData}
-            height={TABLE_H}
-            chartId={chartId}
-            chartRefs={chartRefs}
-            onZoom={onZoom}
-            globalLogical={globalLogical}
-            setGlobalLogical={setGlobalLogical}
-            timePeriod="all"
-            showLabels={true}
-            labelData={liveData}
-          />
-          <RankTable
-            data={liveData}
-            flashMap={flashMap}
-            recentMap={recentMap}
-            highlighted={highlighted}
-            extraVisible={extraVisible}
-            totalCount={totalCount}
-            onRowClick={handleRowClick}
-            onChartFlipClick={onChartFlipClick}
-          />
+          {/* chart */}
+          <div style={{ width: "100%", height: TABLE_H }}>
+            <LWCChart
+              seriesData={allSeriesData}
+              highlighted={highlighted}
+              extraVisible={extraVisible}
+              allData={liveData}
+              height={TABLE_H}
+              chartId={chartId}
+              chartRefs={chartRefs}
+              onZoom={onZoom}
+              globalLogical={globalLogical}
+              setGlobalLogical={setGlobalLogical}
+              timePeriod="all"
+              showLabels={true}
+              labelData={liveData}
+            />
+          </div>
+
+          {/* table — full width เสมอ */}
+          <div style={{ width: "100%" }}>
+            <RankTable
+              data={liveData}
+              flashMap={flashMap}
+              recentMap={recentMap}
+              highlighted={highlighted}
+              extraVisible={extraVisible}
+              totalCount={totalCount}
+              onRowClick={handleRowClick}
+              onChartFlipClick={onChartFlipClick}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -1132,50 +1183,67 @@ function IdeatradePoint({ onChartFlipClick }) {
       `}</style>
 
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: "16px 20px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+        {/* ── filter bar ── */}
+        {/* [FIX 5] แยก category buttons เป็น div ของตัวเอง ให้ wrap เป็นกลุ่ม */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20, flexWrap: "wrap", rowGap: 8 }}>
           <div style={{ position: "relative", zIndex: 50, flexShrink: 0 }}>
             <ToolHint onViewDetails={() => setInfoOpen(true)}>
-              Real Flow tracks stock market money flow in real-time.
-              Prices update automatically every 10–15 seconds.
+              ---
             </ToolHint>
           </div>
+
           <div style={{ position: "relative", flexShrink: 0 }}>
-            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#64748b", pointerEvents: "none" }}>
-              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "#64748b", pointerEvents: "none" }}>
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </span>
             <input
               type="text" placeholder="Search..." value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              style={{ background: "#0f1c2e", borderRadius: 8, padding: "7px 28px 7px 32px", fontSize: 13, color: "#e2e8f0", border: "1px solid rgba(255,255,255,0.1)", outline: "none", width: 160, fontFamily: "inherit" }}
+              style={{ background: "#0f1c2e", borderRadius: 8, padding: "7px 26px 7px 28px", fontSize: 13, color: "#e2e8f0", border: "1px solid rgba(255,255,255,0.1)", outline: "none", width: 120, fontFamily: "inherit" }}
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 11 }}
+                style={{ position: "absolute", right: 7, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 11 }}
               >✕</button>
             )}
           </div>
 
-          {CATEGORIES.map(cat => {
-            const isActive = activeCategory === cat;
-            return (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(prev => prev === cat ? null : cat)}
-                style={{
-                  padding: "7px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer",
-                  background: isActive ? "#1d4ed8" : "transparent",
-                  border: isActive ? "1px solid #3b82f6" : "1px solid rgba(255,255,255,0.12)",
-                  color: isActive ? "#fff" : "#94a3b8",
-                  transition: "all 0.15s", fontFamily: "inherit",
-                  boxShadow: isActive ? "0 0 0 1px rgba(59,130,246,0.4), 0 2px 8px rgba(59,130,246,0.2)" : "none",
-                }}
-              >{cat}</button>
-            );
-          })}
+          {/* [FIX 5] category buttons ใน div แยก → wrap เป็นกลุ่ม ไม่แตกแถว */}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {CATEGORIES.map(cat => {
+              const isActive = activeCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(prev => prev === cat ? null : cat)}
+                  style={{
+                    padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    background: isActive ? "#1d4ed8" : "transparent",
+                    border: isActive ? "1px solid #3b82f6" : "1px solid rgba(255,255,255,0.12)",
+                    color: isActive ? "#fff" : "#94a3b8",
+                    transition: "all 0.15s", fontFamily: "inherit",
+                    boxShadow: isActive ? "0 0 0 1px rgba(59,130,246,0.4), 0 2px 8px rgba(59,130,246,0.2)" : "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >{cat}</button>
+              );
+            })}
+          </div>
 
-          <button style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, background: "transparent", border: "1px solid rgba(255,255,255,0.12)", color: "#94a3b8", cursor: "pointer", fontFamily: "inherit" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <button style={{
+            marginLeft: "auto",
+            display: "flex", alignItems: "center", gap: 5,
+            padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+            background: "transparent", border: "1px solid rgba(255,255,255,0.12)",
+            color: "#94a3b8", cursor: "pointer", fontFamily: "inherit",
+            whiteSpace: "nowrap",
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
             History
           </button>
         </div>
