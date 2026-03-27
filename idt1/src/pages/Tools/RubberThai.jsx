@@ -639,8 +639,8 @@ export default function RubberThai() {
     if (!scrollContainerRef.current) return;
     isPaused.current = true;
     const { current } = scrollContainerRef;
-    const scrollAmount = bp === "xs" ? 220 : 350;
-    current.scrollBy({ left: direction === "left" ? -scrollAmount : scrollAmount, behavior: "smooth" });
+    // ปรับให้เลื่อนครั้งละ 350 เท่ากับ PetroleumInsights
+    current.scrollBy({ left: direction === "left" ? -350 : 350, behavior: "smooth" });
     scrollDirection.current = direction === "left" ? -1 : 1;
     setTimeout(checkScroll, 300);
     setTimeout(() => { isPaused.current = false; }, 500);
@@ -687,59 +687,66 @@ export default function RubberThai() {
      SHARED JSX
   ========================================================== */
   const featuresSectionJSX = (
-    <div className="w-full max-w-5xl mb-10 sm:mb-12">
-      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-6 sm:mb-8 text-left border-l-4 border-cyan-500 pl-4">
+    <div className="w-full max-w-5xl mb-12">
+      <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left border-l-4 border-cyan-500 pl-4">
         4 Main Features
       </h2>
-
-      <div
-        className="relative group"
-        onMouseEnter={() => (isPaused.current = true)}
-        onMouseLeave={() => (isPaused.current = false)}
-        onTouchStart={() => (isPaused.current = true)}
-        onTouchEnd={() => (isPaused.current = false)}
+      <div 
+        className="relative group" 
+        onMouseEnter={() => { isPaused.current = true; }} 
+        onMouseLeave={() => { isPaused.current = false; }}
       >
         <button
           onClick={() => scroll("left")}
-          className={`hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-10 z-20 w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] items-center justify-center backdrop-blur-sm active:scale-95 ${showLeft ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
           aria-label="Scroll Left"
+          className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20
+                      w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white
+                      hover:bg-cyan-500 hover:border-cyan-400 hover:text-white
+                      hover:shadow-[0_0_15px_rgba(6,182,212,0.5)]
+                      flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95
+                      ${showLeft ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
         >
-          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
 
-        <div
-          ref={scrollContainerRef}
-          onScroll={checkScroll}
-          className="flex overflow-x-auto gap-4 sm:gap-6 py-4 px-1 hide-scrollbar snap-x snap-mandatory"
+        <div 
+          ref={scrollContainerRef} 
+          onScroll={checkScroll} 
+          className="flex overflow-x-auto gap-6 py-4 px-1 hide-scrollbar" 
           style={scrollbarHideStyle}
         >
           {features.map((item, index) => (
-            <div
-              key={index}
-              className="w-[80vw] sm:w-[320px] md:w-[380px] lg:w-[400px] max-w-[400px] flex-shrink-0 snap-center group/card bg-[#0f172a]/60 border border-slate-700/50 p-5 sm:p-6 lg:p-8 rounded-xl hover:bg-[#1e293b]/60 hover:border-cyan-500/30 transition-colors"
+            <div 
+              key={index} 
+              className="w-[350px] md:w-[400px] flex-shrink-0 group/card bg-[#0f172a]/60 border border-slate-700/50 p-8 rounded-xl hover:bg-[#1e293b]/60 hover:border-cyan-500/30 transition duration-300"
             >
-              <h3 className="text-base sm:text-lg lg:text-xl font-bold text-white mb-2 sm:mb-3 group-hover/card:text-cyan-400">
+              <h3 className="text-xl font-bold text-white mb-3 group-hover/card:text-cyan-400 transition-colors">
                 {item.title}
               </h3>
-              <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">{item.desc}</p>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                {item.desc}
+              </p>
             </div>
           ))}
         </div>
 
         <button
           onClick={() => scroll("right")}
-          className={`hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-10 z-20 w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] items-center justify-center backdrop-blur-sm active:scale-95 ${showRight ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
           aria-label="Scroll Right"
+          className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-20 z-20
+                      w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white
+                      hover:bg-cyan-500 hover:border-cyan-400 hover:text-white
+                      hover:shadow-[0_0_15px_rgba(6,182,212,0.5)]
+                      flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95
+                      ${showRight ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
         >
-          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
           </svg>
         </button>
       </div>
-
-      <p className="sm:hidden text-center text-slate-500 text-[11px] mt-2">← swipe to explore →</p>
     </div>
   );
 
