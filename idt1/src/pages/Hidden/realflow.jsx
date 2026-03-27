@@ -88,6 +88,80 @@ const ChartFlipIcon = ({ size = 14, color = "currentColor" }) => (
   </svg>
 );
 
+/* ================= CHARTFLIP HINT ================= */
+const ChartFlipHint = () => {
+  const [visible, setVisible] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef(null);
+
+  const toggle = (e) => {
+    e.stopPropagation();
+    if (!visible && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setPos({ top: rect.top, left: rect.right });
+    }
+    setVisible(p => !p);
+  };
+
+  useEffect(() => {
+    if (!visible) return;
+    const close = () => setVisible(false);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [visible]);
+
+  return (
+    <div className="relative inline-flex items-center">
+      <button
+        ref={btnRef}
+        onClick={toggle}
+        className="flex items-center justify-center text-slate-500 hover:text-slate-300 transition-all"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="8" strokeWidth="2.5" />
+          <line x1="12" y1="12" x2="12" y2="16" />
+        </svg>
+      </button>
+
+      {visible && (
+      <div
+        onClick={e => e.stopPropagation()}
+        className="fixed z-[9999] whitespace-nowrap"
+        style={{
+          top: pos.top,
+          left: pos.left,
+          transform: "translate(-95%, -130%)",
+        }}
+      >
+        {/* กล่อง bubble */}
+        <div style={{
+          background: "#1e293b",
+          borderRadius: 12,
+          padding: "8px 14px",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+          position: "relative",
+        }}>
+          <p style={{ color: "#f1f5f9", fontSize: 12, fontWeight: 500, margin: 0 }}>
+            คลิกที่แถวเพื่อดูกราฟของหุ้นนั้นใน chart
+          </p>
+          <div style={{
+            position: "absolute",
+            bottom: -8,
+            right: 14,
+            width: 0,
+            height: 0,
+            borderLeft: "6px solid transparent",
+            borderRight: "6px solid transparent",
+            borderTop: "8px solid #1e293b",
+          }} />
+        </div>
+      </div>
+    )}
+    </div>
+  );
+};
+
 /* ================= MINI SPARKLINE ================= */
 const MiniSparkline = ({ values, isUp, width = 80, height = 32 }) => {
   if (!values || values.length < 2) return <span style={{ fontSize: 9, color: "#334155" }}>—</span>;
@@ -255,12 +329,12 @@ const RankTable = ({ data, flashMap = {}, recentMap = {}, top5Len, highlighted, 
               <th className="py-2.5 pl-1 pr-1 text-left" style={{ width: "22%" }}>Symbol</th>
               <th className="py-2.5 pl-1 pr-1 text-right" style={{ width: "25%" }}>Value</th>
               <th className="py-2.5 pl-1 pr-4 text-right" style={{ width: "25%" }}>%Chg</th>
-              <th className="py-2.5 pl-1 pr-3 text-right" style={{ width: 52 }}>
-                <span className="flex flex-col items-end justify-center leading-none text-slate-400" style={{ gap: 1 }}>
-                  <span>Chart</span>
-                  <span>flip</span>
-                </span>
-              </th>
+              <th className="py-2.5 pl-1 pr-3 text-right" style={{ width: 90 }}>
+              <span className="flex items-center justify-end gap-1 text-slate-400">
+                <span>Chart flip</span>
+                <ChartFlipHint />
+              </span>
+            </th>
             </tr>
           </thead>
           <tbody>
@@ -303,7 +377,7 @@ const RankTable = ({ data, flashMap = {}, recentMap = {}, top5Len, highlighted, 
                   <td className={`py-2.5 pl-1 pr-4 text-right font-semibold text-[11px] tabular-nums ${cc}`}>
                     {row.isUp === true ? "+" : ""}{row.change}%
                   </td>
-                  <td className="py-1.5 pl-1 pr-3 text-right" style={{ width: 52 }}>
+                  <td className="py-1.5 pl-1 pr-3 text-right" style={{ width: 90 }}>
                     <button
                       onClick={e => { e.stopPropagation(); onRowClick?.(i); }}
                       className="inline-flex items-center justify-center rounded-lg border border-slate-600/80 bg-slate-800/70 hover:bg-slate-700 hover:border-slate-500 transition-all group"
