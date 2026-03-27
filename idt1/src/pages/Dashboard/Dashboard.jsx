@@ -178,7 +178,7 @@ export default function Dashboard({ initialPage }) {
     if (activePage === "preview-projects" || activePage === "whatsnew") return <PreviewProjects />;
     if (activePage === "premiumtools") return <PremiumTools />;
 
-    if (activePage === "real-flow") return <realFlow />;
+    if (activePage === "real-flow") return <RealFlow />;
 
     const normalizedPage = activePage.toLowerCase(); 
     const toolConfig = TOOL_CONFIG[normalizedPage] || TOOL_CONFIG[activePage];
