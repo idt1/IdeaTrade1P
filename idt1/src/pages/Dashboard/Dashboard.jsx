@@ -14,7 +14,7 @@ import ToolAccessGuard from "@/components/ToolAccessGuard";
 
 import logoImage from "@/assets/images/logo.png";
 
-import RealFlow from "@/pages/Hidden/realflow";
+import RealFlow from "@/pages/Hidden/RealFlow";
 
 // --- Tools Components ---
 import StockFortuneTeller from "@/pages/Tools/StockFortuneTeller";
@@ -29,6 +29,7 @@ import DRInsight from "@/pages/Tools/DRInsight";
 import ChartFlipId from "@/pages/Hidden/Chartid";
 import HisRealFlow from "@/pages/Hidden/hisrealflow";
 import DWViewCharts from "@/pages/Hidden/DW";
+import IdeaTradePoint from "@/pages/Hidden/IdeaTradePoint";
 
 /* ================= CONSTANTS ================= */
 const CHART_IMAGE_URL = "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1964&auto=format&fit=crop";
@@ -72,6 +73,9 @@ const TOOL_CONFIG = {
   "hisrealflow": { component: HisRealFlow, id: "hisrealflow", name: "Historical Real Flow", isPremium: false },
 
   "dw":            { component: DWViewCharts,   id: "dw",             name: "DW",             isPremium: false },
+
+  "ideatradepoint":            { component: IdeaTradePoint,   id: "ideatradepoint",             name: "Idea Trade Point",             isPremium: false },
+  "hisideatradepoint":         { component: IdeaTradePoint,   id: "hisideatradepoint",             name: "Historical Idea Trade Point",             isPremium: false },
 };
 
 const FULL_WIDTH_PAGES = []; 
@@ -140,11 +144,12 @@ export default function Dashboard({ initialPage }) {
       else if (path === "subscription") setActivePage("subscription");
       else if (path === "preview-projects") setActivePage("preview-projects");
       else if (path === "premium-tools" || path === "premiumtools") setActivePage("premiumtools");
-      // ✅ แก้ให้ตรงกับ key ใหม่ "chart-flip-id"
       else if (path === "chart-flip-id") setActivePage("chart-flip-id");
       else if (path === "real-flow") setActivePage("real-flow");
       else if (path === "hisrealflow") setActivePage("hisrealflow");
       else if (path === "dw") setActivePage("dw"); 
+      else if (path === "ideatradepoint") setActivePage("ideatradepoint");
+      else if (path === "hisideatradepoint") setActivePage("hisideatradepoint");
 
       else setActivePage("preview-projects"); // Fallback ถ้าหาไม่เจอจริงๆ
     }
@@ -173,7 +178,7 @@ export default function Dashboard({ initialPage }) {
     if (activePage === "preview-projects" || activePage === "whatsnew") return <PreviewProjects />;
     if (activePage === "premiumtools") return <PremiumTools />;
 
-    if (activePage === "real-flow") return <RealFlow />;
+    if (activePage === "real-flow") return <realFlow />;
 
     const normalizedPage = activePage.toLowerCase(); 
     const toolConfig = TOOL_CONFIG[normalizedPage] || TOOL_CONFIG[activePage];
