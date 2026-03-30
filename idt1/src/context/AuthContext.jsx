@@ -41,14 +41,15 @@ export const AuthProvider = ({ children }) => {
 
           if (mainDocSnap.exists() && mainDocSnap.data()?.firstName) {
             fetchedData = { ...fetchedData, ...mainDocSnap.data() };
-          } else {
-            // ถ้าไม่มี ให้ไปดึงจาก "users_temp"
+          } else if (user.email) { 
+            // 🟢 เพิ่มการดักเช็คตรงนี้: ถ้าล็อกอินด้วย OTP จะไม่มี email ก็จะข้ามขั้นตอนนี้ไป ไม่พังแล้ว!
             const tempDocRef = doc(db, "users_temp", user.email.toLowerCase()); 
             const tempDocSnap = await getDoc(tempDocRef);
             if (tempDocSnap.exists()) {
               fetchedData = { ...fetchedData, ...tempDocSnap.data() };
             }
           }
+          
           setUserData(fetchedData);
         } catch (error) {
           console.error("Error fetching user data:", error);
