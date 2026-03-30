@@ -13,7 +13,7 @@ import OtpModal from "@/components/OtpModal";
 import axios from "axios"; 
 
 // 🟢 แก้ไขจุดที่ 1: ดึง URL จาก Environment Variable มาเตรียมไว้
-const BASE_API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const BASE_API_URL = import.meta.env.VITE_API_URL || "https://ideatrade1p.onrender.com/";
 
 export default function Welcome() {
   const navigate = useNavigate();
