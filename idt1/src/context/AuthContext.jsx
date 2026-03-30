@@ -35,23 +35,34 @@ export const AuthProvider = ({ children }) => {
         };
 
         try {
-          console.log("1. กำลังหาข้อมูลของ UID:", user.uid); // 🟢 ดูว่า UID คืออะไร
-          
-          // ดึงจาก collection "users" ก่อน
+          let foundData = false;
+
+          // 1. ค้นหาด้วย UID (วิธีมาตรฐาน)
           const mainDocRef = doc(db, "users", user.uid);
           const mainDocSnap = await getDoc(mainDocRef);
 
-          if (mainDocSnap.exists()) {
-            console.log("2. 🎉 เจอข้อมูลใน users แล้ว!:", mainDocSnap.data()); // 🟢 ดูว่าดึงอะไรมาได้บ้าง
+          if (mainDocSnap.exists() && mainDocSnap.data()?.firstName) {
             fetchedData = { ...fetchedData, ...mainDocSnap.data() };
-          } else {
-            console.log("2. ❌ ไม่เจอข้อมูลใน users สำหรับ UID นี้"); // 🟢 ถ้าขึ้นอันนี้ แปลว่า UID ไม่ตรงกับ Document ID
-            
-            if (user.email) { 
+            foundData = true;
+          } 
+          
+          // 🌟 2. ท่าไม้ตาย: ถ้าหาด้วย UID ไม่เจอ ให้ค้นหาจาก Field "email" แทน!
+          if (!foundData && user.email) {
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, where("email", "==", user.email));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+              // ถ้าเจอข้อมูลที่มีอีเมลตรงกัน ให้ดึงเอกสารแรกมาใช้
+              const docData = querySnapshot.docs[0].data();
+              console.log("🎉 ดึงข้อมูลสำเร็จด้วย Email:", docData);
+              fetchedData = { ...fetchedData, ...docData };
+              foundData = true;
+            } else {
+              // 3. ถ้ายังไม่เจออีก ให้ไปหาในโฟลเดอร์สำรอง (users_temp)
               const tempDocRef = doc(db, "users_temp", user.email.toLowerCase()); 
               const tempDocSnap = await getDoc(tempDocRef);
               if (tempDocSnap.exists()) {
-                console.log("3. เจอข้อมูลใน users_temp:", tempDocSnap.data());
                 fetchedData = { ...fetchedData, ...tempDocSnap.data() };
               }
             }
