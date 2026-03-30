@@ -29,7 +29,7 @@ import DRInsight from "@/pages/Tools/DRInsight";
 import ChartFlipId from "@/pages/Hidden/Chartid";
 import HisRealFlow from "@/pages/Hidden/hisrealflow";
 import DWViewCharts from "@/pages/Hidden/DW";
-import IdeaTradePoint from "@/pages/Hidden/IdeaTradePoint";
+import IdeaTradePoint from "@/pages/Hidden/ideatradepoint";
 
 /* ================= CONSTANTS ================= */
 const CHART_IMAGE_URL = "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1964&auto=format&fit=crop";
