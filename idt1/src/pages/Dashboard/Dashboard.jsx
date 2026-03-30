@@ -14,7 +14,7 @@ import ToolAccessGuard from "@/components/ToolAccessGuard";
 
 import logoImage from "@/assets/images/logo.png";
 
-import RealFlow from "@/pages/Hidden/RealFlow";
+import RealFlow from "@/pages/Hidden/realFlow";
 
 // --- Tools Components ---
 import StockFortuneTeller from "@/pages/Tools/StockFortuneTeller";
