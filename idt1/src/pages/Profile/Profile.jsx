@@ -1,16 +1,20 @@
 import React, { useState } from 'react'; 
 import './Profile.css';
-import { useAuth } from '@/context/AuthContext';
+
+// 🟢 แก้ไข: Import useSubscription มาใช้งานแทน useAuth
+import { useSubscription } from '@/context/SubscriptionContext'; 
+
 import { db } from "@/firebase"; 
 import { doc, setDoc } from "firebase/firestore";
 
 const Profile = () => {
+  // 🟢 ดึงข้อมูลจาก SubscriptionContext มาใช้
   const { currentUser, userData, setUserData } = useSubscription();
   
   const [activeTab, setActiveTab] = useState('Profile');
   const [isSaving, setIsSaving] = useState(false);
 
-  // ถ้าข้อมูลยังมาไม่ถึง ให้โชว์ Loading
+  // ถ้าข้อมูลยังมาไม่ถึง (เช่น กำลังโหลดจาก Firestore) ให้โชว์ Loading
   if (!userData) return <div className="text-white text-center mt-20">Loading profile...</div>;
 
   const handleSave = async () => {
@@ -18,7 +22,7 @@ const Profile = () => {
 
     setIsSaving(true);
     try {
-      // เซฟทับลง UID โดยตรง
+      // เซฟลง Firestore โดยอ้างอิงจาก UID ของผู้ใช้
       const docRef = doc(db, "users", currentUser.uid);
       await setDoc(docRef, {
         firstName: userData.firstName || '',
@@ -31,7 +35,7 @@ const Profile = () => {
       alert("Profile updated successfully!");
     } catch (error) {
       console.error("Error saving profile:", error);
-      alert("Failed to save profile. ตรวจสอบสิทธิ์อีกครั้ง");
+      alert("Failed to save profile. กรุณาเช็คสิทธิ์การเข้าถึง");
     } finally {
       setIsSaving(false);
     }
@@ -42,6 +46,7 @@ const Profile = () => {
       <div className="max-w-3xl mx-auto">
         <h1 className="text-2xl md:text-3xl font-extrabold text-white mb-6 text-left">Account Settings</h1>
 
+        {/* Tabs */}
         <div className="flex gap-2 mb-6 w-full overflow-x-auto hide-scrollbar">
           <button 
             className={`flex-1 min-w-[120px] py-3 px-4 rounded-lg font-semibold flex items-center justify-center transition-colors text-sm
@@ -67,6 +72,7 @@ const Profile = () => {
               </div>
               
               <div className="flex flex-col gap-5 w-full">
+                {/* First & Last Name */}
                 <div className="flex flex-col md:flex-row gap-5 w-full">
                   <div className="flex flex-col gap-2 flex-1 w-full">
                     <label className="text-sm font-medium text-gray-400 text-left">First Name</label>
@@ -90,6 +96,7 @@ const Profile = () => {
                   </div>
                 </div>
 
+                {/* Email Address */}
                 <div className="flex flex-col gap-2 w-full">
                   <label className="text-sm font-medium text-gray-400 text-left">Email Address</label>
                   <input 
@@ -100,6 +107,7 @@ const Profile = () => {
                   />
                 </div>
 
+                {/* Phone Number */}
                 <div className="flex flex-col gap-2 w-full">
                   <label className="text-sm font-medium text-gray-400 text-left">Phone Number</label>
                   <input 
@@ -111,6 +119,7 @@ const Profile = () => {
                   />
                 </div>
 
+                {/* Save Button */}
                 <div className="w-full pt-2">
                   <button 
                     className="w-full bg-[#007bff] hover:bg-[#0069d9] text-white text-sm font-bold py-4 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20" 
