@@ -622,7 +622,12 @@ export default function PetroleumInsights() {
   const [showSymbolDropdown, setShowSymbolDropdown] = useState(false);
 
   const symbolList      = ["BBGI","BCP","BCPG","BANPU","BGRIM","EA","ESSO","GULF","IRPC","IVL","PTT","PTTEP","TOP"];
-  const filteredSymbols = symbolList.filter(s => s.toLowerCase().includes(symbolQuery.toLowerCase()));
+
+  const searchInputRef = useRef(null);
+  const filteredSymbols = useMemo(() => {
+    if (!symbolQuery) return symbolList;
+    return symbolList.filter(s => s.toLowerCase().includes(symbolQuery.toLowerCase()));
+  }, [symbolQuery]);
 
   const skeletonCards = useMemo(
     () => [
@@ -790,8 +795,8 @@ export default function PetroleumInsights() {
           <div className="relative group w-full max-w-6xl mb-16">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700" />
             <div className="relative bg-[#0e1118] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
-  <ScaledDashboardPreview dashboardWidth={1280} dashboardHeight={780} />
-</div>
+              <ScaledDashboardPreview dashboardWidth={1280} dashboardHeight={780} />
+            </div>
           </div>
           {featuresSection}
           
@@ -873,60 +878,102 @@ export default function PetroleumInsights() {
             <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
               Multi-asset oil price tracking, monitor fuel type variations, analyze exchange refinery rates, track market margins, and display historical price data
             </ToolHint>
-              <div className="relative w-56" onClick={(e) => e.stopPropagation()}>
-                <div className= " relative bg-[#111827] border border-slate-700 rounded-md px-4 py-3 flex items-center "> 
-                  <input
-                    value={symbol}
-                    onChange={(e) => {
-                      setSymbol(e.target.value);
-                      setShowSymbolDropdown(true);
+              <div className="relative w-64" onClick={(e) => e.stopPropagation()}>
+              <div className="relative bg-[#111827] border border-slate-700 rounded-md flex items-center transition-all focus-within:border-cyan-500 group">
+                {/* ไอคอนค้นหา */}
+                <div className="pl-3 text-slate-400 group-focus-within:text-cyan-500">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+
+                <input
+                  ref={searchInputRef}
+                  value={symbolQuery}
+                  onChange={(e) => {
+                    setSymbolQuery(e.target.value.toUpperCase());
+                    setShowSymbolDropdown(true);
+                  }}
+                  onFocus={() => setShowSymbolDropdown(true)}
+                  onBlur={() => {
+                    // ให้เวลาสำหรับ onMouseDown ใน dropdown ทำงานก่อนปิด
+                    setTimeout(() => setShowSymbolDropdown(false), 200);
+                  }}
+                  placeholder="Search Symbol..."
+                  className="w-full bg-transparent outline-none text-white text-sm px-3 py-2.5 placeholder-slate-500"
+                />
+
+                {/* ปุ่มล้างค่า และ ปุ่มลูกศร */}
+                <div className="flex items-center pr-2 gap-1">
+                  {symbolQuery && (
+                    <button
+                      onClick={() => {
+                        setSymbolQuery("");
+                        setSymbol("");
+                        setShowSymbolDropdown(true);
+                        searchInputRef.current?.focus();
+                      }}
+                      className="p-1 text-slate-500 hover:text-red-400 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  )}
+                  <div 
+                    className={`text-slate-500 transition-transform duration-200 ${showSymbolDropdown ? 'rotate-180' : ''}`}
+                    onClick={() => {
+                      setShowSymbolDropdown(!showSymbolDropdown);
+                      searchInputRef.current?.focus();
                     }}
-                    onFocus={() => {
-                      setIsFocused(true);
-                      setShowSymbolDropdown(true);
-                    }}
-                    onBlur={() => {
-                      setTimeout(() => setShowSymbolDropdown(false), 150);
-                      setIsFocused(false);
-                    }}
-                    placeholder="Symbol*"
-                    className="w-full bg-transparent outline-none text-white text-xs pr-5 placeholder-slate-400"
-                  />
-                  <div className="flex items-center gap-2">
-                    {(symbol || symbolQuery) && (
-                      <button onClick={() => { setSymbol(""); setSymbolQuery(""); }} className="text-slate-400 hover:text-white text-xs ml-2">✕</button>
-                    )}
-                    <span onClick={() => setShowSymbolDropdown(!showSymbolDropdown)} className="text-slate-400 text-xs ml-2 cursor-pointer">▾</span>
+                  >
+                    <svg className="w-4 h-4 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
                   </div>
                 </div>
-                {showSymbolDropdown && (
-                  <div className="absolute mt-2 w-full bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl max-h-72 overflow-y-auto z-50"> 
-                    {filteredSymbols.length > 0
-                      ? filteredSymbols.map((item, index) => (
-                          <div
-                            key={`${item}-${dataVersion}-${index}`} 
-                            onMouseDown={() => {
-                              setSymbolQuery(item);
-                              setShowSymbolDropdown(false);
-                              setRefreshing(true);
-                              setGlobalHoverIndex(null);
-
-                              setTimeout(() => {
-                                setSymbol(item);
-                                setDataVersion((prev) => prev + 1);
-                                setRefreshing(false);
-                              }, 700);
-                            }}
-                            className="px-4 py-2 text-sm text-slate-300 hover:bg-cyan-500 hover:text-white cursor-pointer transition"
-                          >
-                            {item}
-                          </div>
-                        ))
-                      : <div className="px-4 py-2 text-sm text-slate-500">No results</div>
-                    }
-                  </div>
-                )}
               </div>
+
+              {/* Dropdown ผลลัพธ์ */}
+              {showSymbolDropdown && (
+                <div className="absolute mt-2 w-full bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl max-h-72 overflow-y-auto z-[100] custom-scrollbar">
+                  {filteredSymbols.length > 0 ? (
+                    filteredSymbols.map((item) => (
+                      <div
+                        key={item}
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // ป้องกัน blur ก่อนเลือก
+                          setSymbolQuery(item);
+                          setSymbol(item);
+                          setShowSymbolDropdown(false);
+                          setRefreshing(true);
+                          setGlobalHoverIndex(null);
+                          
+                          setTimeout(() => {
+                            setDataVersion((prev) => prev + 1);
+                            setRefreshing(false);
+                          }, 600);
+                        }}
+                        className={`px-4 py-2.5 text-sm cursor-pointer transition-colors flex items-center justify-between
+                          ${symbol === item ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}
+                        `}
+                      >
+                        <span>{item}</span>
+                        {symbol === item && (
+                          <svg className="w-4 h-4 text-cyan-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-4 py-8 text-center">
+                      <p className="text-slate-500 text-sm">No symbols found</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
               <div className="relative w-72" onClick={(e) => e.stopPropagation()}> 
                 <div
