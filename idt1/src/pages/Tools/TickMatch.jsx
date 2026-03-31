@@ -718,65 +718,63 @@ export default function TickMatch() {
     return <span ref={spanRef} className={className} style={{ whiteSpace: 'nowrap', display: 'block' }}>{value}</span>;
   }
 
-  const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
-    const [hasSearched,        setHasSearched]        = useState(false);
-    const [isSynced,           setIsSynced]            = useState(true);
-    const [symbol,             setSymbol]              = useState(defaultSymbol);
-    const [showSymbolDropdown, setShowSymbolDropdown]  = useState(false);
-    const [symbolHistory,      setSymbolHistory]       = useState([]);
-    const [filteredSymbols,    setFilteredSymbols]     = useState([]);
-    const [date,               setDate]                = useState(defaultDate);
-    const [activeSymbol,       setActiveSymbol]        = useState(defaultSymbol);
-    const [isSyncing,          setIsSyncing]           = useState(false);
-    const [isFlipOpen,         setIsFlipOpen]          = useState(true);
-    const [isChartModalOpen,   setIsChartModalOpen]    = useState(false);
-    const [activeFilter,       setActiveFilter]        = useState("all");
+ const AnalysisPanel = ({ defaultSymbol = "", defaultDate = "", toolHint }) => {
+  const [hasSearched, setHasSearched] = useState(false);
+  const [isSynced, setIsSynced] = useState(true);
+  const [symbol, setSymbol] = useState(defaultSymbol);
+  const [showSymbolDropdown, setShowSymbolDropdown] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const [date, setDate] = useState(defaultDate);
+  const [activeSymbol, setActiveSymbol] = useState(defaultSymbol);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isFlipOpen, setIsFlipOpen] = useState(true);
+  const [isChartModalOpen, setIsChartModalOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState("all");
 
-    const todayMax = new Date().toISOString().split("T")[0];
+  const STOCK_LIST = [
+    "PTT", "TOP", "DELTA", "AOT", "ADVANC", "SCB", "KBANK", "BBL", "KTB", "BAY",
+    "CPALL", "CPN", "CRC", "HMPRO", "BJC", "IVL", "SCC", "SCCC", "TISCO", "KKP",
+    "1DIV", "NVDA", "TSLA"
+  ];
 
-    useEffect(() => {
-      const saved = localStorage.getItem("tickmatch_symbol_history");
-      if (saved) setSymbolHistory(JSON.parse(saved));
-    }, []);
+  // 🌟 กรองรายชื่อหุ้น (Filter Logic)
+  const filteredSymbols = useMemo(() => {
+    if (!symbol) return STOCK_LIST.slice(0, 8);
+    const q = symbol.toUpperCase();
+    return STOCK_LIST.filter(s => s.includes(q)).slice(0, 8);
+  }, [symbol]);
 
-    useEffect(() => {
-      if (!symbol.trim()) { setFilteredSymbols(symbolHistory); return; }
-      setFilteredSymbols(symbolHistory.filter(item => item.toLowerCase().includes(symbol.toLowerCase())));
-    }, [symbol, symbolHistory]);
+  const todayMax = new Date().toISOString().split("T")[0];
 
-    useEffect(() => {
-      const handleEsc = (e) => { if (e.key === "Escape" && isChartModalOpen) setIsChartModalOpen(false); };
-      window.addEventListener("keydown", handleEsc);
-      return () => window.removeEventListener("keydown", handleEsc);
-    }, [isChartModalOpen]);
+  const handleSearch = () => {
+    if (!symbol.trim()) return;
+    setIsSyncing(true);
+    // ปิด dropdown ทันทีที่กด search
+    setShowSymbolDropdown(false);
+    setTimeout(() => {
+      setHasSearched(true);
+      setActiveSymbol(symbol.toUpperCase());
+      setIsSyncing(false);
+    }, 800);
+  };
 
-    const handleSearch = () => {
-      if (!symbol.trim()) return;
-      setIsSyncing(true);
-      setTimeout(() => {
-        setHasSearched(true);
-        setActiveSymbol(symbol.toUpperCase());
-        const updated = [symbol.toUpperCase(), ...symbolHistory.filter(s => s !== symbol.toUpperCase())].slice(0, 10);
-        setSymbolHistory(updated);
-        localStorage.setItem("tickmatch_symbol_history", JSON.stringify(updated));
-        setIsSyncing(false);
-      }, 800);
-    };
+  const data = mockDatabase[activeSymbol?.toUpperCase()] || mockDatabase[""];
 
-    const data = mockDatabase[activeSymbol?.toUpperCase()] || mockDatabase[""];
-
-    const filteredTicks = data.ticks.filter(tick => {
-      const vol = parseInt(tick.vol.replace(/,/g, "")) || 0;
-      if (activeFilter === "buy")   return tick.type === "B";
-      if (activeFilter === "sell")  return tick.type === "S";
-      if (activeFilter === ">100k") return vol > 100000;
+  const filteredTicks = useMemo(() => {
+    if (!data.ticks) return [];
+    return data.ticks.filter(tick => {
+      const volNum = parseInt(tick.vol.replace(/,/g, "")) || 0;
+      if (activeFilter === "buy") return tick.type === "B";
+      if (activeFilter === "sell") return tick.type === "S";
+      if (activeFilter === ">100k") return volNum >= 100000;
       return true;
     });
+  }, [data.ticks, activeFilter]);
 
-    const totalBuy   = parseInt(data.sumBuy.replace(/,/g, ""))  || 0;
-    const totalSell  = parseInt(data.sumSell.replace(/,/g, "")) || 0;
-    const total      = totalBuy + totalSell;
-    const buyPercent = total === 0 ? 50 : (totalBuy / total) * 100;
+  const totalBuy = parseInt(data.sumBuy.replace(/,/g, "")) || 0;
+  const totalSell = parseInt(data.sumSell.replace(/,/g, "")) || 0;
+  const total = totalBuy + totalSell;
+  const buyPercent = total === 0 ? 50 : (totalBuy / total) * 100;
 
     // ─── Chart Modal rendered via Portal to document.body ───────────────
     const chartModal = isChartModalOpen && createPortal(
@@ -831,71 +829,78 @@ export default function TickMatch() {
 
     return (
       <>
-        <div className="relative flex flex-col h-full bg-[#111827] border border-slate-700 rounded-lg shadow-lg z-10" style={scrollbarHideStyle}>
+        <div className="relative flex flex-col h-full bg-[#111827] border border-slate-700 rounded-lg shadow-lg z-10 overflow-visible">
+      {isSyncing && (
+        <div className="absolute inset-0 bg-[#111827]/60 backdrop-blur-[1px] z-[100] flex items-center justify-center rounded-lg">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
 
-          {isSyncing && (
-            <div className="absolute inset-0 bg-[#111827]/60 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-lg">
-              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          )}
+      {toolHint && <div className="absolute -top-3 -left-3 z-50 shadow-lg rounded-full">{toolHint}</div>}
 
-          {toolHint && (
-            <div className="absolute -top-3 -left-3 z-50 shadow-lg rounded-full">{toolHint}</div>
-          )}
+      <div className="shrink-0 p-2 pt-4 bg-[#111827] rounded-t-lg">
+        <div className="flex items-end gap-1.5 mb-3">
+          {/* SYNC */}
+          <div className="shrink-0 w-[18%] max-w-[65px]">
+            <button onClick={() => setIsSynced(!isSynced)}
+              className={`w-full h-[34px] flex items-center justify-center gap-1 text-[10px] font-bold rounded transition-all ${isSynced ? "bg-[#0E3A6D] text-white" : "bg-[#8FA3B5] text-white"}`}>
+              {isSynced ? <LinkOutlinedIcon sx={{ fontSize: 14 }} /> : <LinkOffOutlinedIcon sx={{ fontSize: 14 }} />}
+              <span className="hidden md:inline">SYNC</span>
+            </button>
+          </div>
 
-          {/* Header */}
-          <div className="shrink-0 rounded-t-lg">
-            <div className="flex items-end gap-1.5 px-2 pt-4 pb-2 bg-[#111827] rounded-t-lg">
-
-              {/* SYNC */}
-              <div className="shrink-0 w-[18%] max-w-[65px]">
-                <button onClick={() => setIsSynced(!isSynced)}
-                  className={`w-full h-[34px] px-1 flex items-center justify-center gap-1 text-[8px] md:text-[10px] font-bold rounded transition-all duration-200 ${isSynced ? "bg-[#0E3A6D] hover:bg-[#124a8a] text-white" : "bg-[#8FA3B5] hover:bg-[#7f95a8] text-white"}`}>
-                  {isSynced ? <><LinkOutlinedIcon sx={{ fontSize: 12, opacity: 0.95 }} /><span>SYNC</span></> : <><LinkOffOutlinedIcon sx={{ fontSize: 12, opacity: 0.9 }} /><span>UNSYNC</span></>}
+          {/* 🌟 SYMBOL INPUT (Fixed Bug) */}
+          <div className="flex-[1.5] relative">
+            <label className="absolute left-1.5 -top-2 text-[9px] px-1 bg-[#111827] text-slate-500 font-bold z-10 uppercase">Symbol *</label>
+            <div className={`flex items-center bg-[#0B1221] border rounded h-[34px] px-2 transition-all ${isFocused ? 'border-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.2)]' : 'border-slate-700'}`}>
+              <input 
+                value={symbol}
+                onChange={(e) => { setSymbol(e.target.value.toUpperCase()); setShowSymbolDropdown(true); }}
+                onFocus={() => { setIsFocused(true); setShowSymbolDropdown(true); }}
+                onBlur={() => setTimeout(() => { setIsFocused(false); setShowSymbolDropdown(false); }, 200)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder="Ex. DELTA"
+                className="w-full bg-transparent outline-none text-white text-xs font-bold uppercase placeholder:text-slate-700"
+              />
+              {symbol && (
+                <button onClick={() => { setSymbol(""); setHasSearched(false); }} className="text-slate-600 hover:text-red-400 transition-colors">
+                  <CloseIcon sx={{ fontSize: 14 }} />
                 </button>
-              </div>
-
-              {/* SYMBOL */}
-              <div className="flex-[1.2] min-w-0 flex flex-col pl-1">
-                <label className="text-[8px] text-slate-500 font-bold uppercase tracking-wider mb-1 ml-0.5">Symbol *</label>
-                <div className="relative w-full">
-                  <input value={symbol} placeholder=" "
-                    onChange={(e) => { setSymbol(e.target.value); setShowSymbolDropdown(true); }}
-                    onFocus={() => setShowSymbolDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowSymbolDropdown(false), 150)}
-                    className="w-full h-[34px] bg-[#0B1221] border border-slate-700 rounded px-1.5 text-white text-[10px] md:text-xs uppercase outline-none focus:border-blue-500 pr-5 transition-colors"
-                  />
-                  {symbol && (
-                    <button onMouseDown={() => { setSymbol(""); setShowSymbolDropdown(false); }}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs p-1">✕</button>
-                  )}
-                  {showSymbolDropdown && filteredSymbols.length > 0 && (
-                    <div className="absolute left-0 right-0 mt-1 bg-[#0f172a] border border-slate-700 rounded-md shadow-lg z-50 max-h-40 overflow-y-auto">
-                      {filteredSymbols.map((item, index) => (
-                        <div key={index} onClick={() => { setSymbol(item); setShowSymbolDropdown(false); }}
-                          className="px-3 py-2 text-xs text-white hover:bg-indigo-600 cursor-pointer transition">{item}</div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* DATE */}
-              <div className="flex-[1.2] min-w-0 flex flex-col">
-                <label className="text-[8px] text-slate-500 font-bold uppercase tracking-wider mb-1 ml-0.5">Date</label>
-                <input type="date" value={date} max={todayMax} onChange={(e) => setDate(e.target.value)}
-                  className="w-full h-[34px] bg-[#0B1221] border border-slate-700 rounded px-1 text-white text-[9px] sm:text-[11px] outline-none focus:border-blue-500 transition-colors [&::-webkit-calendar-picker-indicator]:invert"
-                />
-              </div>
-
-              {/* SEARCH */}
-              <div className="shrink-0 w-[20%] max-w-[75px]">
-                <button onClick={handleSearch} disabled={isSyncing}
-                  className="w-full h-[34px] bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] md:text-xs rounded transition active:scale-95 disabled:opacity-50">
-                  SEARCH
-                </button>
-              </div>
+              )}
             </div>
+
+            {/* Dropdown List */}
+            {showSymbolDropdown && filteredSymbols.length > 0 && (
+              <div className="absolute left-0 right-0 mt-1 bg-[#0d1526] border border-slate-700 rounded-md shadow-2xl z-[110] max-h-48 overflow-y-auto border-t-0">
+                {filteredSymbols.map((item) => (
+                  <div 
+                    key={item}
+                    onMouseDown={(e) => { e.preventDefault(); setSymbol(item); setShowSymbolDropdown(false); setActiveSymbol(item); setHasSearched(true); }}
+                    className="px-3 py-2.5 text-xs text-slate-300 hover:bg-cyan-600 hover:text-white cursor-pointer font-bold border-b border-slate-800/50 last:border-0 transition-colors"
+                  >
+                    {item}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* DATE */}
+          <div className="flex-[1.2] relative">
+            <label className="absolute left-1.5 -top-2 text-[9px] px-1 bg-[#111827] text-slate-500 font-bold z-10 uppercase">Date</label>
+            <input type="date" value={date} max={todayMax} onChange={(e) => setDate(e.target.value)}
+              className="w-full h-[34px] bg-[#0B1221] border border-slate-700 rounded px-1 text-white text-[10px] outline-none focus:border-cyan-500 transition-colors [&::-webkit-calendar-picker-indicator]:invert"
+            />
+          </div>
+
+          {/* SEARCH */}
+          <div className="shrink-0 w-[20%] max-w-[75px]">
+            <button onClick={handleSearch} disabled={isSyncing}
+              className="w-full h-[34px] bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[10px] rounded transition active:scale-95 disabled:opacity-50 shadow-lg shadow-cyan-900/20">
+              SEARCH
+            </button>
+          </div>
+        </div>
 
             {/* Summary Cards */}
             <div className="px-3 pb-2">
