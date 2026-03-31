@@ -86,7 +86,7 @@ app.post('/api/request-otp', async (req, res) => {
       await admin.auth().getUserByEmail(formattedEmail);
     } catch (error) {
       if (error.code === 'auth/user-not-found') {
-        // 🟢 ส่ง Error กลับไปให้ Frontend รู้ว่าหาอีเมลไม่เจอ (ตรงกับเงื่อนไขในหน้า Welcome.jsx)
+        // 🟢 ส่ง Error กลับไปให้ Frontend รู้ว่าหาอีเมลไม่เจอ
         return res.status(404).json({ success: false, error: "Email not found" });
       }
       throw error;
@@ -101,8 +101,7 @@ app.post('/api/request-otp', async (req, res) => {
       expiresAt: Date.now() + 5 * 60 * 1000 // 5 นาที
     });
 
-    // 4. 🚀 TODO: โค้ดสำหรับส่งอีเมลจริงๆ (เช่น ใช้ Nodemailer)
-    // ตอนนี้ให้ Console.log ไปก่อนเพื่อใช้ทดสอบ
+    // 4. 🚀 TODO: โค้ดสำหรับส่งอีเมลจริงๆ
     console.log(`\n📧 [SIMULATE EMAIL] ส่ง OTP: ${otp} ไปยังอีเมล: ${formattedEmail}\n`);
 
     res.json({ success: true, message: "OTP sent successfully" });
@@ -143,10 +142,14 @@ app.post('/api/verify-otp', async (req, res) => {
     const userRecord = await admin.auth().getUserByEmail(formattedEmail);
     const uid = userRecord.uid;
 
+    // 🟢 เช็คว่า Backend อ่าน UID ได้ถูกต้องหรือไม่!
+    console.log(`\n👀 [DEBUG] กำลังสร้าง Token ให้ Email: ${formattedEmail}`);
+    console.log(`👀 [DEBUG] UID ของแท้ที่จะฝังใน Token คือ: ${uid}\n`);
+
     // 🌟 5. สร้าง Custom Token ด้วย UID
     const customToken = await admin.auth().createCustomToken(uid);
 
-    console.log(`✅ ยืนยัน OTP สำเร็จ! ออกบัตรผ่าน (Token) ให้: ${formattedEmail}`);
+    console.log(`✅ ยืนยัน OTP สำเร็จ! ออกบัตรผ่าน (Token) ให้เรียบร้อย`);
 
     // ล้าง OTP ทิ้งเมื่อใช้งานสำเร็จแล้ว
     otpStorage.delete(formattedEmail);
@@ -167,7 +170,7 @@ app.post('/api/verify-otp', async (req, res) => {
 // ==========================================
 // สั่งให้เซิร์ฟเวอร์เปิดทำงานที่ Port 8000
 // ==========================================
-const PORT = 8000;
+const PORT = process.env.PORT || 8000; // 🟢 ปรับให้รองรับ Port ของ Render อัตโนมัติ
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
+  console.log(`🚀 Server is running on port ${PORT}`);
 });
