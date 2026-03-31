@@ -17,6 +17,10 @@ export const AuthProvider = ({ children }) => {
       
       if (user) {
         try {
+          // 🟢 เติม console.log ตรงนี้เพื่อดูรหัส UID ปัจจุบัน
+          console.log("🔥 คนที่ล็อกอินอยู่ตอนนี้คือ Email:", user.email);
+          console.log("🔑 สลาก UID ที่ได้มาคือ:", user.uid);
+          
           // ดึงข้อมูลตรงๆ จาก UID ของแท้เลย!
           const docRef = doc(db, "users", user.uid);
           const docSnap = await getDoc(docRef);
