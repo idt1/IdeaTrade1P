@@ -1,25 +1,23 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase'; 
+import { doc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 
 const SubscriptionContext = createContext();
 
 export const SubscriptionProvider = ({ children }) => {
-  const [accessData, setAccessData] = useState({});
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userData, setUserData] = useState(null); // ข้อมูลโพรไฟล์ (ชื่อ, นามสกุล)
+  const [accessData, setAccessData] = useState({}); // ข้อมูลการสมัครสมาชิก
+  const [isFreeAccess, setIsFreeAccess] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [isFreeAccess, setIsFreeAccess] = useState(false);
-  
-  // 🟢 1. เพิ่ม State สำหรับเก็บข้อมูล User ที่ล็อกอินแล้ว
-  const [currentUser, setCurrentUser] = useState(null); 
 
   useEffect(() => {
-    let unsubscribeDoc = null; 
+    let unsubscribeDoc = null;
 
-    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+    const unsubscribeAuth = auth.onAuthStateChanged(async (user) => {
+      setCurrentUser(user);
       
-      // 🟢 2. เซ็ตค่า User ลง State เพื่อให้หน้าอื่นดึงไปใช้ได้
-      setCurrentUser(user); 
-
+      // ล้างข้อมูลเก่าเมื่อมีการเปลี่ยนสถานะ Auth
       if (unsubscribeDoc) {
         unsubscribeDoc();
         unsubscribeDoc = null;
@@ -28,59 +26,74 @@ export const SubscriptionProvider = ({ children }) => {
       if (user) {
         setIsFreeAccess(false);
         setLoading(true);
-        
-        const handleFallbackLocalData = () => {
-          const savedProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-          if (savedProfile.role === "member") {
-            const futureDate = Date.now() + (30 * 24 * 60 * 60 * 1000); 
-            setAccessData({ fortune: futureDate }); 
-          } else {
-            setAccessData({});
-          }
-        };
 
         try {
-          const docRef = doc(db, 'users', user.uid);
-          
+          // --- สเต็ปพิเศษ: ค้นหาว่าข้อมูล User อยู่ที่ไหน (UID หรือ Email) ---
+          let targetDocId = user.uid;
+          const uidRef = doc(db, 'users', user.uid);
+          const uidSnap = await getDocs(query(collection(db, 'users'), where("__name__", "==", user.uid)));
+
+          // ถ้าหาด้วย UID ไม่เจอ ให้ลองหาด้วย Email
+          if (uidSnap.empty) {
+            const emailQuery = query(collection(db, 'users'), where("email", "==", user.email));
+            const emailSnap = await getDocs(emailQuery);
+            if (!emailSnap.empty) {
+              targetDocId = emailSnap.docs[0].id; // ใช้ ID ของเอกสารที่เจอด้วย Email แทน
+              console.log("🎯 Found user data by Email for subscription");
+            }
+          }
+
+          // --- สเต็ป Real-time: ติดตามข้อมูลจากเอกสารที่ถูกต้อง ---
+          const docRef = doc(db, 'users', targetDocId);
           unsubscribeDoc = onSnapshot(docRef, (docSnap) => {
             if (docSnap.exists()) {
-              setAccessData(docSnap.data().subscriptions || {});
+              const data = docSnap.data();
+              setUserData(data); // เก็บชื่อ, นามสกุล ไว้โชว์ที่ Profile
+              setAccessData(data.subscriptions || {}); // เก็บข้อมูลสิทธิ์
+              setIsFreeAccess(false);
             } else {
-              handleFallbackLocalData();
+              // ถ้าไม่มีข้อมูลใน Firestore เลยจริงๆ ให้ใช้ค่าจาก LocalStorage (ถ้ามี)
+              handleLocalFallback(user.email);
             }
             setLoading(false);
-          }, (error) => {
-            console.error("Error fetching subscriptions realtime:", error);
-            handleFallbackLocalData();
+          }, (err) => {
+            console.error("Firestore Snapshot Error:", err);
             setLoading(false);
           });
 
         } catch (error) {
-          console.error("Catch error setting up snapshot:", error);
-          handleFallbackLocalData();
+          console.error("Error setting up sub listener:", error);
           setLoading(false);
         }
       } else {
-        setIsFreeAccess(true);
+        // กรณีไม่ได้ล็อกอิน
+        setUserData(null);
         setAccessData({});
-        
-        const savedProfile = JSON.parse(localStorage.getItem("userProfile") || "{}");
-        if (savedProfile.role === "free") {
-          setIsFreeAccess(true);
-        }
+        setIsFreeAccess(true);
         setLoading(false);
       }
     });
 
+    // ฟังก์ชันช่วยดึงข้อมูลสำรองจาก LocalStorage
+    const handleLocalFallback = (email) => {
+      const saved = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      if (saved.email === email) {
+        setUserData(saved);
+        if (saved.role === "member") {
+           // จำลองสิทธิ์ชั่วคราวถ้าดึงจากเครื่อง
+           setAccessData({ fortune: Date.now() + 86400000 }); 
+        }
+      }
+    };
+
     return () => {
       unsubscribeAuth();
-      if (unsubscribeDoc) unsubscribeDoc(); 
+      if (unsubscribeDoc) unsubscribeDoc();
     };
   }, []);
 
   return (
-    // 🟢 3. เพิ่ม currentUser เข้าไปใน value เพื่อแจกจ่ายให้ Component อื่น
-    <SubscriptionContext.Provider value={{ accessData, loading, isFreeAccess, currentUser }}>
+    <SubscriptionContext.Provider value={{ currentUser, userData, accessData, isFreeAccess, loading, setUserData }}>
       {children}
     </SubscriptionContext.Provider>
   );

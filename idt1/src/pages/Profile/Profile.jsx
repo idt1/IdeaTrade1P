@@ -5,7 +5,7 @@ import { db } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
 
 const Profile = () => {
-  const { currentUser, userData, setUserData } = useAuth();
+  const { currentUser, userData, setUserData } = useSubscription();
   
   const [activeTab, setActiveTab] = useState('Profile');
   const [isSaving, setIsSaving] = useState(false);
