@@ -1,33 +1,36 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 
 const C = {
-  bg:         "#0b111a",
-  surface:    "#0f172a",
-  panel:      "#111827",
-  header:     "#0f172a",
+  bg:         "#0d1117",
+  surface:    "#0d1117",
+  panel:      "#131a24",
+  header:     "#0f1720",
   border:     "rgba(255,255,255,0.07)",
-  mutedText:  "#64748b",
-  dimText:    "#334155",
+  mutedText:  "#4a5568",
+  dimText:    "#2d3748",
   white:      "#e2e8f0",
+  green:      "#22c55e",
+  greenDim:   "rgba(34,197,94,0.15)",
+  greenBorder:"rgba(34,197,94,0.4)",
   cyan:       "#22d3ee",
-  cyanDim:    "rgba(34,211,238,0.15)",
-  cyanBorder: "rgba(34,211,238,0.45)",
+  cyanDim:    "rgba(34,211,238,0.12)",
+  cyanBorder: "rgba(34,211,238,0.35)",
   blue:       "#3b82f6",
   blueDim:    "rgba(59,130,246,0.15)",
-  blueBorder: "rgba(59,130,246,0.45)",
   slate700:   "#334155",
 };
 
 const FONT = "'Inter','Helvetica Neue',sans-serif";
 const TIMEFRAMES = ["INTRADAY", "30 MIN", "60 MIN", "DAY"];
+const TF_LABELS  = { "INTRADAY":"INTRADAY","30 MIN":"30 Min","60 MIN":"1 Hr","DAY":"DAY" };
 const MONTHS_TH = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const DAYS_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 const PANEL_CFG = {
-  main: { label: null,   subtitle: "ราคาหุ้นแม่",            color: "#e2e8f0", zeroline: false },
-  net:  { label: "NET",  subtitle: "Net Flow ของ DW ทั้งหมด",  color: "#22d3ee", zeroline: true  },
-  call: { label: "CALL", subtitle: "Volume/Flow ฝั่ง Call",    color: "#fbbf24", zeroline: true  },
-  put:  { label: "PUT",  subtitle: "Volume/Flow ฝั่ง Put",     color: "#f472b6", zeroline: true  },
+  main: { label: null,   subtitle: "ราคาหุ้นแม่",            color: "#22c55e", zeroline: false },
+  net:  { label: "NET",  subtitle: "Net Flow ของ DW ทั้งหมด",  color: "#22c55e", zeroline: true  },
+  call: { label: "CALL", subtitle: "Volume/Flow ฝั่ง Call",    color: "#22c55e", zeroline: true  },
+  put:  { label: "PUT",  subtitle: "Volume/Flow ฝั่ง Put",     color: "#22c55e", zeroline: true  },
 };
 
 const PT_GAP = 6, PAD_T = 12, PAD_B = 22, PAD_L = 4, Y_AXIS_W = 52;
@@ -165,19 +168,30 @@ function curvePath(pts,min,max,h) {
   }
   return d;
 }
+function areaPath(pts,min,max,h) {
+  if(!pts||pts.length<2) return "";
+  const curve = curvePath(pts,min,max,h);
+  const lastX = PAD_L+(pts.length-1)*PT_GAP;
+  return `${curve} L${lastX},${h-PAD_B} L${PAD_L},${h-PAD_B} Z`;
+}
 function fmtVal(v,key) {
   if(key==="main") return v.toFixed(2);
   const a=Math.abs(v);
   return a>=1e6?(v/1e6).toFixed(1)+"M":a>=1e3?(v/1e3).toFixed(1)+"K":v.toFixed(0);
 }
 
-const IcoCal  = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
-const IcoEnter = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>;
-const IcoSearch = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
-const IcoChev = ({dir="left"}) => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">{dir==="left"?<polyline points="15 18 9 12 15 6"/>:<polyline points="9 18 15 12 9 6"/>}</svg>;
-const IcoRefresh = ({spinning}) => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={spinning?{animation:"dw-spin 0.7s linear infinite"}:{}}><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>;
-const IcoSpinner = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{animation:"dw-spin 0.7s linear infinite"}}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>;
+// ── Icons ──
+const IcoCal   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+const IcoEnter  = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>;
+const IcoSearch = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
+const IcoChev   = ({dir="left"}) => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">{dir==="left"?<polyline points="15 18 9 12 15 6"/>:<polyline points="9 18 15 12 9 6"/>}</svg>;
+const IcoRefresh = ({spinning}) => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={spinning?{animation:"dw-spin 0.7s linear infinite"}:{}}><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>;
+const IcoSpinner = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{animation:"dw-spin 0.7s linear infinite"}}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>;
+const IcoInfo   = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
+const IcoQuestion = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
+const IcoDown   = () => <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>;
 
+// ── Calendar Popup ──
 function CalendarPopup({ value, onChange, onClose, alignRight=false }) {
   const now = value ? new Date(value) : new Date();
   const [vy,setVy]=useState(now.getFullYear()); const [vm,setVm]=useState(now.getMonth());
@@ -195,38 +209,45 @@ function CalendarPopup({ value, onChange, onClose, alignRight=false }) {
     <div style={{
       position:"absolute",top:"calc(100% + 6px)",
       left:alignRight?"auto":0, right:alignRight?0:"auto",
-      zIndex:200,background:C.panel,border:`1px solid ${C.cyanBorder}`,
-      borderRadius:12,boxShadow:"0 15px 40px rgba(0,0,0,0.7)",
-      padding:14,width:260,userSelect:"none",
+      zIndex:200,background:"#131a24",border:`1px solid rgba(255,255,255,0.1)`,
+      borderRadius:12,boxShadow:"0 20px 50px rgba(0,0,0,0.8)",
+      padding:16,width:280,userSelect:"none",
     }}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-        <button onClick={()=>{if(vm===0){setVy(y=>y-1);setVm(11);}else setVm(m=>m-1);}} style={{background:"rgba(255,255,255,0.06)",border:"none",borderRadius:6,color:C.white,cursor:"pointer",padding:"4px 6px",display:"flex"}}><IcoChev dir="left"/></button>
-        <span style={{fontSize:15,fontWeight:700,fontFamily:FONT,color:C.white,letterSpacing:"0.05em"}}>{MONTHS_TH[vm]} {vy}</span>
-        <button onClick={()=>{if(vm===11){setVy(y=>y+1);setVm(0);}else setVm(m=>m+1);}} style={{background:"rgba(255,255,255,0.06)",border:"none",borderRadius:6,color:C.white,cursor:"pointer",padding:"4px 6px",display:"flex"}}><IcoChev dir="right"/></button>
+      {/* Month nav */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+        <button onClick={()=>{if(vm===0){setVy(y=>y-1);setVm(11);}else setVm(m=>m-1);}} style={{background:"rgba(255,255,255,0.05)",border:"none",borderRadius:6,color:C.white,cursor:"pointer",padding:"4px 7px",display:"flex",alignItems:"center"}}><IcoChev dir="left"/></button>
+        <span style={{fontSize:13,fontWeight:700,fontFamily:FONT,color:C.white}}>{MONTHS_TH[vm]} {vy}</span>
+        <button onClick={()=>{if(vm===11){setVy(y=>y+1);setVm(0);}else setVm(m=>m+1);}} style={{background:"rgba(255,255,255,0.05)",border:"none",borderRadius:6,color:C.white,cursor:"pointer",padding:"4px 7px",display:"flex",alignItems:"center"}}><IcoChev dir="right"/></button>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:4}}>
+      {/* Day headers */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:6}}>
         {DAYS_SHORT.map(d=><div key={d} style={{textAlign:"center",fontSize:9,fontWeight:600,fontFamily:FONT,color:C.mutedText}}>{d}</div>)}
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:12}}>
+      {/* Days grid */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:14}}>
         {cells.map((day,i)=>(
-          <div key={i} onClick={()=>pick(day)} style={{textAlign:"center",fontSize:11,fontFamily:FONT,fontWeight:isSel(day)?700:400,padding:"5px 0",borderRadius:6,cursor:day?"pointer":"default",background:isSel(day)?C.cyan:isToday(day)?"rgba(34,211,238,0.1)":"transparent",color:isSel(day)?"#0b111a":isToday(day)?C.cyan:day?C.white:"transparent",border:isToday(day)&&!isSel(day)?`1px solid rgba(34,211,238,0.25)`:"1px solid transparent"}}
-            onMouseEnter={e=>{if(day&&!isSel(day))e.currentTarget.style.background="rgba(34,211,238,0.12)";}}
-            onMouseLeave={e=>{if(day&&!isSel(day))e.currentTarget.style.background=isToday(day)?"rgba(34,211,238,0.1)":"transparent";}}
+          <div key={i} onClick={()=>pick(day)} style={{
+            textAlign:"center",fontSize:11,fontFamily:FONT,fontWeight:isSel(day)?700:400,
+            padding:"6px 0",borderRadius:6,cursor:day?"pointer":"default",
+            background:isSel(day)?"#2563eb":isToday(day)?"rgba(37,99,235,0.15)":"transparent",
+            color:isSel(day)?"#fff":isToday(day)?"#60a5fa":day?C.white:"transparent",
+            border:isToday(day)&&!isSel(day)?`1px solid rgba(96,165,250,0.3)`:"1px solid transparent",
+          }}
+            onMouseEnter={e=>{if(day&&!isSel(day))e.currentTarget.style.background="rgba(255,255,255,0.06)";}}
+            onMouseLeave={e=>{if(day&&!isSel(day))e.currentTarget.style.background=isToday(day)?"rgba(37,99,235,0.15)":"transparent";}}
           >{day||""}</div>
         ))}
       </div>
-      <div style={{borderTop:`1px solid ${C.border}`,paddingTop:10}}>
-        <div style={{fontSize:10,fontWeight:700,fontFamily:FONT,color:C.mutedText,letterSpacing:"0.1em",marginBottom:6}}>SET TIME</div>
-        <div style={{display:"flex",alignItems:"center",gap:6}}>
+      {/* Time */}
+      <div style={{borderTop:`1px solid rgba(255,255,255,0.07)`,paddingTop:12}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4a5568" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           {[["Hr",h,23,setH],["Min",mi,59,setMi]].map(([lbl,val,max,setter],ii)=>(
             <React.Fragment key={lbl}>
-              {ii===1&&<div style={{fontSize:16,fontWeight:700,color:C.mutedText,marginBottom:12}}>:</div>}
-              <div style={{flex:1}}>
-                <input type="number" min={0} max={max} value={String(val).padStart(2,"0")}
-                  onChange={e=>{const n=Math.max(0,Math.min(max,Number(e.target.value)));setter(n);if(sel)emit(sel.getFullYear(),sel.getMonth(),sel.getDate(),ii===0?n:h,ii===1?n:mi);}}
-                  style={{width:"100%",background:"rgba(255,255,255,0.04)",border:`1px solid ${C.border}`,borderRadius:6,color:C.white,fontFamily:FONT,fontSize:14,fontWeight:700,textAlign:"center",padding:"6px 2px",outline:"none"}}/>
-                <div style={{fontSize:8,color:C.mutedText,fontFamily:FONT,textAlign:"center",marginTop:2}}>{lbl}</div>
-              </div>
+              {ii===1&&<div style={{fontSize:18,fontWeight:700,color:"#4a5568",lineHeight:1}}>:</div>}
+              <input type="number" min={0} max={max} value={String(val).padStart(2,"0")}
+                onChange={e=>{const n=Math.max(0,Math.min(max,Number(e.target.value)));setter(n);if(sel)emit(sel.getFullYear(),sel.getMonth(),sel.getDate(),ii===0?n:h,ii===1?n:mi);}}
+                style={{width:44,background:"rgba(255,255,255,0.04)",border:`1px solid rgba(255,255,255,0.08)`,borderRadius:6,color:C.white,fontFamily:FONT,fontSize:13,fontWeight:700,textAlign:"center",padding:"5px 2px",outline:"none"}}/>
             </React.Fragment>
           ))}
         </div>
@@ -235,27 +256,48 @@ function CalendarPopup({ value, onChange, onClose, alignRight=false }) {
   );
 }
 
+// ── DateTimeInput ──
 function DateTimeInput({ label, onChange, defaultNow=false, error=false, alignRight=false }) {
   const [iso,setIso]=useState(()=>{if(!defaultNow)return "";const d=new Date(),p=n=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;});
   const [open,setOpen]=useState(false); const wr=useRef(null);
   useEffect(()=>{if(defaultNow)onChange?.(iso);},[]);
   useEffect(()=>{const fn=e=>{if(wr.current&&!wr.current.contains(e.target))setOpen(false);};document.addEventListener("mousedown",fn);return()=>document.removeEventListener("mousedown",fn);},[]);
-  const disp=v=>{if(!v)return null;const d=new Date(v);if(isNaN(d))return null;const p=n=>String(n).padStart(2,"0");let hh=d.getHours(),ap=hh>=12?"PM":"AM";hh=hh%12||12;return `${p(d.getDate())} ${MONTHS_TH[d.getMonth()]} ${d.getFullYear()}  ${p(hh)}:${p(d.getMinutes())} ${ap}`;};
-  const bc=error?"#f87171":open?C.cyanBorder:C.border;
-  const lc=error?"#f87171":open?C.cyan:C.mutedText;
+
+  const disp=v=>{
+    if(!v)return null;const d=new Date(v);if(isNaN(d))return null;
+    const p=n=>String(n).padStart(2,"0");
+    let hh=d.getHours(),ap=hh>=12?"PM":"AM";hh=hh%12||12;
+    return `${p(d.getDate())} ${MONTHS_TH[d.getMonth()]} ${d.getFullYear()}  ${p(hh)}:${p(d.getMinutes())} ${ap}`;
+  };
+
   return (
     <div ref={wr} style={{position:"relative",flex:1,minWidth:0}}>
-      <span style={{position:"absolute",top:-7,left:10,zIndex:2,pointerEvents:"none",fontSize:8,fontWeight:700,letterSpacing:"0.08em",color:lc,background:C.panel,padding:"0 4px",fontFamily:FONT,textTransform:"uppercase"}}>{label}</span>
-      <div onClick={()=>setOpen(o=>!o)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 10px",height:38,gap:6,cursor:"pointer",background:C.surface,border:`1px solid ${bc}`,borderRadius:error?"8px 8px 0 0":8,transition:"border-color .15s",overflow:"hidden"}}>
-        <span style={{fontFamily:FONT,fontSize:11,fontWeight:600,color:iso?C.white:error?"#f87171":C.mutedText,letterSpacing:"0.02em",userSelect:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>{disp(iso)||(error?"Required":"Select...")}</span>
-        <span style={{color:error?"#f87171":open?C.cyan:C.mutedText,flexShrink:0}}><IcoCal/></span>
+      {/* Floating label */}
+      <span style={{
+        position:"absolute",top:-8,left:10,zIndex:2,pointerEvents:"none",
+        fontSize:9,fontWeight:600,letterSpacing:"0.06em",
+        color:error?"#f87171":open?"#60a5fa":C.mutedText,
+        background:"#131a24",padding:"0 4px",fontFamily:FONT,textTransform:"uppercase",
+      }}>{label}</span>
+      <div onClick={()=>setOpen(o=>!o)} style={{
+        display:"flex",alignItems:"center",justifyContent:"space-between",
+        padding:"0 12px",height:40,gap:8,cursor:"pointer",
+        background:"rgba(255,255,255,0.03)",
+        border:`1px solid ${error?"#f87171":open?"rgba(96,165,250,0.5)":"rgba(255,255,255,0.08)"}`,
+        borderRadius:8,transition:"border-color .15s",overflow:"hidden",
+      }}>
+        <span style={{fontFamily:FONT,fontSize:11,fontWeight:500,color:iso?C.white:error?"#f87171":"#4a5568",letterSpacing:"0.02em",userSelect:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>
+          {disp(iso)||(error?"Required":"Select date...")}
+        </span>
+        <span style={{color:open?"#60a5fa":"#4a5568",flexShrink:0,display:"flex"}}><IcoCal/></span>
       </div>
-      {error&&<div style={{background:"rgba(248,113,113,0.06)",border:"1px solid #f87171",borderTop:"none",borderRadius:"0 0 8px 8px",padding:"4px 10px",display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:9,color:"#f87171",fontFamily:FONT,fontWeight:600}}>Start date is missing</span></div>}
+      {error&&<div style={{marginTop:2,padding:"2px 10px"}}><span style={{fontSize:9,color:"#f87171",fontFamily:FONT,fontWeight:600}}>Start date is required</span></div>}
       {open&&<CalendarPopup value={iso} onChange={v=>{setIso(v);onChange?.(v);}} onClose={()=>setOpen(false)} alignRight={alignRight}/>}
     </div>
   );
 }
 
+// ── SymbolInput ──
 function SymbolInput({ value, onChange, onEnter }) {
   const [q,setQ]=useState(value||""); const [open,setOpen]=useState(false); const [foc,setFoc]=useState(false); const wr=useRef(null);
   useEffect(()=>{if(!value)setQ("");},[value]);
@@ -263,19 +305,32 @@ function SymbolInput({ value, onChange, onEnter }) {
   useEffect(()=>{const fn=e=>{if(wr.current&&!wr.current.contains(e.target))setOpen(false);};document.addEventListener("mousedown",fn);return()=>document.removeEventListener("mousedown",fn);},[]);
   return (
     <div ref={wr} style={{position:"relative",width:"100%",flexShrink:0}}>
-      <div onClick={()=>setOpen(true)} style={{display:"flex",alignItems:"center",height:38,padding:"0 12px",gap:6,background:C.surface,border:`1px solid ${open||foc?C.cyanBorder:"rgba(255,255,255,0.1)"}`,borderRadius:open?"8px 8px 0 0":8,cursor:"text",transition:"border-color .15s, box-shadow .15s",boxShadow:open||foc?`0 0 0 3px rgba(34,211,238,0.06)`:"none"}}>
-        <span style={{color:foc||open?C.cyan:"#475569",flexShrink:0,display:"flex"}}><IcoSearch/></span>
-        <input type="text" value={q} onChange={e=>{setQ(e.target.value.toUpperCase());setOpen(true);onChange?.(e.target.value.toUpperCase());}} onFocus={()=>{setFoc(true);setOpen(true);}} onBlur={()=>setFoc(false)} onKeyDown={e=>{if(e.key==="Enter"){setOpen(false);onEnter?.();}}} placeholder="SYMBOL..." style={{background:"transparent",border:"none",outline:"none",color:C.white,width:"100%",fontFamily:FONT,fontSize:12,fontWeight:700,letterSpacing:"0.05em"}}/>
-        {q&&<button onMouseDown={e=>{e.preventDefault();setQ("");onChange?.("");setOpen(false);}} style={{background:"none",border:"none",color:"#475569",cursor:"pointer",padding:0,flexShrink:0,fontSize:12}}>✕</button>}
+      <div onClick={()=>setOpen(true)} style={{
+        display:"flex",alignItems:"center",height:40,padding:"0 12px",gap:8,
+        background:"rgba(255,255,255,0.03)",
+        border:`1px solid ${open||foc?"rgba(96,165,250,0.5)":"rgba(255,255,255,0.08)"}`,
+        borderRadius:open?"8px 8px 0 0":8,cursor:"text",transition:"border-color .15s",
+      }}>
+        <span style={{color:foc||open?"#60a5fa":"#4a5568",flexShrink:0,display:"flex"}}><IcoSearch/></span>
+        <input type="text" value={q}
+          onChange={e=>{setQ(e.target.value.toUpperCase());setOpen(true);onChange?.(e.target.value.toUpperCase());}}
+          onFocus={()=>{setFoc(true);setOpen(true);}} onBlur={()=>setFoc(false)}
+          onKeyDown={e=>{if(e.key==="Enter"){setOpen(false);onEnter?.();}}}
+          placeholder="Type a Symbol..."
+          style={{background:"transparent",border:"none",outline:"none",color:C.white,width:"100%",fontFamily:FONT,fontSize:12,fontWeight:600,letterSpacing:"0.03em"}}/>
+        <IcoDown/>
       </div>
       {open&&(
-        <div style={{position:"absolute",top:38,left:0,right:0,zIndex:100,background:C.panel,border:`1px solid ${C.cyanBorder}`,borderTop:"none",borderRadius:"0 0 8px 8px",maxHeight:200,overflowY:"auto",boxShadow:"0 12px 30px rgba(0,0,0,0.6)"}}>
+        <div style={{position:"absolute",top:40,left:0,right:0,zIndex:100,background:"#131a24",border:`1px solid rgba(96,165,250,0.3)`,borderTop:"none",borderRadius:"0 0 8px 8px",maxHeight:200,overflowY:"auto",boxShadow:"0 12px 30px rgba(0,0,0,0.7)"}}>
           {filtered.length>0 ? filtered.map(sym=>(
-            <div key={sym} onMouseDown={e=>{e.preventDefault();setQ(sym);onChange?.(sym);setOpen(false);}} style={{padding:"8px 14px",cursor:"pointer",borderBottom:`1px solid ${C.border}`,background:sym===value?"rgba(34,211,238,0.08)":"transparent",display:"flex",alignItems:"center"}} onMouseEnter={e=>e.currentTarget.style.background="rgba(34,211,238,0.06)"} onMouseLeave={e=>e.currentTarget.style.background=sym===value?"rgba(34,211,238,0.08)":"transparent"}>
-              <span style={{fontFamily:FONT,fontSize:11,fontWeight:700,color:sym===value?C.cyan:C.white,letterSpacing:"0.05em"}}>{sym}</span>
+            <div key={sym} onMouseDown={e=>{e.preventDefault();setQ(sym);onChange?.(sym);setOpen(false);}}
+              style={{padding:"8px 14px",cursor:"pointer",borderBottom:`1px solid rgba(255,255,255,0.04)`,background:sym===value?"rgba(37,99,235,0.1)":"transparent",display:"flex",alignItems:"center"}}
+              onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.04)"}
+              onMouseLeave={e=>e.currentTarget.style.background=sym===value?"rgba(37,99,235,0.1)":"transparent"}>
+              <span style={{fontFamily:FONT,fontSize:12,fontWeight:600,color:sym===value?"#60a5fa":C.white,letterSpacing:"0.04em"}}>{sym}</span>
             </div>
           )) : q.length>0&&(
-            <div style={{padding:"10px 14px"}}><span style={{fontFamily:FONT,fontSize:10,color:C.mutedText}}>Not found</span></div>
+            <div style={{padding:"10px 14px"}}><span style={{fontFamily:FONT,fontSize:11,color:C.mutedText}}>Not found</span></div>
           )}
         </div>
       )}
@@ -283,6 +338,7 @@ function SymbolInput({ value, onChange, onEnter }) {
   );
 }
 
+// ── DWPill (unchanged logic, updated style) ──
 function DWPill({ dw, active, type, onClick }) {
   const isCall = type === "C";
   const col   = isCall ? "#fbbf24" : "#f472b6";
@@ -297,7 +353,7 @@ function DWPill({ dw, active, type, onClick }) {
     setItmHov(true);
   };
   return (
-    <div onClick={onClick} style={{padding:"4px 8px",borderRadius:6,border:`1px solid ${active?colA+"0.5)":"rgba(255,255,255,0.08)"}`,background:active?colA+"0.1)":"rgba(255,255,255,0.02)",color:active?col:"#94a3b8",fontFamily:FONT,fontSize:9,fontWeight:active?700:500,letterSpacing:"0.04em",cursor:"pointer",transition:"all .1s",userSelect:"none",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:4}}>
+    <div onClick={onClick} style={{padding:"4px 8px",borderRadius:6,border:`1px solid ${active?colA+"0.5)":"rgba(255,255,255,0.06)"}`,background:active?colA+"0.1)":"rgba(255,255,255,0.02)",color:active?col:"#64748b",fontFamily:FONT,fontSize:9,fontWeight:active?700:500,letterSpacing:"0.04em",cursor:"pointer",transition:"all .1s",userSelect:"none",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:4}}>
       {dw.dw}
       {dw.netCash>0&&(
         <span ref={badgeRef} style={{background:colA+"0.2)",color:col,fontSize:7,fontWeight:800,padding:"1px 3px",borderRadius:3,cursor:"default"}}
@@ -313,7 +369,8 @@ function DWPill({ dw, active, type, onClick }) {
   );
 }
 
-function DWSymbolPanel({ underlying, selectedCall, selectedPut, onSelectCall, onSelectPut, isMobile }) {
+// ── DWSymbolPanel (unchanged logic, slightly updated style) ──
+function DWSymbolPanel({ underlying, selectedCall, selectedPut, onSelectCall, onSelectPut }) {
   const callDWs=useMemo(()=>getDWByUnderlying(underlying,"C"),[underlying]);
   const putDWs =useMemo(()=>getDWByUnderlying(underlying,"P"),[underlying]);
   if(!underlying) return null;
@@ -323,9 +380,9 @@ function DWSymbolPanel({ underlying, selectedCall, selectedPut, onSelectCall, on
     </div>
   );
   return (
-    <div style={{background:C.panel,borderTop:`1px solid ${C.border}`,padding:"8px 12px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,maxHeight:140,flexShrink:0,overflow:"hidden"}}>
+    <div style={{background:"#0f1720",borderTop:`1px solid rgba(255,255,255,0.07)`,padding:"10px 14px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,maxHeight:140,flexShrink:0,overflow:"hidden"}}>
       <div style={{display:"flex",flexDirection:"column",minHeight:0}}>
-        <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:5}}>
+        <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:6}}>
           <span style={{width:5,height:5,borderRadius:"50%",background:"#fbbf24"}}/>
           <span style={{fontSize:8,fontWeight:700,fontFamily:FONT,color:"#fbbf24",letterSpacing:"0.1em"}}>CALL</span>
         </div>
@@ -334,8 +391,8 @@ function DWSymbolPanel({ underlying, selectedCall, selectedPut, onSelectCall, on
             {callDWs.map(d=><DWPill key={d.dw} dw={d} active={selectedCall===d.dw} type="C" onClick={()=>onSelectCall(selectedCall===d.dw?null:d.dw)}/>)}
           </div>}
       </div>
-      <div style={{display:"flex",flexDirection:"column",minHeight:0,borderLeft:`1px solid ${C.border}`,paddingLeft:8}}>
-        <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:5}}>
+      <div style={{display:"flex",flexDirection:"column",minHeight:0,borderLeft:`1px solid rgba(255,255,255,0.07)`,paddingLeft:10}}>
+        <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:6}}>
           <span style={{width:5,height:5,borderRadius:"50%",background:"#f472b6"}}/>
           <span style={{fontSize:8,fontWeight:700,fontFamily:FONT,color:"#f472b6",letterSpacing:"0.1em"}}>PUT</span>
         </div>
@@ -348,7 +405,8 @@ function DWSymbolPanel({ underlying, selectedCall, selectedPut, onSelectCall, on
   );
 }
 
-function ChartPanel({ panelKey, hasData, symbol, pts, labels, globalHover, setGlobalHover, scrollRefs, loading }) {
+// ── ChartPanel ──
+function ChartPanel({ panelKey, hasData, symbol, pts, labels, globalHover, setGlobalHover, scrollRefs, loading, onRefresh }) {
   const cfg=PANEL_CFG[panelKey];
   const scrollRef=useRef(null),bodyRef=useRef(null),drag=useRef({active:false,startX:0,origScroll:0});
   const [zoom,setZoom]=useState(1),[scrollPct,setScrollPct]=useState(1),[chartH,setChartH]=useState(160);
@@ -366,6 +424,11 @@ function ChartPanel({ panelKey, hasData, symbol, pts, labels, globalHover, setGl
 
   const lastVal=pts?pts[Math.min(vr.end,pts.length-1)]:null;
   const lastTagY=lastVal!=null?yNorm(lastVal,scale.min,scale.max,chartH):0;
+
+  // Mock change values for display
+  const changeVal = lastVal != null && pts ? (lastVal - pts[0]).toFixed(2) : null;
+  const changePct = lastVal != null && pts && pts[0] ? (((lastVal-pts[0])/pts[0])*100).toFixed(2) : null;
+  const isUp = changeVal != null ? parseFloat(changeVal) >= 0 : true;
 
   useEffect(()=>{const el=scrollRef.current;if(el&&pts){el.scrollLeft=el.scrollWidth;const mx=el.scrollWidth-el.clientWidth;setScrollPct(mx>0?el.scrollLeft/mx:1);setTimeout(()=>updVR(),0);}},[pts]);
 
@@ -390,19 +453,44 @@ function ChartPanel({ panelKey, hasData, symbol, pts, labels, globalHover, setGl
   const isH=globalHover!==null&&hasData&&pts&&!drag.current.active;
   const hX=isH?PAD_L+globalHover*PT_GAP:null,hV=isH?pts[globalHover]:null,hY=isH?yNorm(hV,scale.min,scale.max,chartH):null;
 
+  // gradient id unique per panel
+  const gradId = `grad-${panelKey}`;
+
   return (
-    <div style={{display:"flex",flexDirection:"column",background:C.panel,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden",minHeight:0}}>
-      <div style={{background:C.header,height:32,padding:"0 12px",flexShrink:0,borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:6}}>
-        <span style={{width:6,height:6,borderRadius:"50%",background:cfg.color,flexShrink:0}}/>
-        <span style={{color:cfg.color,fontSize:9,fontWeight:700,letterSpacing:"0.1em",fontFamily:FONT,textTransform:"uppercase"}}>{cfg.label||symbol}</span>
-        {hasData&&lastVal!=null&&(
-          <span style={{marginLeft:"auto",fontSize:10,fontWeight:700,color:cfg.color,fontFamily:FONT}}>{fmtVal(lastVal,panelKey)}</span>
-        )}
+    <div style={{display:"flex",flexDirection:"column",background:"#0f1720",borderRadius:12,overflow:"hidden",minHeight:0,border:`1px solid rgba(255,255,255,0.06)`}}>
+      {/* Panel header */}
+      <div style={{padding:"10px 14px 8px",flexShrink:0,display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{color:C.white,fontSize:13,fontWeight:700,fontFamily:FONT,letterSpacing:"0.02em"}}>
+            {cfg.label || (symbol||"Symbol")}
+          </span>
+          <span style={{color:"#3d4f6b",display:"flex",cursor:"pointer"}} title={cfg.subtitle}><IcoInfo/></span>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          {hasData&&lastVal!=null&&(
+            <>
+              <span style={{fontSize:13,fontWeight:700,color:C.white,fontFamily:FONT}}>{fmtVal(lastVal,panelKey)}</span>
+              <span style={{display:"flex",alignItems:"center",gap:3,background:isUp?"rgba(34,197,94,0.12)":"rgba(239,68,68,0.12)",border:`1px solid ${isUp?"rgba(34,197,94,0.25)":"rgba(239,68,68,0.25)"}`,borderRadius:6,padding:"2px 7px"}}>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={isUp?"#22c55e":"#ef4444"} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  {isUp?<polyline points="18 15 12 9 6 15"/>:<polyline points="6 9 12 15 18 9"/>}
+                </svg>
+                <span style={{fontSize:10,fontWeight:700,color:isUp?"#22c55e":"#ef4444",fontFamily:FONT}}>{Math.abs(changeVal)} ({Math.abs(changePct)}%)</span>
+              </span>
+            </>
+          )}
+          <button onClick={onRefresh} style={{display:"flex",alignItems:"center",justifyContent:"center",width:26,height:26,borderRadius:6,background:"rgba(255,255,255,0.04)",border:`1px solid rgba(255,255,255,0.07)`,cursor:"pointer",color:"#4a5568",transition:"all .15s"}}
+            onMouseEnter={e=>{e.currentTarget.style.color=C.white;e.currentTarget.style.borderColor="rgba(255,255,255,0.15)";}}
+            onMouseLeave={e=>{e.currentTarget.style.color="#4a5568";e.currentTarget.style.borderColor="rgba(255,255,255,0.07)";}}>
+            <IcoRefresh spinning={loading}/>
+          </button>
+        </div>
       </div>
-      <div ref={bodyRef} style={{flex:1,minHeight:0,display:"flex",position:"relative",background:C.surface}}>
+
+      {/* Chart body */}
+      <div ref={bodyRef} style={{flex:1,minHeight:0,display:"flex",position:"relative",background:"#0a1019"}}>
         {loading&&(
-          <div style={{position:"absolute",inset:0,zIndex:30,background:C.surface,display:"flex",flexDirection:"column",padding:"12px 10px",gap:8}}>
-            <style>{`@keyframes dw-sks{0%{background-position:-600px 0}100%{background-position:600px 0}}.dw-sk{border-radius:6px;background:linear-gradient(90deg,#1e293b 25%,#273449 50%,#1e293b 75%);background-size:600px 100%;animation:dw-sks 1.4s infinite linear}`}</style>
+          <div style={{position:"absolute",inset:0,zIndex:30,background:"#0a1019",display:"flex",flexDirection:"column",padding:"12px 10px",gap:8}}>
+            <style>{`@keyframes dw-sks{0%{background-position:-600px 0}100%{background-position:600px 0}}.dw-sk{border-radius:6px;background:linear-gradient(90deg,#111827 25%,#1a2436 50%,#111827 75%);background-size:600px 100%;animation:dw-sks 1.4s infinite linear}`}</style>
             <div className="dw-sk" style={{height:3,width:"100%"}}/>
             {[0.6,0.4,0.75,0.5].map((w,i)=><div key={i} className="dw-sk" style={{height:2,width:`${w*100}%`,opacity:0.6,animationDelay:`${i*0.1}s`}}/>)}
           </div>
@@ -414,31 +502,66 @@ function ChartPanel({ panelKey, hasData, symbol, pts, labels, globalHover, setGl
           style={{flex:1,overflowX:"auto",overflowY:"hidden",cursor:hasData?"crosshair":"default",scrollbarWidth:"none",position:"relative",height:"100%"}}>
           <div style={{width:pts?svgW*zoom:"100%",minWidth:"100%",height:"100%"}}>
             <svg width={pts?svgW*zoom:"100%"} height="100%" viewBox={`0 0 ${pts?svgW:600} ${chartH}`} preserveAspectRatio="none" style={{display:"block",overflow:"visible"}}>
-              {ticks.map(t=><line key={t.label} x1={0} y1={t.y} x2={pts?svgW:600} y2={t.y} stroke="#1a2744" strokeWidth="1"/>)}
-              <line x1={0} y1={chartH-PAD_B} x2={pts?svgW:600} y2={chartH-PAD_B} stroke="#1e3a5a" strokeWidth="1"/>
-              {cfg.zeroline&&pts&&<line x1={0} y1={yNorm(0,scale.min,scale.max,chartH)} x2={svgW} y2={yNorm(0,scale.min,scale.max,chartH)} stroke="rgba(34,211,238,0.15)" strokeWidth="1" strokeDasharray="3 4"/>}
-              {hasData&&pts&&pts.length>1&&<path d={curvePath(pts,scale.min,scale.max,chartH)} fill="none" stroke={cfg.color} strokeWidth="1.5"/>}
-              {pts&&labels&&labels.length>0&&(()=>{const step=Math.max(1,Math.floor(52/PT_GAP));return pts.map((_,i)=>{if(i%step!==0)return null;const l=labels[i];if(!l)return null;return <text key={i} x={PAD_L+i*PT_GAP} y={chartH-PAD_B+8} fill="#334155" fontSize="7" textAnchor="middle" fontFamily={FONT}>{l.time}</text>;});})()}
-              {isH&&(<g><line x1={hX} y1={PAD_T} x2={hX} y2={chartH-PAD_B} stroke="rgba(34,211,238,0.25)" strokeWidth="1" strokeDasharray="3 3"/><circle cx={hX} cy={hY} r="3.5" fill={cfg.color} stroke={C.surface} strokeWidth="1.5"/>{labels&&labels[globalHover]&&(<text x={hX} y={chartH-PAD_B+8} fill="#e2e8f0" fontSize="7" fontWeight="600" textAnchor="middle" fontFamily={FONT}>{labels[globalHover].time}</text>)}</g>)}
-              {!hasData&&<text x="50%" y="50%" fill="#1e3a5a" fontSize="12" textAnchor="middle" dominantBaseline="central" fontFamily={FONT} fontWeight="600" style={{letterSpacing:"0.1em"}}>READY</text>}
+              <defs>
+                <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#22c55e" stopOpacity="0.25"/>
+                  <stop offset="100%" stopColor="#22c55e" stopOpacity="0.01"/>
+                </linearGradient>
+              </defs>
+              {/* Grid lines */}
+              {ticks.map(t=><line key={t.label} x1={0} y1={t.y} x2={pts?svgW:600} y2={t.y} stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>)}
+              <line x1={0} y1={chartH-PAD_B} x2={pts?svgW:600} y2={chartH-PAD_B} stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>
+              {/* Zero line */}
+              {cfg.zeroline&&pts&&<line x1={0} y1={yNorm(0,scale.min,scale.max,chartH)} x2={svgW} y2={yNorm(0,scale.min,scale.max,chartH)} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="3 5"/>}
+              {/* Area fill */}
+              {hasData&&pts&&pts.length>1&&<path d={areaPath(pts,scale.min,scale.max,chartH)} fill={`url(#${gradId})`}/>}
+              {/* Line */}
+              {hasData&&pts&&pts.length>1&&<path d={curvePath(pts,scale.min,scale.max,chartH)} fill="none" stroke="#22c55e" strokeWidth="1.5"/>}
+              {/* Time labels */}
+              {pts&&labels&&labels.length>0&&(()=>{const step=Math.max(1,Math.floor(52/PT_GAP));return pts.map((_,i)=>{if(i%step!==0)return null;const l=labels[i];if(!l)return null;return <text key={i} x={PAD_L+i*PT_GAP} y={chartH-PAD_B+9} fill="#2d3d55" fontSize="7" textAnchor="middle" fontFamily={FONT}>{l.time}</text>;});})()}
+              {/* Hover crosshair */}
+              {isH&&(<g>
+                <line x1={hX} y1={PAD_T} x2={hX} y2={chartH-PAD_B} stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="3 3"/>
+                <circle cx={hX} cy={hY} r="3.5" fill="#22c55e" stroke="#0a1019" strokeWidth="1.5"/>
+                {labels&&labels[globalHover]&&<text x={hX} y={chartH-PAD_B+9} fill="#e2e8f0" fontSize="7" fontWeight="600" textAnchor="middle" fontFamily={FONT}>{labels[globalHover].time}</text>}
+              </g>)}
+              {/* Empty state */}
+              {!hasData&&<text x="50%" y="50%" fill="#1a2a40" fontSize="11" textAnchor="middle" dominantBaseline="central" fontFamily={FONT} fontWeight="700" letterSpacing="0.12em">READY</text>}
             </svg>
           </div>
         </div>
-        <div style={{width:Y_AXIS_W,flexShrink:0,background:C.surface,borderLeft:`1px solid ${C.border}`,position:"relative",height:"100%"}}>
+        {/* Y-axis */}
+        <div style={{width:Y_AXIS_W,flexShrink:0,background:"#0a1019",borderLeft:`1px solid rgba(255,255,255,0.04)`,position:"relative",height:"100%"}}>
           <svg width={Y_AXIS_W} height="100%" style={{display:"block",overflow:"visible",position:"absolute",inset:0}}>
-            {ticks.map(t=>{if(lastVal!=null&&Math.abs(t.y-lastTagY)<12)return null;return <text key={t.label} x={Y_AXIS_W-4} y={t.y} fill="#334155" fontSize="8" textAnchor="end" dominantBaseline="central" fontFamily={FONT}>{t.label}</text>;})}
-            {hasData&&lastVal!=null&&(()=>{const ns=fmtVal(lastVal,panelKey),tw=ns.length*5.5+8,th=15,tx=Y_AXIS_W-tw-2;return(<g style={{transition:"transform 0.1s ease-out",transform:`translateY(${lastTagY}px)`}}><rect x={tx} y={-th/2} width={tw} height={th} fill={cfg.color} rx="2"/><text x={tx+tw/2} y={0} fill={C.bg} fontSize="9" fontWeight="700" textAnchor="middle" dominantBaseline="central" fontFamily={FONT}>{ns}</text></g>);})()}
+            {ticks.map(t=>{if(lastVal!=null&&Math.abs(t.y-lastTagY)<12)return null;return <text key={t.label} x={Y_AXIS_W-4} y={t.y} fill="#2d3d55" fontSize="8" textAnchor="end" dominantBaseline="central" fontFamily={FONT}>{t.label}</text>;})}
+            {hasData&&lastVal!=null&&(()=>{const ns=fmtVal(lastVal,panelKey),tw=ns.length*5.5+8,th=15,tx=Y_AXIS_W-tw-2;return(<g style={{transition:"transform 0.1s ease-out",transform:`translateY(${lastTagY}px)`}}><rect x={tx} y={-th/2} width={tw} height={th} fill="#22c55e" rx="2"/><text x={tx+tw/2} y={0} fill="#071010" fontSize="9" fontWeight="700" textAnchor="middle" dominantBaseline="central" fontFamily={FONT}>{ns}</text></g>);})()}
           </svg>
         </div>
       </div>
+
+      {/* "Show Other Derivative Warrants" footer — only on CALL and PUT panels */}
+      {(panelKey === "call" || panelKey === "put") && (
+        <div style={{
+          borderTop:`1px solid rgba(255,255,255,0.05)`,
+          padding:"11px 14px",
+          textAlign:"center",
+          cursor:"pointer",
+          background:"rgba(255,255,255,0.01)",
+          transition:"background .15s",
+        }}
+          onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.04)"}
+          onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.01)"}>
+          <span style={{fontFamily:FONT,fontSize:11,fontWeight:500,color:"#4a5568",letterSpacing:"0.01em"}}>Show Other Derivative Warrants</span>
+        </div>
+      )}
     </div>
   );
 }
 
+// ── Main Component ──
 export default function DWViewCharts() {
   const bp = useBreakpoint();
-  const isMobile  = bp === "mobile";
-  
+  const isMobile = bp === "mobile";
 
   const [symbol,setSymbol]=useState(""); const [tf,setTf]=useState("INTRADAY");
   const [submitted,setSubmitted]=useState(false); const [ldEnter,setLdEnter]=useState(false); const [ldReset,setLdReset]=useState(false);
@@ -462,25 +585,16 @@ export default function DWViewCharts() {
     setTimeout(()=>{const pts=genAllPts(symbol);const n=pts[Object.keys(pts)[0]].length;setLabels(generateLabels(startDate,tf,n));setAllPts(pts);setLdReset(false);},400);
   };
 
-  // Mobile: single col 4 rows | Tablet+Desktop: 2x2
   const chartCols = isMobile ? "1fr" : "1fr 1fr";
   const chartRows = isMobile ? "repeat(4,minmax(160px,1fr))" : "1fr 1fr";
 
-  const EnterBtn = ({full=false}) => (
-    <button onClick={doEnter} disabled={!symbol.trim()||loading}
-      style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,
-        height:38,padding:full?"0 18px":"0",width:full?"auto":42,
-        borderRadius:8,
-        background:symbol.trim()?"linear-gradient(135deg,#22d3ee,#3b82f6)":"rgba(255,255,255,0.03)",
-        border:`1px solid ${symbol.trim()?"rgba(34,211,238,0.3)":C.border}`,
-        color:symbol.trim()?"#0b111a":C.mutedText,
-        cursor:symbol.trim()?"pointer":"not-allowed",
-        fontSize:10,fontWeight:800,letterSpacing:"0.06em",
-        transition:"all .2s",flexShrink:0,whiteSpace:"nowrap"}}>
-      {ldEnter?<IcoSpinner/>:<IcoEnter/>}
-      {full&&"ENTER"}
-    </button>
-  );
+  // TF display labels for Figma style
+  const TF_DISPLAY = [
+    { key:"INTRADAY", label:"INTRADAY" },
+    { key:"30 MIN",   label:"30 Min"   },
+    { key:"60 MIN",   label:"1 Hr"     },
+    { key:"DAY",      label:"DAY"      },
+  ];
 
   return (
     <>
@@ -488,64 +602,80 @@ export default function DWViewCharts() {
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
         input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{opacity:1}
-        input::placeholder{color:#334155!important;font-family:${FONT};font-size:11px}
+        input::placeholder{color:#3d4f6b!important;font-family:${FONT};font-size:12px;font-weight:500}
         @keyframes dw-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         .dw-scroll::-webkit-scrollbar{width:2px}
         .dw-scroll::-webkit-scrollbar-track{background:transparent}
-        .dw-scroll::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.15);border-radius:4px}
+        .dw-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:4px}
         ::-webkit-scrollbar{display:none}
       `}</style>
 
       <div style={{width:"100%",height:"100dvh",background:C.bg,color:"#fff",display:"flex",flexDirection:"column",fontFamily:FONT,overflow:"hidden"}}>
 
         {/* ── Toolbar ── */}
-        <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,padding:"8px 10px",flexShrink:0,display:"flex",flexDirection:"column",gap:6}}>
+        <div style={{background:"#0f1720",borderBottom:`1px solid rgba(255,255,255,0.06)`,padding:"10px 14px",flexShrink:0,display:"flex",alignItems:"center",gap:10,flexWrap:"nowrap",minWidth:0}}>
 
-          {/* Row 1: Symbol (left) + START + END + ENTER */}
-          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"nowrap",minWidth:0}}>
-            <div style={{width:isMobile?100:140,flexShrink:0}}>
-              <SymbolInput value={symbol} onChange={v=>{setSymbol(v);setSubmitted(false);}} onEnter={doEnter}/>
-            </div>
-            <DateTimeInput label="START" onChange={v=>{setStartDate(v);if(v)setSdErr(false);}} error={sdErr}/>
-            <DateTimeInput label="END" defaultNow alignRight/>
-            <EnterBtn full={!isMobile}/>
+          {/* ? icon */}
+          <button style={{display:"flex",alignItems:"center",justifyContent:"center",width:34,height:34,borderRadius:8,background:"rgba(255,255,255,0.04)",border:`1px solid rgba(255,255,255,0.07)`,cursor:"pointer",color:"#4a5568",flexShrink:0,transition:"all .15s"}}
+            onMouseEnter={e=>{e.currentTarget.style.color=C.white;}}
+            onMouseLeave={e=>{e.currentTarget.style.color="#4a5568";}}>
+            <IcoQuestion/>
+          </button>
+
+          {/* Reset/Refresh */}
+          <button onMouseDown={e=>{e.preventDefault();doReset();}} disabled={!hasData||loading}
+            style={{display:"flex",alignItems:"center",justifyContent:"center",width:34,height:34,borderRadius:8,background:"rgba(255,255,255,0.04)",border:`1px solid rgba(255,255,255,0.07)`,cursor:hasData?"pointer":"not-allowed",color:hasData?"#4a5568":C.dimText,flexShrink:0,transition:"all .15s"}}
+            onMouseEnter={e=>{if(hasData){e.currentTarget.style.color=C.white;}}}
+            onMouseLeave={e=>{e.currentTarget.style.color=hasData?"#4a5568":C.dimText;}}>
+            <IcoRefresh spinning={ldReset}/>
+          </button>
+
+          {/* Symbol */}
+          <div style={{width:isMobile?130:180,flexShrink:0}}>
+            <SymbolInput value={symbol} onChange={v=>{setSymbol(v);setSubmitted(false);}} onEnter={doEnter}/>
           </div>
 
-          {/* Row 2: TF pills + Reset */}
-          <div style={{display:"flex",alignItems:"center",gap:6}}>
-            <span style={{fontSize:8,fontWeight:700,color:C.mutedText,letterSpacing:"0.06em",textTransform:"uppercase",flexShrink:0}}>TF</span>
-            <div style={{display:"flex",gap:3,flex:1}}>
-              {TIMEFRAMES.map(t=>{
-                const act=tf===t;
-                const lbl = isMobile
-                  ? (t==="INTRADAY"?"1D":t==="30 MIN"?"30M":t==="60 MIN"?"60M":"DAY")
-                  : t;
-                return (
-                  <button key={t} onClick={()=>setTf(t)}
-                    style={{padding:isMobile?"4px 0":"4px 10px",borderRadius:6,cursor:"pointer",
-                      border:`1px solid ${act?C.cyanBorder:C.border}`,
-                      background:act?C.cyanDim:"transparent",
-                      color:act?C.cyan:C.mutedText,
-                      fontSize:11,fontWeight:600,transition:"all .15s",fontFamily:FONT,
-                      flex:isMobile?"1":"none",whiteSpace:"nowrap",minWidth:0}}>
-                    {lbl}
-                  </button>
-                );
-              })}
-            </div>
-            <button onMouseDown={e=>{e.preventDefault();doReset();}} disabled={!hasData||loading}
-              style={{display:"flex",alignItems:"center",gap:5,
-                height:28,padding:"0 10px",borderRadius:6,
-                background:hasData?"rgba(34,211,238,0.06)":"rgba(255,255,255,0.02)",
-                border:`1px solid ${hasData?C.cyanBorder:C.border}`,
-                color:hasData?C.cyan:C.dimText,
-                cursor:hasData?"pointer":"not-allowed",
-                fontSize:9,fontWeight:700,fontFamily:FONT,transition:"all .2s",flexShrink:0}}>
-              <IcoRefresh spinning={ldReset}/>
-              RESET
+          {/* Start date */}
+          <DateTimeInput label="Start Date" onChange={v=>{setStartDate(v);if(v)setSdErr(false);}} error={sdErr}/>
+
+          {/* End date */}
+          <DateTimeInput label="End Date" defaultNow alignRight/>
+
+          {/* Spacer */}
+          <div style={{flex:1}}/>
+
+          {/* TF pills */}
+          <div style={{display:"flex",gap:4,flexShrink:0}}>
+            {TF_DISPLAY.map(({key,label})=>{
+              const act=tf===key;
+              return (
+                <button key={key} onClick={()=>setTf(key)}
+                  style={{padding:"6px 14px",borderRadius:8,cursor:"pointer",
+                    border:`1px solid ${act?"rgba(255,255,255,0.18)":"rgba(255,255,255,0.06)"}`,
+                    background:act?"rgba(255,255,255,0.08)":"transparent",
+                    color:act?C.white:"#4a5568",
+                    fontSize:12,fontWeight:act?600:500,transition:"all .15s",fontFamily:FONT,
+                    whiteSpace:"nowrap",letterSpacing:"0.01em"}}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Enter button — hidden in toolbar now (enter via symbol input or date) */}
+          {!isMobile && (
+            <button onClick={doEnter} disabled={!symbol.trim()||loading}
+              style={{display:"flex",alignItems:"center",justifyContent:"center",
+                gap:6,height:36,padding:"0 16px",borderRadius:8,flexShrink:0,
+                background:symbol.trim()?"linear-gradient(135deg,#22c55e,#16a34a)":"rgba(255,255,255,0.03)",
+                border:`1px solid ${symbol.trim()?"rgba(34,197,94,0.3)":"rgba(255,255,255,0.06)"}`,
+                color:symbol.trim()?"#fff":C.mutedText,
+                cursor:symbol.trim()?"pointer":"not-allowed",
+                fontSize:11,fontWeight:700,letterSpacing:"0.06em",transition:"all .2s",whiteSpace:"nowrap"}}>
+              {ldEnter?<IcoSpinner/>:<IcoEnter/>}
+              ENTER
             </button>
-          </div>
-
+          )}
         </div>
 
         {/* ── Charts grid ── */}
@@ -554,25 +684,26 @@ export default function DWViewCharts() {
           display:"grid",
           gridTemplateColumns:chartCols,
           gridTemplateRows:chartRows,
-          gap:isMobile?4:5,
-          padding:isMobile?4:5,
+          gap:8,
+          padding:8,
           overflowY:isMobile?"auto":"hidden",
           overflowX:"hidden",
+          background:C.bg,
         }}>
           {Object.keys(PANEL_CFG).map(key=>(
             <ChartPanel key={key} panelKey={key} hasData={hasData} symbol={symbol}
               pts={allPts[key]??null} labels={labels}
               globalHover={gHover} setGlobalHover={setHover}
-              scrollRefs={scrollRefs} loading={loading}/>
+              scrollRefs={scrollRefs} loading={loading}
+              onRefresh={doReset}/>
           ))}
         </div>
 
-        {/* ── DW Selector ── */}
+        {/* ── DW Selector (visible only when hasData) ── */}
         {hasData&&(
           <DWSymbolPanel underlying={symbol}
             selectedCall={selCall} selectedPut={selPut}
-            onSelectCall={setSelCall} onSelectPut={setSelPut}
-            isMobile={isMobile}/>
+            onSelectCall={setSelCall} onSelectPut={setSelPut}/>
         )}
 
       </div>
