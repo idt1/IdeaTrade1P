@@ -10,6 +10,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import logo from "@/assets/images/logo.png";
 import ToggleIcon from "@/assets/icons/Vector.svg";
 
+
 /* ================= ICONS ================= */
 import preview from "@/assets/icons/preview.svg";
 import apreview from "@/assets/icons/apreview.svg";
@@ -155,6 +156,20 @@ const FloatingTooltip = ({ visible, top, text }) => {
       <div className="absolute top-1/2 -left-1.5 -mt-1.5 border-t-[6px] border-b-[6px] border-r-[6px] border-transparent border-r-[#333333]"></div>
       {text}
     </div>
+  );
+};
+
+const ChartFlipIconSVG = ({ active }) => {
+  const color = active ? "#ffffff" : "#9ca3af";
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3 3V16C3 18.7614 5.23858 21 8 21H21" stroke={color} strokeWidth="1.2"/>
+      <path d="M8 16.5C8 17.3284 7.32843 18 6.5 18C5.67157 18 5 17.3284 5 16.5C5 15.6716 5.67157 15 6.5 15C7.32843 15 8 15.6716 8 16.5Z" fill={color}/>
+      <path d="M11 8.5C11 9.32843 10.3284 10 9.5 10C8.67157 10 8 9.32843 8 8.5C8 7.67157 8.67157 7 9.5 7C10.3284 7 11 7.67157 11 8.5Z" fill={color}/>
+      <path d="M17 13.5C17 14.3284 16.3284 15 15.5 15C14.6716 15 14 14.3284 14 13.5C14 12.6716 14.6716 12 15.5 12C16.3284 12 17 12.6716 17 13.5Z" fill={color}/>
+      <path d="M21 6.5C21 7.32843 20.3284 8 19.5 8C18.6716 8 18 7.32843 18 6.5C18 5.67157 18.6716 5 19.5 5C20.3284 5 21 5.67157 21 6.5Z" fill={color}/>
+      <path d="M6.99847 15.5008L8.99962 9.49933M14.5 12.5L10.5012 8.9985M16 12.5L19 7.5" stroke={color} strokeWidth="0.8" strokeLinecap="round"/>
+    </svg>
   );
 };
 
@@ -531,12 +546,7 @@ const SidebarContent = ({
             ${activePage === "chart-flip-id" ? "text-white" : "text-gray-400"}
             ${isCollapsed ? "justify-center w-full" : ""}`}
           >
-            <img
-              src={getIcon("chartflipid", activePage === "chart-flip-id")}
-              className="w-5"
-              alt="Chart Flip ID"
-              style={{}}
-            />
+            <ChartFlipIconSVG active={activePage === "chart-flip-id"} />
             {!isCollapsed && <span>ChartFlip</span>}
           </div>
         </button>
