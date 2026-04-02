@@ -30,6 +30,7 @@ import ChartFlipId from "@/pages/Hidden/Chartid";
 import HisRealFlow from "@/pages/Hidden/hisrealflow";
 import DWViewCharts from "@/pages/Hidden/DW";
 import IdeaTradePoint from "@/pages/Hidden/ideatradepoint";
+import HisIdeaTradePoint from "@/pages/Hidden/hisideatradepoint";
 
 /* ================= CONSTANTS ================= */
 const CHART_IMAGE_URL = "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1964&auto=format&fit=crop";
@@ -75,7 +76,7 @@ const TOOL_CONFIG = {
   "dw":            { component: DWViewCharts,   id: "dw",             name: "DW",             isPremium: false },
 
   "ideatradepoint":            { component: IdeaTradePoint,   id: "ideatradepoint",             name: "Idea Trade Point",             isPremium: false },
-  "hisideatradepoint":         { component: IdeaTradePoint,   id: "hisideatradepoint",             name: "Historical Idea Trade Point",             isPremium: false },
+  "hisideatradepoint":         { component: HisIdeaTradePoint,   id: "hisideatradepoint",             name: "Historical Idea Trade Point",             isPremium: false },
 };
 
 const FULL_WIDTH_PAGES = []; 
