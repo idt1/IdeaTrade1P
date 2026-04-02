@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import RefreshIcon from "@mui/icons-material/Refresh";
 
 const C = {
   bg:         "#0d1117",
@@ -481,7 +482,7 @@ function ChartPanel({ panelKey, hasData, symbol, pts, labels, globalHover, setGl
           <button onClick={onRefresh} style={{display:"flex",alignItems:"center",justifyContent:"center",width:26,height:26,borderRadius:6,background:"rgba(255,255,255,0.04)",border:`1px solid rgba(255,255,255,0.07)`,cursor:"pointer",color:"#4a5568",transition:"all .15s"}}
             onMouseEnter={e=>{e.currentTarget.style.color=C.white;e.currentTarget.style.borderColor="rgba(255,255,255,0.15)";}}
             onMouseLeave={e=>{e.currentTarget.style.color="#4a5568";e.currentTarget.style.borderColor="rgba(255,255,255,0.07)";}}>
-            <IcoRefresh spinning={loading}/>
+            <RefreshIcon fontSize="small" className={loading ? "animate-spin" : ""} />
           </button>
         </div>
       </div>
@@ -627,7 +628,7 @@ export default function DWViewCharts() {
             style={{display:"flex",alignItems:"center",justifyContent:"center",width:34,height:34,borderRadius:8,background:"rgba(255,255,255,0.04)",border:`1px solid rgba(255,255,255,0.07)`,cursor:hasData?"pointer":"not-allowed",color:hasData?"#4a5568":C.dimText,flexShrink:0,transition:"all .15s"}}
             onMouseEnter={e=>{if(hasData){e.currentTarget.style.color=C.white;}}}
             onMouseLeave={e=>{e.currentTarget.style.color=hasData?"#4a5568":C.dimText;}}>
-            <IcoRefresh spinning={ldReset}/>
+            <RefreshIcon fontSize="small" className={loading ? "animate-spin" : ""} />
           </button>
 
           {/* Symbol */}
