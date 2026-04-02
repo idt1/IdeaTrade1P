@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react"; // ✅ เพิ่ม useRef
 import { useNavigate, useLocation } from "react-router-dom";
 
 /* ================= COMPONENT IMPORTS ================= */
@@ -99,13 +99,26 @@ export default function Dashboard({ initialPage }) {
   const [activePage, setActivePage] = useState(initialPage || "preview-projects");
   const [unlockedItems, setUnlockedItems] = useState([]);
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  // ✅ 1. เพิ่ม State เพื่อเช็กว่าดึงข้อมูลเสร็จสมบูรณ์หรือยัง
   const [isDataReady, setIsDataReady] = useState(false);
+
+  // ✅ 1. เพิ่มตัวแปร Ref เพื่อใช้อ้างอิงถึงกล่อง <main>
+  const scrollRef = useRef(null);
 
   /* --- Effects --- */
 
-  // ✅ 2. รวมการดึงข้อมูลไว้ที่เดียว และเมื่อเสร็จค่อยเปิดธง isDataReady
+  // ✅ 2. เพิ่ม useEffect เพื่อสั่งเลื่อนจอเมื่อเปลี่ยนหน้า
+  useEffect(() => {
+    // ใช้ setTimeout ช่วยให้ React วาดหน้าใหม่เสร็จก่อนแล้วค่อยเลื่อน
+    const timeoutId = setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo(0, 0);
+      }
+    }, 50);
+
+    return () => clearTimeout(timeoutId);
+  }, [location.pathname, activePage]); // เลื่อนเมื่อ URL หรือ activePage เปลี่ยน
+
+
   useEffect(() => {
     const fetchUserData = async () => {
       setIsDataReady(false);
@@ -115,14 +128,13 @@ export default function Dashboard({ initialPage }) {
       } catch (e) {
         console.error("Error loading user profile:", e);
       } finally {
-        setIsDataReady(true); // ข้อมูลดึงเสร็จ 100% แล้ว
+        setIsDataReady(true); 
       }
     };
 
     fetchUserData();
   }, [location.pathname]);
 
-  // ✅ 3. เช็ก location.state หรือเปลี่ยน Tab "ก็ต่อเมื่อ" isDataReady = true เท่านั้น
   useEffect(() => {
     if (!isDataReady) return; 
 
@@ -152,7 +164,7 @@ export default function Dashboard({ initialPage }) {
       else if (path === "ideatradepoint") setActivePage("ideatradepoint");
       else if (path === "hisideatradepoint") setActivePage("hisideatradepoint");
 
-      else setActivePage("preview-projects"); // Fallback ถ้าหาไม่เจอจริงๆ
+      else setActivePage("preview-projects"); 
     }
   }, [location.state, location.pathname, isDataReady]);
 
@@ -201,7 +213,6 @@ export default function Dashboard({ initialPage }) {
     return <PreviewProjects />;
   };
 
-  // ✅ 4. แสดงหน้าจอ Loading ระหว่างรอข้อมูล ป้องกันไม่ให้ ToolAccessGuard เด้งไล่ผู้ใช้
   if (!isDataReady) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-[#0B0E14]">
@@ -263,7 +274,11 @@ export default function Dashboard({ initialPage }) {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full relative overflow-y-auto transition-all duration-300">
+      {/* ✅ 3. ผูก scrollRef ไว้ที่แท็ก <main> ตรงนี้ */}
+      <main 
+        ref={scrollRef} 
+        className="flex-1 w-full relative overflow-y-auto transition-all duration-300"
+      >
         {/* Spacer สำหรับ mobile topbar */}
         <div className="md:hidden h-14 shrink-0" />
         <div className={isFullWidthPage() || isNoPaddingPage() ? "p-0" : "p-8 pb-20"}>
