@@ -766,46 +766,60 @@ export default function RubberThai() {
     </div>
   );
 
-  /* ==========================================================
+/* ==========================================================
      CASE 1 : PREVIEW VERSION (Not Member)
   ========================================================== */
   if (!isMember) {
     return (
       <div className="relative w-full min-h-screen text-white overflow-x-hidden animate-fade-in pb-20">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] xs:w-[400px] sm:w-[600px] h-[300px] xs:h-[400px] sm:h-[600px] bg-blue-600/10 blur-[100px] sm:blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
+
         <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
 
-        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 flex flex-col items-center">
-          <div className="text-center mb-6 sm:mb-10">
-            <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-2 sm:mb-4 tracking-tight">
+        <div className="relative z-10 max-w-6xl mx-auto px-4 py-8 flex flex-col items-center">
+          
+          {/* Header */}
+          <div className="text-center mb-10">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
               <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">
                 Rubber Thai
               </span>
             </h1>
-            <p className="text-slate-400 text-sm xs:text-base sm:text-lg md:text-xl font-light">Stop trading in the dark</p>
+            <p className="text-slate-400 text-lg md:text-xl font-light">
+              Stop trading in the dark
+            </p>
           </div>
 
+          {/* Dashboard Preview */}
           {dashboardPreviewJSX}
+          
+          {/* Features */}
           {featuresSectionJSX}
 
-          <div className="text-center w-full max-w-xs sm:max-w-md mx-auto mt-4">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+          {/* CTA Buttons */}
+          <div className="text-center w-full max-w-md mx-auto mt-4">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+              
+              {/* ตรวจสอบว่าถ้า "ไม่มี" user ค่อยแสดงปุ่ม Sign In */}
               {!currentUser && (
                 <button
                   onClick={() => navigate("/login")}
-                  className="w-full sm:w-auto px-6 sm:px-8 py-3 rounded-full bg-slate-800 text-white font-semibold border border-slate-600 hover:bg-slate-700 hover:border-slate-500 transition-all duration-300 text-sm sm:text-base"
+                  className="w-full md:w-auto px-8 py-3 rounded-full bg-slate-800 text-white font-semibold border border-slate-600 hover:bg-slate-700 hover:border-slate-500 transition-all duration-300"
                 >
                   Sign In
                 </button>
               )}
+
+              {/* ปุ่ม Join Membership แสดงตลอดสำหรับคนที่ไม่ใช่ Member */}
               <button
                 onClick={() => navigate("/member-register")}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold hover:brightness-110 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 text-sm sm:text-base"
+                className="w-full md:w-auto px-8 py-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold hover:brightness-110 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300"
               >
                 Join Membership
               </button>
             </div>
           </div>
+
         </div>
       </div>
     );
@@ -817,33 +831,47 @@ export default function RubberThai() {
   if (isMember && !enteredTool) {
     return (
       <div className="relative w-full min-h-screen text-white overflow-x-hidden animate-fade-in pb-20">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] xs:w-[400px] sm:w-[600px] h-[300px] xs:h-[400px] sm:h-[600px] bg-blue-600/10 blur-[100px] sm:blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
+
         <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
 
-        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 flex flex-col items-center">
-          <div className="text-center mb-6 sm:mb-10">
-            <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-2 sm:mb-4 tracking-tight">
+        <div className="relative z-10 max-w-6xl mx-auto px-4 py-8 flex flex-col items-center">
+          
+          {/* Header */}
+          <div className="text-center mb-10">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
               <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">
                 Rubber Thai
               </span>
             </h1>
-            <p className="text-slate-400 text-sm xs:text-base sm:text-lg md:text-xl font-light">Stop trading in the dark</p>
+            <p className="text-slate-400 text-lg md:text-xl font-light">
+              Stop trading in the dark
+            </p>
           </div>
 
+          {/* Dashboard Preview */}
           {dashboardPreviewJSX}
+          
+          {/* Features */}
           {featuresSectionJSX}
 
-          <div className="text-center w-full max-w-xs sm:max-w-md mx-auto mt-4">
+          {/* CTA Button */}
+          <div className="text-center w-full max-w-md mx-auto mt-4">
             <button
-              onClick={() => setEnteredTool(true)}
-              className="group relative inline-flex items-center justify-center w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] hover:scale-105 transition-all duration-300 text-sm sm:text-base"
+              onClick={() => {
+                setEnteredTool(true);
+                // แอบใส่คำสั่งเลื่อนจอขึ้นบนสุดไว้ให้ด้วยครับ เผื่อกด Start Tool แล้วจอยังไม่เลื่อน
+                setTimeout(() => document.querySelector('main')?.scrollTo(0, 0), 10);
+              }}
+              className="group relative inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] hover:scale-105 transition-all duration-300"
             >
               <span className="mr-2">Start Using Tool</span>
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </button>
           </div>
+
         </div>
       </div>
     );
