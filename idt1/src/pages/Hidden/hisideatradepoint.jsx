@@ -832,6 +832,107 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
   const bp       = useBreakpoint();
   const isMobile = bp === "xs" || bp === "sm";
   const isPos    = type === "+";
+
+  if (category === "WARRANT" && type === "+") {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div className="bg-[#1e293b] rounded-xl border border-slate-700/60 shadow-lg"
+        style={{ padding: "16px 20px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: "#e2e8f0", fontFamily: "monospace" }}>WARRANT</span>
+          <span style={{
+            fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 99,
+            background: "rgba(34,197,94,0.12)", color: "#4ade80",
+            border: "1px solid rgba(74,222,128,0.3)",
+            display: "flex", alignItems: "center", gap: 3,
+          }}>
+            <span style={{ fontSize: 8 }}>▲</span> BUY FLOW
+          </span>
+        </div>
+
+        {/* โครงกราฟเปล่า */}
+        <div style={{ display: "flex", gap: 12 }}>
+          <div style={{
+            flex: 1, height: TABLE_H,
+            background: "#0f1e2e", borderRadius: 4,
+            border: "1px solid rgba(255,255,255,0.06)",
+            position: "relative", overflow: "hidden",
+          }}>
+            {/* Grid lines แนวนอน */}
+            {[0.2, 0.4, 0.6, 0.8].map((p, i) => (
+              <div key={i} style={{
+                position: "absolute", left: 0, right: 70,
+                top: `${p * 100}%`,
+                borderTop: "1px solid rgba(255,255,255,0.06)",
+              }} />
+            ))}
+            {/* Grid lines แนวตั้ง */}
+            {[0.15, 0.3, 0.45, 0.6, 0.75, 0.9].map((p, i) => (
+              <div key={i} style={{
+                position: "absolute", top: 0, bottom: 40,
+                left: `${p * 100}%`,
+                borderLeft: "1px solid rgba(255,255,255,0.04)",
+              }} />
+            ))}
+            {/* แกน X */}
+            <div style={{
+              position: "absolute", bottom: 40, left: 0, right: 70,
+              borderTop: "1px solid rgba(255,255,255,0.15)",
+            }} />
+            {/* No Data label */}
+            <div style={{
+              position: "absolute", inset: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexDirection: "column", gap: 8,
+            }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5">
+                <path d="M3 3v13a2 2 0 002 2h16M8 16l3-4 3 3 3-5"/>
+              </svg>
+              <span style={{ fontSize: 11, color: "#1e3a5f", fontWeight: 600, letterSpacing: "0.08em" }}>
+                NO DATA AVAILABLE
+              </span>
+            </div>
+          </div>
+
+          {/* โครง table เปล่า */}
+          <div style={{
+            width: 460, flexShrink: 0, height: TABLE_H,
+            background: "#0d1b2a", borderRadius: 4,
+            border: "1px solid rgba(255,255,255,0.07)",
+            overflow: "hidden",
+          }}>
+            {/* header */}
+            <div style={{
+              height: 36, background: "#0a1525",
+              borderBottom: "1px solid rgba(255,255,255,0.07)",
+              display: "grid", gridTemplateColumns: "36px 1fr 90px 80px 48px",
+              alignItems: "center", padding: "0 10px",
+            }}>
+              {["#", "SYMBOL", "VALUE", "%CHG", ""].map((h, i) => (
+                <span key={i} style={{ fontSize: 10, color: "#1e3a5f", fontWeight: 600, textAlign: "center" }}>{h}</span>
+              ))}
+            </div>
+            {/* rows เปล่า */}
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} style={{
+                height: ROW_H, borderBottom: "1px solid rgba(255,255,255,0.03)",
+                display: "grid", gridTemplateColumns: "36px 1fr 90px 80px 48px",
+                alignItems: "center", padding: "0 10px", gap: 8,
+              }}>
+                <div style={{ height: 8, width: 16, background: "rgba(255,255,255,0.04)", borderRadius: 4, margin: "0 auto" }} />
+                <div style={{ height: 8, width: "60%", background: "rgba(255,255,255,0.04)", borderRadius: 4 }} />
+                <div style={{ height: 8, width: "70%", background: "rgba(255,255,255,0.04)", borderRadius: 4, margin: "0 auto" }} />
+                <div style={{ height: 8, width: "50%", background: "rgba(255,255,255,0.04)", borderRadius: 4, margin: "0 auto" }} />
+                <div style={{ height: 8, width: 20, background: "rgba(255,255,255,0.04)", borderRadius: 4, margin: "0 auto" }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
   const totalCount    = getRowCount(category, type);
   const baseData      = useMemo(() => mkFlowData(initSeed, 20), [initSeed]);
   const allSeriesData = useMemo(() => mkLWCData(initSeed, 20, 390, isPos), [initSeed, isPos]);
