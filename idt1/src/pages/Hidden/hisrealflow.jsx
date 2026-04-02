@@ -19,6 +19,8 @@ const CHART_CFG = {
   pointGapDefault: 52,
 };
 
+const MAX_SELECT = 5;
+
 /* ================= RNG + DATA ================= */
 function rng(s) {
   let x = s >>> 0;
@@ -60,7 +62,7 @@ function mkDayLabels(dateKey) {
     for (let m = 0; m < 60; m += 15) {
       if (h === 9 && m < 30) continue;
       if (h === 16 && m > 30) continue;
-      slots.push(`${dateKey}\n${h}:${String(m).padStart(2,"0")}`);
+      slots.push(`${dateKey}\n${h}:${String(m).padStart(2, "0")}`);
     }
   }
   return slots;
@@ -71,7 +73,6 @@ function useAnimatedValue(target, duration = 400) {
   const [display, setDisplay] = useState(target);
   const fromRef = useRef(parseFloat(target));
   const rafRef = useRef(null);
-
   useEffect(() => {
     const from = fromRef.current;
     const to = parseFloat(target);
@@ -88,7 +89,6 @@ function useAnimatedValue(target, duration = 400) {
     rafRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafRef.current);
   }, [target, duration]);
-
   return display;
 }
 
@@ -96,7 +96,6 @@ const AnimatedCell = memo(({ value, flash }) => {
   const display = useAnimatedValue(value, 400);
   const [color, setColor] = useState("#e2e8f0");
   const timerRef = useRef(null);
-
   useEffect(() => {
     if (!flash) return;
     clearTimeout(timerRef.current);
@@ -104,12 +103,8 @@ const AnimatedCell = memo(({ value, flash }) => {
     timerRef.current = setTimeout(() => setColor("#e2e8f0"), 2000);
     return () => clearTimeout(timerRef.current);
   }, [flash]);
-
   return (
-    <span style={{
-      fontFamily: "monospace", fontSize: 12, color,
-      transition: "color 1.2s ease", fontWeight: flash ? 700 : 400,
-    }}>
+    <span style={{ fontFamily: "monospace", fontSize: 12, color, transition: "color 1.2s ease", fontWeight: flash ? 700 : 400 }}>
       {display}
     </span>
   );
@@ -198,37 +193,51 @@ function buildPath(pts, scale, h, padL, padTop, padBot, gap) {
   }, "");
 }
 
-/* ================= INFO TOOLTIP ================= */
-const InfoTooltip = memo(({ children, lines = [], linkText = "", linkHref = "#" }) => {
+function getSeriesColor(i) {
+  return i < 5 ? PALETTE[i] : EXTRA_COLOR;
+}
+
+/* ================= CTRL TOOLTIP ================= */
+const CtrlTooltip = ({ max }) => {
   const [visible, setVisible] = useState(false);
-  const t = useRef(null);
-  const show = () => { clearTimeout(t.current); setVisible(true); };
-  const hide = () => { t.current = setTimeout(() => setVisible(false), 100); };
-  useEffect(() => () => clearTimeout(t.current), []);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+  const triggerRef = useRef(null);
+
+  const handleMouseEnter = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+    }
+    setVisible(true);
+  };
+
   return (
-    <div className="relative inline-flex items-center">
-      <div onMouseEnter={show} onMouseLeave={hide}>{children}</div>
+    <div ref={triggerRef} style={{ display: "inline-flex", alignItems: "center" }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={() => setVisible(false)}>
+      <span style={{ color: "#64748b", fontSize: 14, cursor: "default", userSelect: "none", lineHeight: 1 }}>ⓘ</span>
       {visible && (
-        <div onMouseEnter={show} onMouseLeave={hide}
-          className="absolute left-full top-0 ml-3 z-[9999] w-64 rounded-xl shadow-2xl px-4 py-3 pointer-events-auto"
-          style={{background:"#140f00",border:"1px solid rgba(217,119,6,0.3)"}}>
-          <div className="absolute -left-[7px] w-0 h-0 border-t-[7px] border-t-transparent border-b-[7px] border-b-transparent border-r-[7px] border-r-[#1a2235]" style={{ top: "calc(18px - 7px)" }} />
-          <div className="absolute -left-[9px] w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-r-[8px] border-r-slate-600/70" style={{ top: "calc(18px - 8px)" }} />
-          <div className="text-slate-200 text-[13px] leading-relaxed space-y-0.5 mb-2">
-            {lines.map((l, i) => <p key={i}>{l}</p>)}
-          </div>
-          {linkText && (
-            <a href={linkHref} target="_blank" rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300 text-[13px] underline">{linkText}</a>
-          )}
+        <div style={{
+          position: "fixed", top: pos.top, right: pos.right,
+          background: "#1e293b", border: "1px solid rgba(255,255,255,0.12)",
+          borderRadius: 10, padding: "8px 14px", whiteSpace: "nowrap",
+          fontSize: 12, color: "#f1f5f9", fontWeight: 500,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.5)", zIndex: 99999, pointerEvents: "none",
+        }}>
+          <div style={{
+            position: "absolute", top: -7, right: 10, width: 0, height: 0,
+            borderLeft: "6px solid transparent", borderRight: "6px solid transparent",
+            borderBottom: "7px solid #1e293b",
+          }} />
+          Ctrl+คลิก เพื่อเพิ่มหุ้นเปรียบเทียบ rank 1-20 (รวมไม่เกิน {max} เส้น)
         </div>
       )}
     </div>
   );
-});
+};
 
 /* ================= RANK TABLE ================= */
-const RankTable = memo(({ data, flashMap = {}, recentMap = {}, top5Len, highlighted, extraVisible, onRowClick }) => (
+const RankTable = memo(({ data, flashMap = {}, recentMap = {}, selectedSet, onRowClick }) => (
   <div className="w-full lg:w-[35%] bg-[#0f172a] rounded-lg border border-slate-700 overflow-hidden flex flex-col">
     <div className="overflow-y-auto flex-1 custom-scrollbar">
       <table className="w-full text-sm">
@@ -242,25 +251,33 @@ const RankTable = memo(({ data, flashMap = {}, recentMap = {}, top5Len, highligh
         </thead>
         <tbody>
           {data.map((row, i) => {
-            const isTop5  = i < top5Len;
-            const isHi    = isTop5 && highlighted === i;
-            const isExtra = !isTop5 && extraVisible === i;
-            const flash   = flashMap[i];
-            const recent  = recentMap[i];
-            const cc = row.isUp === true ? "text-green-400" : row.isUp === false ? "text-red-400" : "text-slate-400";
+            const isSel  = selectedSet.has(i);
+            const isDim  = selectedSet.size > 0 && !isSel;
+            const flash  = flashMap[i];
+            const recent = recentMap[i];
+            const color  = getSeriesColor(i);
+            const cc     = row.isUp === true ? "text-green-400" : row.isUp === false ? "text-red-400" : "text-slate-400";
+
             let bg = "hover:bg-slate-700/30";
-            if (isHi)    bg = "bg-blue-900/20 border-l-2 border-l-blue-500";
-            if (isExtra) bg = "bg-slate-600/20 border-l-2 border-l-slate-400";
+            if (isSel && i < 5)  bg = "bg-blue-900/20 border-l-2 border-l-blue-500";
+            if (isSel && i >= 5) bg = "bg-slate-600/20 border-l-2 border-l-slate-400";
             if (flash === "up")   bg += " flash-up";
             if (flash === "down") bg += " flash-down";
+
             return (
-              <tr key={row.rank} onClick={() => onRowClick?.(i)}
-                className={`border-b border-slate-700/50 cursor-pointer transition-colors ${bg}`}>
+              <tr
+                key={row.rank}
+                onClick={(e) => onRowClick?.(i, e.ctrlKey || e.metaKey)}
+                style={{ opacity: isDim ? 0.2 : 1, transition: "opacity 0.3s" }}
+                className={`border-b border-slate-700/50 cursor-pointer transition-colors ${bg}`}
+              >
                 <td className="py-2 px-2 text-center text-slate-400 w-10">{row.rank}</td>
                 <td className="py-2 px-2 font-bold text-white">
                   <span className="flex items-center gap-1">
-                    {isTop5  && <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ background: PALETTE[i] }} />}
-                    {isExtra && <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ background: EXTRA_COLOR }} />}
+                    {isSel && (
+                      <span className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ background: color }} />
+                    )}
                     {row.symbol}
                     {recent && !flash && (
                       <span className={`text-[9px] font-bold px-1 py-0.5 rounded ml-0.5 ${recent === "up" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
@@ -291,14 +308,14 @@ const RankTable = memo(({ data, flashMap = {}, recentMap = {}, top5Len, highligh
 
 /* ================= SVG FLOW CHART ================= */
 const FlowChart = memo(({
-  allSeries, labels, top5, highlighted, dimmed, extraVisible, allData,
+  allSeries, labels, allData,
   height = 256, chartId, globalHoverIndex, setGlobalHoverIndex, chartRefs,
-  pointGap, handleZoom, fullWidth = false, flashMap = {},
+  pointGap, handleZoom, fullWidth = false, flashMap = {}, selectedSet,
 }) => {
-  const scrollRef  = useRef(null);
+  const scrollRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [visibleRightIdx, setVisibleRightIdx] = useState(labels.length - 1);
-  const dragStart  = useRef({ x: 0, scrollLeft: 0 });
+  const dragStart = useRef({ x: 0, scrollLeft: 0 });
 
   const prevLenRef = useRef(labels.length);
   useEffect(() => {
@@ -319,13 +336,16 @@ const FlowChart = memo(({
     setVisibleRightIdx(Math.max(0, Math.min(pts - 1, idx)));
   }, [gap, padL, pts]);
 
-  const extraIndices   = extraVisible != null ? [extraVisible] : [];
-  const top5Indices    = top5.map((_, i) => i);
-  const visibleIndices = extraVisible != null ? extraIndices : top5Indices;
+  // Which indices are "active" for y-scale calculation
+  const activeIndices = useMemo(() => {
+    if (selectedSet.size > 0) return [...selectedSet];
+    return [0, 1, 2, 3, 4]; // default top5
+  }, [selectedSet]);
+
   const yScale = useMemo(
-    () => calcYScale(allSeries, visibleIndices),
+    () => calcYScale(allSeries, activeIndices),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allSeries, visibleIndices.join(",")]
+    [allSeries, activeIndices.join(",")]
   );
 
   const yTicks = 5;
@@ -368,26 +388,23 @@ const FlowChart = memo(({
   }, [chartRefs, syncVisibleRight]);
 
   const onMouseDown = useCallback(e => {
-  setIsDragging(true);
-  setGlobalHoverIndex(null);
-  const rect = scrollRef.current.getBoundingClientRect();
-  dragStart.current = { 
-    x: e.clientX - rect.left,                
-    scrollLeft: scrollRef.current.scrollLeft 
-  };
-}, [setGlobalHoverIndex]);
+    setIsDragging(true);
+    setGlobalHoverIndex(null);
+    const rect = scrollRef.current.getBoundingClientRect();
+    dragStart.current = { x: e.clientX - rect.left, scrollLeft: scrollRef.current.scrollLeft };
+  }, [setGlobalHoverIndex]);
 
   const onMouseMove = useCallback(e => {
-  if (!scrollRef.current) return;
-  if (isDragging) {
-    e.preventDefault();
-    const rect = scrollRef.current.getBoundingClientRect();
-    const dx = e.clientX - rect.left - dragStart.current.x; 
-    scrollRef.current.scrollLeft = dragStart.current.scrollLeft - dx * 1.5;
-    syncVisibleRight(scrollRef.current);
-    setGlobalHoverIndex(null);
-    return;
-  }
+    if (!scrollRef.current) return;
+    if (isDragging) {
+      e.preventDefault();
+      const rect = scrollRef.current.getBoundingClientRect();
+      const dx = e.clientX - rect.left - dragStart.current.x;
+      scrollRef.current.scrollLeft = dragStart.current.scrollLeft - dx * 1.5;
+      syncVisibleRight(scrollRef.current);
+      setGlobalHoverIndex(null);
+      return;
+    }
     const rect   = scrollRef.current.getBoundingClientRect();
     const mouseX = e.clientX - rect.left + scrollRef.current.scrollLeft;
     const idx    = Math.max(0, Math.min(Math.round((mouseX - padL) / gap), pts - 1));
@@ -417,27 +434,27 @@ const FlowChart = memo(({
 
   const visIdx = Math.min(visibleRightIdx, pts - 1);
 
+  // Which series to draw — default top5, or whatever is in selectedSet
+  const drawIndices = useMemo(() => {
+    if (selectedSet.size > 0) return [...selectedSet];
+    return [0, 1, 2, 3, 4];
+  }, [selectedSet]);
+
   const endTags = useMemo(() => {
-    if (extraVisible != null) {
-      const s = allSeries[extraVisible];
-      if (!s) return [];
-      const v = s[visIdx];
-      return [{ symbol: allData[extraVisible]?.symbol, value: v.toFixed(1), y: normY(v, yScale, height, padT, padB), color: EXTRA_COLOR }];
-    }
-    const raw = top5.map((row, i) => {
+    const raw = drawIndices.map(i => {
       const s = allSeries[i];
-      if (!s || dimmed?.[i]) return null;
+      if (!s) return null;
       const v = s[visIdx];
-      return { symbol: row.symbol, value: v.toFixed(1), y: normY(v, yScale, height, padT, padB), color: PALETTE[i] };
+      return {
+        symbol: allData[i]?.symbol ?? SYMS[i],
+        value: v.toFixed(1),
+        y: normY(v, yScale, height, padT, padB),
+        color: getSeriesColor(i),
+      };
     }).filter(Boolean);
     return avoidCollisions(raw);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [extraVisible, allSeries, allData, top5, dimmed, visIdx, yScale, height, padT, padB]);
-
-  const flashedIndices = useMemo(
-    () => Object.keys(flashMap).map(Number).filter(i => i < 5),
-    [flashMap]
-  );
+  }, [drawIndices, allSeries, allData, visIdx, yScale, height, padT, padB]);
 
   return (
     <div className={`${fullWidth ? "w-full" : "w-full lg:w-[65%]"} bg-[#0f1e2e] rounded-lg border border-slate-600/60 relative`} style={{ height }}>
@@ -452,12 +469,14 @@ const FlowChart = memo(({
         onMouseUp={onMouseUp}
       >
         <svg width={chartW} height={height} className="overflow-visible pointer-events-none" style={{ display: "block" }}>
+          {/* Grid lines */}
           {Array.from({ length: yTicks }, (_, i) => {
             const y = padT + (i * (height - padT - padB)) / (yTicks - 1);
             return <line key={i} x1={0} y1={y} x2={chartW} y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />;
           })}
           <line x1={0} y1={height - padB} x2={chartW} y2={height - padB} stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
 
+          {/* Time axis labels */}
           {labels.map((l, i) => {
             if (i % 4 !== 0) return null;
             const [datePart, timePart] = l.split("\n");
@@ -478,35 +497,18 @@ const FlowChart = memo(({
             );
           })}
 
-          {extraIndices.map(si => {
-            const s = allSeries[si];
-            if (!s) return null;
-            const d = buildPath(s, yScale, height, padL, padT, padB, gap);
-            const lastX = padL + visIdx * gap;
-            const lastY = normY(s[visIdx], yScale, height, padT, padB);
-            return (
-              <g key={`ex-${si}`}>
-                <path d={d} fill="none" stroke={EXTRA_COLOR} strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" />
-                {!isHovering && <circle cx={lastX} cy={lastY} r="4" fill={EXTRA_COLOR} stroke="#0f1e2e" strokeWidth="2" />}
-              </g>
-            );
-          })}
-
-          {extraVisible == null && top5.map((row, i) => {
+          {/* Series lines — draw all active indices uniformly */}
+          {drawIndices.map(i => {
             const s = allSeries[i];
             if (!s) return null;
-            const isDim = dimmed?.[i];
-            const isHi  = highlighted === i;
-            const base  = PALETTE[i];
-            const stroke = isDim ? base + "35" : isHi ? base : base + "cc";
-            const sw     = isDim ? 1 : isHi ? 3 : 2;
-            const d = buildPath(s, yScale, height, padL, padT, padB, gap);
-            const lastX = padL + (s.length - 1) * gap;
-            const lastY = normY(s[s.length - 1], yScale, height, padT, padB);
+            const color      = getSeriesColor(i);
             const isFlashing = flashMap[i];
+            const d          = buildPath(s, yScale, height, padL, padT, padB, gap);
+            const lastX      = padL + (s.length - 1) * gap;
+            const lastY      = normY(s[s.length - 1], yScale, height, padT, padB);
             return (
               <g key={i}>
-                <path d={d} fill="none" stroke={stroke} strokeWidth={sw} strokeLinejoin="round" strokeLinecap="round" />
+                <path d={d} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
                 {!isHovering && (
                   <>
                     {isFlashing && (
@@ -519,25 +521,22 @@ const FlowChart = memo(({
                           strokeWidth="1" opacity="0.7" />
                       </>
                     )}
-                    <circle cx={lastX} cy={lastY} r={isHi ? 5 : 3.5} fill={base} stroke="#0f1e2e" strokeWidth="2" />
+                    <circle cx={lastX} cy={lastY} r="3.5" fill={color} stroke="#0f1e2e" strokeWidth="2" />
                   </>
                 )}
               </g>
             );
           })}
 
+          {/* Crosshair */}
           {isHovering && (
             <g>
-              <line x1={hoverX} y1={padT} x2={hoverX} y2={height - padB} stroke="rgba(255,255,255,0.2)" strokeWidth="1" strokeDasharray="4 4" />
-              {extraVisible == null && top5.map((_, i) => {
+              <line x1={hoverX} y1={padT} x2={hoverX} y2={height - padB}
+                stroke="rgba(255,255,255,0.2)" strokeWidth="1" strokeDasharray="4 4" />
+              {drawIndices.map(i => {
                 const s = allSeries[i]; if (!s) return null;
-                const cy = normY(s[globalHoverIndex] ?? s[s.length-1], yScale, height, padT, padB);
-                return <circle key={i} cx={hoverX} cy={cy} r="4" fill={PALETTE[i]} stroke="#0f1e2e" strokeWidth="2" />;
-              })}
-              {extraIndices.map(si => {
-                const s = allSeries[si]; if (!s) return null;
-                const cy = normY(s[globalHoverIndex] ?? s[s.length-1], yScale, height, padT, padB);
-                return <circle key={si} cx={hoverX} cy={cy} r="4" fill={EXTRA_COLOR} stroke="#0f1e2e" strokeWidth="2" />;
+                const cy = normY(s[globalHoverIndex] ?? s[s.length - 1], yScale, height, padT, padB);
+                return <circle key={i} cx={hoverX} cy={cy} r="4" fill={getSeriesColor(i)} stroke="#0f1e2e" strokeWidth="2" />;
               })}
             </g>
           )}
@@ -552,6 +551,7 @@ const FlowChart = memo(({
           )}
         </svg>
 
+        {/* Hover tooltip */}
         {isHovering && globalHoverIndex < pts && (
           <div className="absolute top-3 z-50 bg-[#1e293b]/95 border border-slate-500 rounded-lg px-3 py-2 shadow-xl pointer-events-none backdrop-blur-sm"
             style={{
@@ -561,19 +561,12 @@ const FlowChart = memo(({
             <p className="text-[10px] text-slate-400 mb-1.5 font-medium">
               {labels[globalHoverIndex]?.replace("\n", "  ")}
             </p>
-            {extraVisible == null && top5.map((row, i) => {
+            {drawIndices.map(i => {
               const s = allSeries[i]; if (!s) return null;
               return (
-                <p key={i} className="text-[12px] font-bold leading-tight" style={{ color: PALETTE[i] }}>
-                  {row.symbol}  {(s[globalHoverIndex] ?? s[s.length-1])?.toFixed(1)}
-                </p>
-              );
-            })}
-            {extraIndices.map(si => {
-              const s = allSeries[si]; if (!s) return null;
-              return (
-                <p key={si} className="text-[12px] font-bold leading-tight" style={{ color: EXTRA_COLOR }}>
-                  {allData[si]?.symbol}  {(s[globalHoverIndex] ?? s[s.length-1])?.toFixed(1)}
+                <p key={i} className="text-[12px] font-bold leading-tight" style={{ color: getSeriesColor(i) }}>
+                  {allData[i]?.symbol ?? SYMS[i]}{"  "}
+                  {(s[globalHoverIndex] ?? s[s.length - 1])?.toFixed(1)}
                 </p>
               );
             })}
@@ -581,7 +574,9 @@ const FlowChart = memo(({
         )}
       </div>
 
-      <div className="absolute right-0 top-0 h-full z-10 border-l border-white/8 bg-[#0c1828]" style={{ width: padR, overflow: "visible" }}>
+      {/* Y-axis panel */}
+      <div className="absolute right-0 top-0 h-full z-10 border-l border-white/8 bg-[#0c1828]"
+        style={{ width: padR, overflow: "visible" }}>
         <svg width={padR} height={height} className="overflow-visible" style={{ overflow: "visible" }}>
           {yTickVals.map((v, i) => {
             const y = padT + (i * (height - padT - padB)) / (yTicks - 1);
@@ -593,25 +588,20 @@ const FlowChart = memo(({
               </text>
             );
           })}
-
           {endTags.map((tag, idx) => {
-            const LW   = 48;
-            const VW   = padR - 8;
-            const TH   = 22;
-            const r    = 5;
-            const lx   = -LW - 2;
-            const vx   = 4;
+            const LW = 48, VW = padR - 8, TH = 22, r = 5;
+            const lx = -LW - 2, vx = 4;
             return (
               <g key={idx}>
-                <rect x={lx} y={tag.y - TH/2} width={LW} height={TH} rx={r} fill={tag.color} />
-                <text x={lx + LW/2} y={tag.y} fill="#fff" fontSize="10" fontWeight="800"
+                <rect x={lx} y={tag.y - TH / 2} width={LW} height={TH} rx={r} fill={tag.color} />
+                <text x={lx + LW / 2} y={tag.y} fill="#fff" fontSize="10" fontWeight="800"
                   textAnchor="middle" dominantBaseline="central"
                   style={{ fontFamily: "monospace", letterSpacing: "0.02em" }}>
                   {tag.symbol}
                 </text>
-                <rect x={vx} y={tag.y - TH/2} width={VW} height={TH} rx={r}
+                <rect x={vx} y={tag.y - TH / 2} width={VW} height={TH} rx={r}
                   fill="transparent" stroke={tag.color} strokeWidth="0.8" strokeOpacity="0.35" />
-                <text x={vx + VW/2} y={tag.y} fill={tag.color} fontSize="11" fontWeight="700"
+                <text x={vx + VW / 2} y={tag.y} fill={tag.color} fontSize="11" fontWeight="700"
                   textAnchor="middle" dominantBaseline="central"
                   style={{ fontFamily: "monospace" }}>
                   {tag.value}
@@ -644,12 +634,12 @@ const SpinButton = memo(({ onClick, title, label }) => {
       color: "#ffffff", cursor: "pointer", fontSize: 11, fontWeight: 600,
       fontFamily: "monospace", flexShrink: 0, transition: "all .15s",
     }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(255,255,255,0.3)"; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor="rgba(255,255,255,0.08)"; }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
       title={title}>
       <span ref={iconRef} style={{ display: "inline-flex" }}>
         <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M13.5 6A6 6 0 1 0 14 10"/><path d="M14 4v3h-3"/>
+          <path d="M13.5 6A6 6 0 1 0 14 10" /><path d="M14 4v3h-3" />
         </svg>
       </span>
       {label}
@@ -659,7 +649,7 @@ const SpinButton = memo(({ onClick, title, label }) => {
       className="w-8 h-8 rounded-lg border border-slate-600 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 hover:border-slate-400 transition-all">
       <span ref={iconRef} style={{ display: "inline-flex" }}>
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M13.5 6A6 6 0 1 0 14 10"/><path d="M14 4v3h-3"/>
+          <path d="M13.5 6A6 6 0 1 0 14 10" /><path d="M14 4v3h-3" />
         </svg>
       </span>
     </button>
@@ -667,10 +657,14 @@ const SpinButton = memo(({ onClick, title, label }) => {
 });
 
 /* ================= ZOOM MODAL ================= */
-const ZoomModal = memo(({ card, onClose, highlighted, dimmed, extraVisible, onLegendClick, onRowClick, onReset, globalHoverIndex, setGlobalHoverIndex, chartRefs, pointGap, handleZoom, flashMap, recentMap = {} }) => {
+const ZoomModal = memo(({
+  card, onClose, selectedSet, onRowClick, onReset,
+  globalHoverIndex, setGlobalHoverIndex, chartRefs,
+  pointGap, handleZoom, flashMap, recentMap = {},
+}) => {
   const [localPointGap, setLocalPointGap] = useState(pointGap);
   const chartContainerRef = useRef(null);
-  const modalChartRefs = useRef({});
+  const modalChartRefs    = useRef({});
 
   const localHandleZoom = useCallback((deltaY, mouseClientX, scrollEl) => {
     setLocalPointGap(prev => {
@@ -681,9 +675,7 @@ const ZoomModal = memo(({ card, onClose, highlighted, dimmed, extraVisible, onLe
         const cursorX  = mouseClientX - rect.left;
         const contentX = scrollEl.scrollLeft + cursorX;
         const ratio    = next / prev;
-        requestAnimationFrame(() => {
-          scrollEl.scrollLeft = contentX * ratio - cursorX;
-        });
+        requestAnimationFrame(() => { scrollEl.scrollLeft = contentX * ratio - cursorX; });
       }
       return next;
     });
@@ -701,33 +693,29 @@ const ZoomModal = memo(({ card, onClose, highlighted, dimmed, extraVisible, onLe
     const el = chartContainerRef.current;
     if (!el) return;
     const ro = new ResizeObserver(([entry]) => {
-      if (entry.contentRect.height > 0) setChartH(entry.contentRect.height);if (width > 0 && card && card.labels.length > 1) {
-      const availW = width - CHART_CFG.paddingLeft - CHART_CFG.paddingRight - 4;
-      const gap = Math.max(8, Math.min(120, availW / (card.labels.length - 1)));
-      setLocalPointGap(gap);
-    }
+      const { width, height } = entry.contentRect;
+      if (height > 0) setChartH(height);
+      if (width > 0 && card && card.labels.length > 1) {
+        const availW = width - CHART_CFG.paddingLeft - CHART_CFG.paddingRight - 4;
+        const gap = Math.max(8, Math.min(120, availW / (card.labels.length - 1)));
+        setLocalPointGap(gap);
+      }
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [card]); 
+  }, [card]);
 
   if (!card) return null;
-  const { category, type, data, allSeries, labels, top5 } = card;
+  const { category, type, data, allSeries, labels } = card;
   const isPos = type === "+";
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 9999,
-      background: "#060d16",
-      display: "flex", flexDirection: "column",
-      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-    }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "#060e1a", display: "flex", flexDirection: "column" }}>
+      {/* ── Header ── */}
       <div style={{
         display: "flex", alignItems: "center",
         padding: "0 16px", height: 46, flexShrink: 0,
-        background: "#07111c",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
-        gap: 12,
+        background: "#07111c", borderBottom: "1px solid rgba(255,255,255,0.06)", gap: 12,
       }}>
         <button onClick={onClose} style={{
           display: "flex", alignItems: "center", gap: 6,
@@ -737,7 +725,7 @@ const ZoomModal = memo(({ card, onClose, highlighted, dimmed, extraVisible, onLe
           fontFamily: "monospace", flexShrink: 0,
         }}>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
           </svg>
           Back
         </button>
@@ -752,64 +740,72 @@ const ZoomModal = memo(({ card, onClose, highlighted, dimmed, extraVisible, onLe
         }}>
           {isPos ? "▲ BUY FLOW" : "▼ SELL FLOW"}
         </span>
+        <ToolHint onViewDetails={() => {}}>
+          His Real Flow tracks stock market money flow historically.
+        </ToolHint>
+        {selectedSet.size > 0 && (
+          <span style={{
+            fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 99,
+            background: "rgba(59,130,246,0.12)", color: "#60a5fa",
+            border: "1px solid rgba(96,165,250,0.3)", fontFamily: "monospace", flexShrink: 0,
+          }}>
+            {selectedSet.size}/{MAX_SELECT} เส้น
+          </span>
+        )}
         <div style={{ flex: 1 }} />
-        <SpinButton
-          onClick={() => { onReset?.(); setLocalPointGap(pointGap); }}
-          title="Reset" label="Reset"
-        />
-      </div>
+        <CtrlTooltip max={MAX_SELECT} />
+        <SpinButton onClick={() => { onReset?.(); setLocalPointGap(pointGap); }} title="Reset" label="Reset" />
+      </div>{/* ── End Header ── */}
 
+      {/* ── Body ── */}
       <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
-  <div ref={chartContainerRef} style={{ flex: 1, minWidth: 0, position: "relative", minHeight: 0 }}>
-    {chartH > 0 && (
-      <FlowChart
-        allSeries={allSeries} labels={labels} top5={top5}
-        highlighted={highlighted} dimmed={dimmed}
-        extraVisible={extraVisible} allData={data}
-        height={chartH}
-        chartId={`modal-${category}-${type}`}
-        globalHoverIndex={globalHoverIndex}
-        setGlobalHoverIndex={setGlobalHoverIndex}
-        chartRefs={modalChartRefs}    
-          pointGap={localPointGap}
-          handleZoom={localHandleZoom}
-        fullWidth={true}
-        flashMap={flashMap}
-      />
-    )}
-  </div>
+        {/* Chart */}
+        <div ref={chartContainerRef} style={{ flex: 1, minWidth: 0, position: "relative", minHeight: 0 }}>
+          {chartH > 0 && (
+            <FlowChart
+              allSeries={allSeries} labels={labels} allData={data}
+              height={chartH}
+              chartId={`modal-${category}-${type}`}
+              globalHoverIndex={globalHoverIndex}
+              setGlobalHoverIndex={setGlobalHoverIndex}
+              chartRefs={modalChartRefs}
+              pointGap={localPointGap}
+              handleZoom={localHandleZoom}
+              fullWidth={true}
+              flashMap={flashMap}
+              selectedSet={selectedSet}
+            />
+          )}
+        </div>
 
-  <div style={{
-    width: 300, flexShrink: 0, display: "flex", flexDirection: "column", minHeight: 0,
-    border: "1px solid rgba(255,255,255,0.15)",
-    margin: "8px 8px 8px 0", borderRadius: 8, overflow: "hidden",
-  }}>
+        {/* Rankings sidebar */}
+        <div style={{
+          width: 300, flexShrink: 0, display: "flex", flexDirection: "column", minHeight: 0,
+          border: "1px solid rgba(255,255,255,0.15)",
+          margin: "8px 8px 8px 0", borderRadius: 8, overflow: "hidden",
+        }}>
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
             padding: "10px 18px 8px",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
-            flexShrink: 0,
+            borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0,
           }}>
             <span style={{ color: "#475569", fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" }}>Rankings</span>
             <span style={{ color: "#1e3a5f", fontSize: 10 }}>{data.length} stocks</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }} className="custom-scrollbar">
             {data.map((row, i) => {
-              const isTop5  = i < 5;
-              const isHi    = isTop5 && highlighted === i;
-              const isExtra = !isTop5 && extraVisible === i;
+              const isSel   = selectedSet.has(i);
+              const isDim   = selectedSet.size > 0 && !isSel;
               const flash   = flashMap?.[i];
               const recent  = recentMap?.[i];
               const isUp    = row.isUp === true;
               const isDown  = row.isUp === false;
-              const dotColor = isTop5 ? PALETTE[i] : isExtra ? EXTRA_COLOR : "#1e3a5f";
-              const rowBg = flash === "up"   ? "rgba(34,197,94,0.12)"
-                          : flash === "down" ? "rgba(239,68,68,0.12)"
-                          : isHi            ? "rgba(59,130,246,0.07)"
-                          : "transparent";
-              const leftBorder = isHi    ? `2px solid ${PALETTE[i]}`
-                               : isExtra ? `2px solid ${EXTRA_COLOR}`
-                               : "2px solid transparent";
+              const color   = getSeriesColor(i);
+              const rowBg   = flash === "up"   ? "rgba(34,197,94,0.12)"
+                            : flash === "down" ? "rgba(239,68,68,0.12)"
+                            : isSel           ? "rgba(59,130,246,0.07)"
+                            : "transparent";
+              const leftBorder = isSel ? `2px solid ${color}` : "2px solid transparent";
               const showDivider = i === 5;
               return (
                 <React.Fragment key={row.rank}>
@@ -821,25 +817,29 @@ const ZoomModal = memo(({ card, onClose, highlighted, dimmed, extraVisible, onLe
                       <span style={{ fontSize: 9, color: "#334155", fontFamily: "monospace", letterSpacing: "0.1em", whiteSpace: "nowrap" }}>OTHER</span>
                     </div>
                   )}
-                  <div onClick={() => onRowClick?.(i)}
+                  <div
+                    onClick={(e) => onRowClick?.(i, e.ctrlKey || e.metaKey)}
                     style={{
                       display: "grid", gridTemplateColumns: "32px 10px 1fr auto auto",
                       alignItems: "center", gap: "0 10px", padding: "9px 18px",
                       borderBottom: "1px solid rgba(255,255,255,0.15)",
                       borderLeft: leftBorder, background: rowBg,
-                      cursor: "pointer", transition: "background .3s",
-                    }}>
+                      cursor: "pointer", transition: "background .3s, opacity .3s",
+                      opacity: isDim ? 0.2 : 1,
+                    }}
+                  >
                     <span style={{
-                      color: isTop5 ? "#94a3b8" : "#334155", fontSize: isTop5 ? 12 : 11,
-                      fontWeight: isTop5 ? 700 : 400, textAlign: "right", fontFamily: "monospace",
+                      color: i < 5 ? "#94a3b8" : "#334155",
+                      fontSize: i < 5 ? 12 : 11, fontWeight: i < 5 ? 700 : 400,
+                      textAlign: "right", fontFamily: "monospace",
                       borderRight: "1px solid rgba(255,255,255,0.08)", paddingRight: 6,
                     }}>{row.rank}</span>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: dotColor, justifySelf: "center" }} />
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: isSel ? color : "#1e3a5f", justifySelf: "center" }} />
                     <span style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 700, letterSpacing: "0.04em", fontFamily: "monospace" }}>
                       {row.symbol}
                       {(flash || recent) && (
-                        <span style={{ marginLeft: 5, fontSize: 9, color: (flash||recent) === "up" ? "#4ade80" : "#f87171" }}>
-                          {(flash||recent) === "up" ? "▲" : "▼"}
+                        <span style={{ marginLeft: 5, fontSize: 9, color: (flash || recent) === "up" ? "#4ade80" : "#f87171" }}>
+                          {(flash || recent) === "up" ? "▲" : "▼"}
                         </span>
                       )}
                     </span>
@@ -860,7 +860,7 @@ const ZoomModal = memo(({ card, onClose, highlighted, dimmed, extraVisible, onLe
             })}
           </div>
         </div>
-      </div>
+      </div>{/* ── End Body ── */}
     </div>
   );
 });
@@ -880,54 +880,20 @@ const LastUpdateBadge = memo(({ lastUpdated }) => {
     const t = setInterval(fmt, 5000);
     return () => clearInterval(t);
   }, [lastUpdated]);
-
   if (!lastUpdated) return null;
-  return (
-    <span className="text-[10px] text-slate-500 font-mono">
-      updated {display}
-    </span>
-  );
+  return <span className="text-[10px] text-slate-500 font-mono">updated {display}</span>;
 });
-
-/* ================= BREAKPOINT HOOK ================= */
-function useBreakpoint() {
-  const [bp, setBp] = useState(() => {
-    if (typeof window === "undefined") return "lg";
-    const w = window.innerWidth;
-    if (w < 480) return "xs";
-    if (w < 640) return "sm";
-    if (w < 768) return "md";
-    if (w < 1024) return "lg";
-    return "xl";
-  });
-  useEffect(() => {
-    const update = () => {
-      const w = window.innerWidth;
-      if (w < 480) setBp("xs");
-      else if (w < 640) setBp("sm");
-      else if (w < 768) setBp("md");
-      else if (w < 1024) setBp("lg");
-      else setBp("xl");
-    };
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-  return bp;
-}
 
 /* ================= SECTION CARD ================= */
 const SectionCard = memo(({ category, type, baseSeed, selectedDate, dateIndex, globalHoverIndex, setGlobalHoverIndex, chartRefs, pointGap, handleZoom }) => {
-  const [highlighted, setHighlighted]   = useState(null);
-  const [dimmed, setDimmed]             = useState({});
-  const [extraVisible, setExtraVisible] = useState(null);
-  const [modalOpen, setModalOpen]       = useState(false);
-  const [lastUpdated, setLastUpdated]   = useState(null);
+  const [selectedSet,  setSelectedSet]  = useState(new Set());
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [lastUpdated,  setLastUpdated]  = useState(null);
 
   const isPos  = type === "+";
   const POINTS = 29;
 
-  const dateSeed = (baseSeed * 17 + (dateIndex + 1) * 131) >>> 0;
-
+  const dateSeed   = (baseSeed * 17 + (dateIndex + 1) * 131) >>> 0;
   const baseData   = useMemo(() => mkFlowData(dateSeed), [dateSeed]);
   const baseSeries = useMemo(() => mkSeries(dateSeed, 20, POINTS, isPos), [dateSeed, isPos]);
   const dayLabels  = useMemo(() => selectedDate ? mkDayLabels(selectedDate) : mkDayLabels("06/01/25"), [selectedDate]);
@@ -939,46 +905,34 @@ const SectionCard = memo(({ category, type, baseSeed, selectedDate, dateIndex, g
     if (Object.keys(flashMap).length > 0) setLastUpdated(Date.now());
   }, [flashMap]);
 
-  const top5 = useMemo(() => liveData.slice(0, 5), [liveData]);
+  const top5    = useMemo(() => liveData.slice(0, 5), [liveData]);
   const chartId = `card-${category}-${type}`;
+
+  const handleRowClick = useCallback((rowIdx, isCtrl) => {
+    if (isCtrl) {
+      setSelectedSet(prev => {
+        const next = new Set(prev);
+        if (next.has(rowIdx)) {
+          next.delete(rowIdx);
+        } else if (next.size < MAX_SELECT) {
+          next.add(rowIdx);
+        }
+        return next;
+      });
+    } else {
+      setSelectedSet(prev => {
+        if (prev.size === 1 && prev.has(rowIdx)) return new Set();
+        return new Set([rowIdx]);
+      });
+    }
+  }, []);
 
   const handleRefresh = useCallback(() => {
     Object.values(chartRefs.current).forEach(node => {
       if (node) node.scrollLeft = node.scrollWidth;
     });
-    setHighlighted(null); setDimmed({}); setExtraVisible(null);
+    setSelectedSet(new Set());
   }, [chartRefs]);
-
-  const handleLegendClick = useCallback(idx => {
-    setHighlighted(prev => {
-      const next = prev === idx ? null : idx;
-      setDimmed(() => {
-        const d = {};
-        for (let i = 0; i < 5; i++) d[i] = next !== null && i !== next;
-        return d;
-      });
-      return next;
-    });
-  }, []);
-
-  const handleRowClick = useCallback(rowIdx => {
-    if (rowIdx < 5) {
-      setExtraVisible(null);
-      setHighlighted(prev => {
-        const next = prev === rowIdx ? null : rowIdx;
-        setDimmed(() => {
-          const d = {};
-          for (let i = 0; i < 5; i++) d[i] = next !== null && i !== next;
-          return d;
-        });
-        return next;
-      });
-    } else {
-      setHighlighted(null);
-      setDimmed({});
-      setExtraVisible(prev => prev === rowIdx ? null : rowIdx);
-    }
-  }, []);
 
   return (
     <>
@@ -991,13 +945,23 @@ const SectionCard = memo(({ category, type, baseSeed, selectedDate, dateIndex, g
               {isPos ? "▲ BUY FLOW" : "▼ SELL FLOW"}
             </span>
             <LastUpdateBadge lastUpdated={lastUpdated} />
+            {selectedSet.size > 0 && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, padding: "1px 8px", borderRadius: 99,
+                background: "rgba(59,130,246,0.12)", color: "#60a5fa",
+                border: "1px solid rgba(96,165,250,0.3)", fontFamily: "monospace",
+              }}>
+                {selectedSet.size}/{MAX_SELECT}
+              </span>
+            )}
           </div>
-          <div className="flex gap-1.5">
-            <button onClick={() => setModalOpen(true)}
+          <div className="flex gap-1.5 items-center">
+            <CtrlTooltip max={MAX_SELECT} />
+            <button onClick={() => setIsFullscreen(true)}
               className="w-8 h-8 rounded-lg border border-slate-600 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 hover:border-slate-400 transition-all"
               title="Fullscreen">
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5"/>
+                <path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" />
               </svg>
             </button>
             <SpinButton onClick={handleRefresh} title="Refresh" />
@@ -1006,36 +970,36 @@ const SectionCard = memo(({ category, type, baseSeed, selectedDate, dateIndex, g
 
         <div className="flex flex-col lg:flex-row gap-4 lg:h-64">
           <FlowChart
-            allSeries={baseSeries} labels={dayLabels} top5={top5}
-            highlighted={highlighted} dimmed={dimmed}
-            extraVisible={extraVisible} allData={liveData}
+            allSeries={baseSeries} labels={dayLabels} allData={liveData}
             height={256} chartId={chartId}
             globalHoverIndex={globalHoverIndex}
             setGlobalHoverIndex={setGlobalHoverIndex}
             chartRefs={chartRefs} pointGap={pointGap} handleZoom={handleZoom}
-            flashMap={flashMap}
+            flashMap={flashMap} selectedSet={selectedSet}
           />
           <RankTable
             data={liveData} flashMap={flashMap} recentMap={recentMap}
-            top5Len={5} highlighted={highlighted} extraVisible={extraVisible}
-            onRowClick={handleRowClick}
+            selectedSet={selectedSet} onRowClick={handleRowClick}
           />
         </div>
       </div>
 
-      {modalOpen && (
+      {isFullscreen && (
         <ZoomModal
-    card={{ category, type, data: liveData, allSeries: baseSeries, labels: dayLabels, top5 }}
-    onClose={() => setModalOpen(false)}
-    highlighted={highlighted} dimmed={dimmed} extraVisible={extraVisible}
-    onLegendClick={handleLegendClick} onRowClick={handleRowClick} onReset={handleRefresh}
-    globalHoverIndex={globalHoverIndex} setGlobalHoverIndex={setGlobalHoverIndex}
-    chartRefs={chartRefs}     
-    pointGap={pointGap}
-    handleZoom={handleZoom}     
-    flashMap={flashMap} recentMap={recentMap}
-      />
-    )}
+          card={{ category, type, data: liveData, allSeries: baseSeries, labels: dayLabels, top5 }}
+          onClose={() => setIsFullscreen(false)}
+          selectedSet={selectedSet}
+          onRowClick={handleRowClick}
+          onReset={handleRefresh}
+          globalHoverIndex={globalHoverIndex}
+          setGlobalHoverIndex={setGlobalHoverIndex}
+          chartRefs={chartRefs}
+          pointGap={pointGap}
+          handleZoom={handleZoom}
+          flashMap={flashMap}
+          recentMap={recentMap}
+        />
+      )}
     </>
   );
 });
@@ -1064,20 +1028,19 @@ function parseKey(key) {
   return { day: +dd, month: +mm, year: 2000 + +yy };
 }
 function toKey(year, month, day) {
-  return `${String(day).padStart(2,"0")}/${String(month).padStart(2,"0")}/${String(year).slice(2)}`;
+  return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${String(year).slice(2)}`;
 }
 function formatDisplay(key) {
   if (!key) return "";
   const { day, month, year } = parseKey(key);
-  const dd = String(day).padStart(2,"0");
-  return `${dd} ${MONTH_NAMES[month-1]} ${year}`;
+  return `${String(day).padStart(2, "0")} ${MONTH_NAMES[month - 1]} ${year}`;
 }
 
 const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const DAY_NAMES   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 const DatePicker = memo(({ dates, selected, onChange }) => {
-  const [open, setOpen] = useState(false);         
+  const [open, setOpen] = useState(false);
   const [view, setView] = useState("day");
   const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
   const ref = useRef(null);
@@ -1093,8 +1056,8 @@ const DatePicker = memo(({ dates, selected, onChange }) => {
   const [viewMonth, setViewMonth] = useState(initView.month);
   const [viewYear,  setViewYear]  = useState(initView.year);
 
-  const tradableSet    = useMemo(() => new Set(dates), [dates]);
-  const availableYears = useMemo(() => {
+  const tradableSet     = useMemo(() => new Set(dates), [dates]);
+  const availableYears  = useMemo(() => {
     const ys = new Set(dates.map(k => 2000 + +k.split("/")[2]));
     return [...ys].sort((a, b) => a - b);
   }, [dates]);
@@ -1103,10 +1066,7 @@ const DatePicker = memo(({ dates, selected, onChange }) => {
   }, [dates, viewYear]);
 
   const decadeStart = Math.floor(viewYear / 10) * 10;
-  const decadeYears = useMemo(
-    () => Array.from({ length: 12 }, (_, i) => decadeStart - 1 + i),
-    [decadeStart]
-  );
+  const decadeYears = useMemo(() => Array.from({ length: 12 }, (_, i) => decadeStart - 1 + i), [decadeStart]);
 
   useEffect(() => {
     if (!open) return;
@@ -1116,13 +1076,13 @@ const DatePicker = memo(({ dates, selected, onChange }) => {
   }, [open]);
 
   const prevMonth = useCallback(() => {
-    if (viewMonth === 1) { setViewMonth(12); setViewYear(y => y-1); }
-    else setViewMonth(m => m-1);
+    if (viewMonth === 1) { setViewMonth(12); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
   }, [viewMonth]);
 
   const nextMonth = useCallback(() => {
-    if (viewMonth === 12) { setViewMonth(1); setViewYear(y => y+1); }
-    else setViewMonth(m => m+1);
+    if (viewMonth === 12) { setViewMonth(1); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
   }, [viewMonth]);
 
   const canPrev = useCallback(() => {
@@ -1132,8 +1092,8 @@ const DatePicker = memo(({ dates, selected, onChange }) => {
   }, [dates, viewYear, viewMonth]);
 
   const canNext = useCallback(() => {
-    if (!dates[dates.length-1]) return false;
-    const p = parseKey(dates[dates.length-1]);
+    if (!dates[dates.length - 1]) return false;
+    const p = parseKey(dates[dates.length - 1]);
     return viewYear < p.year || (viewYear === p.year && viewMonth < p.month);
   }, [dates, viewYear, viewMonth]);
 
@@ -1152,11 +1112,9 @@ const DatePicker = memo(({ dates, selected, onChange }) => {
     width: 252, background: "#0f172a",
     border: "0.5px solid rgba(255,255,255,0.1)", borderRadius: 12,
     boxShadow: "0 16px 40px rgba(0,0,0,0.6)", fontFamily: "monospace",
-    overflow: "hidden",
-    maxHeight: `calc(100vh - ${popupPos.top}px - 8px)`,  // ไม่ให้สูงเกินจอ
-    overflowY: "auto",
-    };
-  const header = {
+    overflow: "hidden", maxHeight: `calc(100vh - ${popupPos.top}px - 8px)`, overflowY: "auto",
+  };
+  const dpHeader = {
     display: "flex", alignItems: "center", justifyContent: "space-between",
     padding: "10px 14px 8px", borderBottom: "0.5px solid rgba(255,255,255,0.07)",
   };
@@ -1178,9 +1136,9 @@ const DatePicker = memo(({ dates, selected, onChange }) => {
   };
   const Chev = ({ d }) => (
     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      {d==="left"  && <polyline points="15 18 9 12 15 6"/>}
-      {d==="right" && <polyline points="9 18 15 12 9 6"/>}
-      {d==="down"  && <polyline points="6 9 12 15 18 9"/>}
+      {d === "left"  && <polyline points="15 18 9 12 15 6" />}
+      {d === "right" && <polyline points="9 18 15 12 9 6" />}
+      {d === "down"  && <polyline points="6 9 12 15 18 9" />}
     </svg>
   );
 
@@ -1191,14 +1149,8 @@ const DatePicker = memo(({ dates, selected, onChange }) => {
         if (!open && ref.current) {
           const rect = ref.current.getBoundingClientRect();
           const POPUP_W = 252;
-          const clampedLeft = Math.min(
-            rect.left,
-            window.innerWidth - POPUP_W - 8   // ไม่ให้ล้นขวา
-          );
-          const clampedTop = Math.min(
-            rect.bottom + 8,
-            window.innerHeight - 8            // ไม่ให้ล้นล่าง
-          );
+          const clampedLeft = Math.min(rect.left, window.innerWidth - POPUP_W - 8);
+          const clampedTop  = Math.min(rect.bottom + 8, window.innerHeight - 8);
           setPopupPos({ top: clampedTop, left: Math.max(8, clampedLeft) });
         }
         setOpen(o => !o); setView("day");
@@ -1210,55 +1162,52 @@ const DatePicker = memo(({ dates, selected, onChange }) => {
         fontFamily: "monospace", transition: "all .15s",
       }}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="4" width="18" height="18" rx="2"/>
-          <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-          <line x1="3" y1="10" x2="21" y2="10"/>
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
         </svg>
         {formatDisplay(selected)}
         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-          style={{ opacity:.6, transform: open?"rotate(180deg)":"none", transition:"transform .2s" }}>
-          <polyline points="6 9 12 15 18 9"/>
+          style={{ opacity: .6, transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }}>
+          <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
 
       {open && (
         <div style={popup}>
           {view === "year" && (<>
-            <div style={header}>
-              <button style={navBtn(decadeStart > (availableYears[0]??2025))}
-                onClick={() => setViewYear(decadeStart - 1)}
-                onMouseEnter={e=>{ if(decadeStart>(availableYears[0]??2025)) e.currentTarget.style.background="rgba(255,255,255,0.06)"; }}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                <Chev d="left"/>
+            <div style={dpHeader}>
+              <button style={navBtn(decadeStart > (availableYears[0] ?? 2025))} onClick={() => setViewYear(decadeStart - 1)}
+                onMouseEnter={e => { if (decadeStart > (availableYears[0] ?? 2025)) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <Chev d="left" />
               </button>
-              <span style={{ color:"#e2e8f0", fontSize:12, fontWeight:500, fontFamily:"monospace" }}>
-                {decadeStart} – {decadeStart+9}
+              <span style={{ color: "#e2e8f0", fontSize: 12, fontWeight: 500, fontFamily: "monospace" }}>
+                {decadeStart} – {decadeStart + 9}
               </span>
-              <button style={navBtn(decadeStart+9 < (availableYears[availableYears.length-1]??2025))}
-                onClick={() => setViewYear(decadeStart+10)}
-                onMouseEnter={e=>{ if(decadeStart+9<(availableYears[availableYears.length-1]??2025)) e.currentTarget.style.background="rgba(255,255,255,0.06)"; }}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                <Chev d="right"/>
+              <button style={navBtn(decadeStart + 9 < (availableYears[availableYears.length - 1] ?? 2025))} onClick={() => setViewYear(decadeStart + 10)}
+                onMouseEnter={e => { if (decadeStart + 9 < (availableYears[availableYears.length - 1] ?? 2025)) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <Chev d="right" />
               </button>
             </div>
-            <div style={{ ...body, display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:3 }}>
+            <div style={{ ...body, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 3 }}>
               {decadeYears.map(yr => {
                 const avail = availableYears.includes(yr);
                 const isCur = yr === viewYear;
-                const isOut = yr < decadeStart || yr > decadeStart+9;
+                const isOut = yr < decadeStart || yr > decadeStart + 9;
                 return (
-                  <button key={yr}
-                    onClick={() => { if(avail){ setViewYear(yr); setView("month"); } }}
+                  <button key={yr} onClick={() => { if (avail) { setViewYear(yr); setView("month"); } }}
                     style={{
-                      height:30, borderRadius:6, border:"none",
-                      cursor: avail?"pointer":"default", fontFamily:"monospace",
-                      fontSize:12, fontWeight: isCur?600:400,
-                      background: isCur?"#3b82f6":"transparent",
-                      color: isCur?"#fff" : avail?(isOut?"#475569":"#cbd5e1") : "#1e3a5f",
-                      transition:"all .1s",
+                      height: 30, borderRadius: 6, border: "none",
+                      cursor: avail ? "pointer" : "default", fontFamily: "monospace",
+                      fontSize: 12, fontWeight: isCur ? 600 : 400,
+                      background: isCur ? "#3b82f6" : "transparent",
+                      color: isCur ? "#fff" : avail ? (isOut ? "#475569" : "#cbd5e1") : "#1e3a5f",
+                      transition: "all .1s",
                     }}
-                    onMouseEnter={e=>{ if(avail&&!isCur) e.currentTarget.style.background="rgba(255,255,255,0.06)"; }}
-                    onMouseLeave={e=>{ if(avail&&!isCur) e.currentTarget.style.background="transparent"; }}
+                    onMouseEnter={e => { if (avail && !isCur) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                    onMouseLeave={e => { if (avail && !isCur) e.currentTarget.style.background = "transparent"; }}
                   >{yr}</button>
                 );
               })}
@@ -1266,43 +1215,40 @@ const DatePicker = memo(({ dates, selected, onChange }) => {
           </>)}
 
           {view === "month" && (<>
-            <div style={header}>
-              <button style={navBtn(availableYears.includes(viewYear-1))}
-                onClick={()=>setViewYear(y=>y-1)}
-                onMouseEnter={e=>{ if(availableYears.includes(viewYear-1)) e.currentTarget.style.background="rgba(255,255,255,0.06)"; }}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                <Chev d="left"/>
+            <div style={dpHeader}>
+              <button style={navBtn(availableYears.includes(viewYear - 1))} onClick={() => setViewYear(y => y - 1)}
+                onMouseEnter={e => { if (availableYears.includes(viewYear - 1)) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <Chev d="left" />
               </button>
-              <button style={titleBtn} onClick={()=>setView("year")}
-                onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                {viewYear} <Chev d="down"/>
+              <button style={titleBtn} onClick={() => setView("year")}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                {viewYear} <Chev d="down" />
               </button>
-              <button style={navBtn(availableYears.includes(viewYear+1))}
-                onClick={()=>setViewYear(y=>y+1)}
-                onMouseEnter={e=>{ if(availableYears.includes(viewYear+1)) e.currentTarget.style.background="rgba(255,255,255,0.06)"; }}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                <Chev d="right"/>
+              <button style={navBtn(availableYears.includes(viewYear + 1))} onClick={() => setViewYear(y => y + 1)}
+                onMouseEnter={e => { if (availableYears.includes(viewYear + 1)) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <Chev d="right" />
               </button>
             </div>
-            <div style={{ ...body, display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:3 }}>
+            <div style={{ ...body, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 3 }}>
               {SHORT_MONTH.map((m, idx) => {
-                const mNum  = idx+1;
+                const mNum  = idx + 1;
                 const avail = availableMonths.has(mNum);
                 const isCur = mNum === viewMonth;
                 return (
-                  <button key={m}
-                    onClick={()=>{ if(avail){ setViewMonth(mNum); setView("day"); } }}
+                  <button key={m} onClick={() => { if (avail) { setViewMonth(mNum); setView("day"); } }}
                     style={{
-                      height:32, borderRadius:6, border:"none",
-                      cursor: avail?"pointer":"default", fontFamily:"monospace",
-                      fontSize:12, fontWeight: isCur?600:400,
-                      background: isCur?"#3b82f6":"transparent",
-                      color: isCur?"#fff" : avail?"#cbd5e1" : "#1e3a5f",
-                      transition:"all .1s",
+                      height: 32, borderRadius: 6, border: "none",
+                      cursor: avail ? "pointer" : "default", fontFamily: "monospace",
+                      fontSize: 12, fontWeight: isCur ? 600 : 400,
+                      background: isCur ? "#3b82f6" : "transparent",
+                      color: isCur ? "#fff" : avail ? "#cbd5e1" : "#1e3a5f",
+                      transition: "all .1s",
                     }}
-                    onMouseEnter={e=>{ if(avail&&!isCur) e.currentTarget.style.background="rgba(255,255,255,0.06)"; }}
-                    onMouseLeave={e=>{ if(avail&&!isCur) e.currentTarget.style.background="transparent"; }}
+                    onMouseEnter={e => { if (avail && !isCur) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                    onMouseLeave={e => { if (avail && !isCur) e.currentTarget.style.background = "transparent"; }}
                   >{m}</button>
                 );
               })}
@@ -1310,60 +1256,59 @@ const DatePicker = memo(({ dates, selected, onChange }) => {
           </>)}
 
           {view === "day" && (<>
-            <div style={header}>
+            <div style={dpHeader}>
               <button style={navBtn(canPrev())} onClick={prevMonth}
-                onMouseEnter={e=>{ if(canPrev()) e.currentTarget.style.background="rgba(255,255,255,0.06)"; }}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                <Chev d="left"/>
+                onMouseEnter={e => { if (canPrev()) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <Chev d="left" />
               </button>
-              <button style={titleBtn} onClick={()=>setView("month")}
-                onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                {FULL_MONTH[viewMonth-1]} {viewYear} <Chev d="down"/>
+              <button style={titleBtn} onClick={() => setView("month")}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                {FULL_MONTH[viewMonth - 1]} {viewYear} <Chev d="down" />
               </button>
               <button style={navBtn(canNext())} onClick={nextMonth}
-                onMouseEnter={e=>{ if(canNext()) e.currentTarget.style.background="rgba(255,255,255,0.06)"; }}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                <Chev d="right"/>
+                onMouseEnter={e => { if (canNext()) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                <Chev d="right" />
               </button>
             </div>
             <div style={body}>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2, marginBottom:4 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2, marginBottom: 4 }}>
                 {DAY_NAMES.map(n => (
                   <div key={n} style={{
-                    textAlign:"center", fontSize:10, fontWeight:500,
-                    color: n==="Sun"||n==="Sat" ? "#1e3a5f" : "#475569",
-                    padding:"2px 0", letterSpacing:"0.06em",
+                    textAlign: "center", fontSize: 10, fontWeight: 500,
+                    color: n === "Sun" || n === "Sat" ? "#1e3a5f" : "#475569",
+                    padding: "2px 0", letterSpacing: "0.06em",
                   }}>{n}</div>
                 ))}
               </div>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2 }}>
                 {calDays.map((day, i) => {
-                  if (!day) return <div key={`e-${i}`}/>;
+                  if (!day) return <div key={`e-${i}`} />;
                   const key       = toKey(viewYear, viewMonth, day);
                   const isTrade   = tradableSet.has(key);
                   const isSel     = key === selected;
-                  const isWeekend = new Date(viewYear, viewMonth-1, day).getDay() % 6 === 0;
+                  const isWeekend = new Date(viewYear, viewMonth - 1, day).getDay() % 6 === 0;
                   return (
-                    <button key={key}
-                      onClick={()=>{ if(isTrade){ onChange(key); setOpen(false); } }}
+                    <button key={key} onClick={() => { if (isTrade) { onChange(key); setOpen(false); } }}
                       style={{
-                        height:28, borderRadius:6, border: "none",
-                        cursor: isTrade?"pointer":"default", fontFamily:"monospace",
-                        fontSize:11, fontWeight: isSel?600:400,
-                        background: isSel?"#3b82f6":"transparent",
-                        color: isSel?"#fff" : isTrade?"#e2e8f0" : isWeekend?"#1e3a5f" : "#334155",
-                        transition:"all .1s", position:"relative",
+                        height: 28, borderRadius: 6, border: "none",
+                        cursor: isTrade ? "pointer" : "default", fontFamily: "monospace",
+                        fontSize: 11, fontWeight: isSel ? 600 : 400,
+                        background: isSel ? "#3b82f6" : "transparent",
+                        color: isSel ? "#fff" : isTrade ? "#e2e8f0" : isWeekend ? "#1e3a5f" : "#334155",
+                        transition: "all .1s", position: "relative",
                       }}
-                      onMouseEnter={e=>{ if(isTrade&&!isSel) e.currentTarget.style.background="rgba(255,255,255,0.07)"; }}
-                      onMouseLeave={e=>{ if(isTrade&&!isSel) e.currentTarget.style.background="transparent"; }}
+                      onMouseEnter={e => { if (isTrade && !isSel) e.currentTarget.style.background = "rgba(255,255,255,0.07)"; }}
+                      onMouseLeave={e => { if (isTrade && !isSel) e.currentTarget.style.background = "transparent"; }}
                     >
                       {day}
                       {isTrade && !isSel && (
                         <span style={{
-                          position:"absolute", bottom:2, left:"50%", transform:"translateX(-50%)",
-                          width:3, height:3, borderRadius:"50%", background:"#3b82f6",
-                        }}/>
+                          position: "absolute", bottom: 2, left: "50%", transform: "translateX(-50%)",
+                          width: 3, height: 3, borderRadius: "50%", background: "#3b82f6",
+                        }} />
                       )}
                     </button>
                   );
@@ -1371,11 +1316,11 @@ const DatePicker = memo(({ dates, selected, onChange }) => {
               </div>
             </div>
             <div style={footer}>
-              <span style={{ fontSize:9, color:"#334155", letterSpacing:"0.1em", textTransform:"uppercase" }}>Trading Days</span>
+              <span style={{ fontSize: 9, color: "#334155", letterSpacing: "0.1em", textTransform: "uppercase" }}>Trading Days</span>
               <span style={{
-                fontSize:11, fontWeight:500, color:"#60a5fa",
-                background:"rgba(59,130,246,0.1)", padding:"1px 8px", borderRadius:99,
-                border:"0.5px solid rgba(59,130,246,0.2)",
+                fontSize: 11, fontWeight: 500, color: "#60a5fa",
+                background: "rgba(59,130,246,0.1)", padding: "1px 8px", borderRadius: 99,
+                border: "0.5px solid rgba(59,130,246,0.2)",
               }}>{dates.length}</span>
             </div>
           </>)}
@@ -1387,13 +1332,13 @@ const DatePicker = memo(({ dates, selected, onChange }) => {
 
 /* ================= MAIN COMPONENT ================= */
 export default function HisRealFlow() {
-  const [activeCategory, setActiveCategory] = useState(null);
-  const [searchQuery, setSearchQuery]        = useState("");
-  const [selectedDate, setSelectedDate]      = useState(() => { const all = getTradingDates(); return all[all.length - 1]?.key ?? null; });
-  const [globalHoverIndex, setGlobalHoverIndex] = useState(null);
-  const [pointGap, setPointGap] = useState(52);
+  const [activeCategory,    setActiveCategory]    = useState(null);
+  const [searchQuery,       setSearchQuery]       = useState("");
+  const [selectedDate,      setSelectedDate]      = useState(() => { const all = getTradingDates(); return all[all.length - 1]?.key ?? null; });
+  const [globalHoverIndex,  setGlobalHoverIndex]  = useState(null);
+  const [pointGap,          setPointGap]          = useState(52);
   const chartRefs = useRef({});
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
 
   const tradingDates   = useMemo(() => getTradingDates(), []);
   const availableDates = useMemo(() => tradingDates.map(d => d.key), [tradingDates]);
@@ -1439,94 +1384,72 @@ export default function HisRealFlow() {
         .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
-        @keyframes flash-up { 0% { background-color: rgba(34,197,94,0.45); } 40% { background-color: rgba(34,197,94,0.2); } 100% { background-color: transparent; } }
-        @keyframes flash-down { 0% { background-color: rgba(239,68,68,0.45); } 40% { background-color: rgba(239,68,68,0.2); } 100% { background-color: transparent; } }
+        @keyframes flash-up { 0%{background-color:rgba(34,197,94,0.45)} 40%{background-color:rgba(34,197,94,0.2)} 100%{background-color:transparent} }
+        @keyframes flash-down { 0%{background-color:rgba(239,68,68,0.45)} 40%{background-color:rgba(239,68,68,0.2)} 100%{background-color:transparent} }
         .flash-up   { animation: flash-up 3s ease-out forwards; }
         .flash-down { animation: flash-down 3s ease-out forwards; }
-        @keyframes ping-slow { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.5); opacity: 0; } }
-        .animate-ping { animation: ping-slow 1.5s cubic-bezier(0,0,0.2,1) infinite; }
-        @keyframes bounce-icon { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+        @keyframes bounce-icon { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
         .animate-bounce-icon { animation: bounce-icon 0.4s ease-in-out 3; }
-        @keyframes spin-once { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes spin-once { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         .spin-once { animation: spin-once 0.5s ease-in-out; }
-        @keyframes pulse-ring { 0% { r: 6; opacity: 0.8; } 100% { r: 16; opacity: 0; } }
+        @keyframes pulse-ring { 0%{r:6;opacity:0.8} 100%{r:16;opacity:0} }
         .pulse-ring { animation: pulse-ring 1s ease-out forwards; }
-        @keyframes slide-down { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-        .mobile-menu-enter { animation: slide-down 0.18s ease-out forwards; }
-        .cat-pill-active { box-shadow: 0 0 0 1px rgba(59,130,246,0.5), 0 2px 8px rgba(59,130,246,0.2); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
       <div className="max-w-[1600px] mx-auto px-3 sm:px-4 py-4 sm:py-6">
-<header className="mb-6 sm:mb-8">
-  {/* ── Main Container ── */}
-  <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 sm:gap-3">
+        <header className="mb-6 sm:mb-8">
+          <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 sm:gap-3">
+            <div className="order-1 shrink-0">
+              <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
+                His Real Flow tracks stock market money flow historically.
+                Select a trading date to view that day's flow data.
+              </ToolHint>
+            </div>
+            <div className="order-2 relative flex-1 min-w-0 max-w-[160px] sm:max-w-[200px] lg:max-w-[220px]">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </span>
+              <input type="text" placeholder="Search..." value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full bg-[#1e293b] rounded-lg py-1.5 sm:py-2 pl-8 sm:pl-9 pr-7 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 border border-slate-700 transition-all" />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs transition-colors">✕</button>
+              )}
+            </div>
+            <div className="order-3 shrink-0">
+              <DatePicker dates={availableDates} selected={selectedDate} onChange={setSelectedDate} />
+            </div>
+            <div className="order-5 lg:order-4 w-full lg:w-auto mt-2 lg:mt-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar lg:min-w-0">
+              {CATEGORIES.map(cat => {
+                const isActive = activeCategory === cat;
+                return (
+                  <button key={cat} onClick={() => setActiveCategory(prev => prev === cat ? null : cat)}
+                    className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-all border focus:outline-none whitespace-nowrap flex-shrink-0
+                      ${isActive
+                        ? "bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-900/50"
+                        : "bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white"}`}>
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => navigate("/real-flow")}
+              className="order-4 lg:order-5 flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all border bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white focus:outline-none ml-auto shrink-0"
+              title="Back to Real Flow">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+              </svg>
+              <span className="hidden sm:inline">Real Flow</span>
+            </button>
+          </div>
+        </header>
 
-    {/* 1. ToolHint (ซ้ายสุดเสมอ) */}
-    <div className="order-1 shrink-0">
-      <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
-        His Real Flow tracks stock market money flow historically.
-        Select a trading date to view that day's flow data.
-        Charts and rankings update based on the selected date.
-      </ToolHint>
-    </div>
-
-    {/* 2. Search Box */}
-    <div className="order-2 relative flex-1 min-w-0 max-w-[160px] sm:max-w-[200px] lg:max-w-[220px]">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-      </span>
-      <input type="text" placeholder="Search..." value={searchQuery}
-        onChange={e => setSearchQuery(e.target.value)}
-        className="w-full bg-[#1e293b] rounded-lg py-1.5 sm:py-2 pl-8 sm:pl-9 pr-7 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 border border-slate-700 transition-all" />
-      {searchQuery && (
-        <button onClick={() => setSearchQuery("")}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs transition-colors">✕</button>
-      )}
-    </div>
-
-    {/* 3. DatePicker (เลื่อนมาซ้าย ต่อจาก Search) */}
-    <div className="order-3 shrink-0">
-      <DatePicker dates={availableDates} selected={selectedDate} onChange={setSelectedDate} />
-    </div>
-
-    {/* 4. Category pills 
-        มือถือ (order-5): บังคับขึ้นบรรทัดใหม่ด้วย w-full
-        Desktop (lg:order-4): แทรกกลางระหว่าง ปฏิทิน กับ ปุ่ม Real Flow 
-    */}
-    <div className="order-5 lg:order-4 w-full lg:w-auto mt-2 lg:mt-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar lg:min-w-0">
-      {CATEGORIES.map(cat => {
-        const isActive = activeCategory === cat;
-        return (
-          <button key={cat} onClick={() => setActiveCategory(prev => prev === cat ? null : cat)}
-            className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-all border focus:outline-none whitespace-nowrap flex-shrink-0
-              ${isActive
-                ? "bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-900/50 cat-pill-active"
-                : "bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white"}`}>
-            {cat}
-          </button>
-        );
-      })}
-    </div>
-
-    {/* 5. Real Flow button (ขวาสุด) 
-        ใช้ ml-auto เพื่อดันปุ่มนี้ไปชิดขวาเสมอ
-    */}
-    <button
-      onClick={() => navigate("/real-flow")}
-      className="order-4 lg:order-5 flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all border bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white focus:outline-none ml-auto shrink-0"
-      title="Back to Real Flow">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-      </svg>
-      <span className="hidden sm:inline">Real Flow</span>
-    </button>
-
-  </div>
-</header>
         <div className="space-y-4 sm:space-y-6 pb-12">
           {visibleSections.length > 0 ? (
             visibleSections.map(({ category, type }) => {

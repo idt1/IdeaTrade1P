@@ -352,7 +352,7 @@ const LWCChart = ({
       width:  containerRef.current.clientWidth,
       height: typeof height === "number" ? height : containerRef.current.clientHeight || 200,
       layout: {
-        background: { type: ColorType.Solid, color: "#0d1b2a" },
+        background: { type: ColorType.Solid, color: "#0f1e2e" },
         textColor:  "#4a6080",
         fontFamily: "monospace",
         fontSize:   10,
@@ -616,12 +616,14 @@ const RankTable = ({ data, flashMap = {}, recentMap = {}, highlighted, extraVisi
 
   return (
     <div ref={containerRef} style={{
-      width: "100%", background: "#0d1b2a",
-      border: "1px solid rgba(255,255,255,0.07)",
-      borderRadius: 4, overflow: "hidden",
-      display: "flex", flexDirection: "column", height: TABLE_H,
-    }}>
-      {/* header */}
+        width: "100%", background: "#0d1b2a",
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderRadius: 4, overflow: "hidden",
+        display: "flex", flexDirection: "column",
+        height: "100%",   
+      }}>
+
+            {/* header */}
       <div style={{
         display: "grid", gridTemplateColumns: COL,
         alignItems: "center", padding: "0 10px", height: 36,
@@ -641,7 +643,10 @@ const RankTable = ({ data, flashMap = {}, recentMap = {}, highlighted, extraVisi
       </div>
 
       {/* rows */}
-      <div style={{ overflowY: "auto", flex: 1 }}>
+      <div
+        className="custom-scrollbar"
+        style={{ overflowY: "auto", flex: 1, maxHeight: VISIBLE_ROWS * ROW_H }}
+      >
         {data.slice(0, totalCount).map((row, i) => {
           const isTop5  = i < 5;
           const isHi    = isTop5 && hiArr.includes(i);
@@ -811,7 +816,10 @@ const FullscreenRankings = ({ data, flashMap = {}, recentMap = {}, totalCount, h
           </span>
         )}
       </div>
-      <div style={{ flex: 1, overflowY: "auto" }}>
+      <div
+          className="custom-scrollbar"
+          style={{ flex: 1, overflowY: "auto" }}
+        >
         {top5.map((row, i) => <RankRow key={i} row={row} i={i} isTop />)}
         {others.length > 0 && (
           <div style={{
@@ -973,8 +981,8 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
 
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginLeft: "auto", alignItems: "center" }}>
             <InfoTooltip
-              text={`Ctrl+คลิก เพื่อเพิ่มหุ้นเปรียบเทียบ (รวมไม่เกิน ${MAX_SELECT} เส้น)`}
-              placement="bottom"
+           text={`Ctrl+คลิก เพื่อเพิ่มหุ้นเปรียบเทียบ (รวมไม่เกิน ${MAX_SELECT} เส้น)`}
+              placement="bottom"   
             />
             {TIME_PERIODS.map(({ key, label, sub }) => {
               const isActive = timePeriod === key;
@@ -1049,9 +1057,9 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
   /* ── NORMAL (card) LAYOUT ── */
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{
-        background: "#0f1c2e", borderRadius: 8,
-        border: "1px solid rgba(255,255,255,0.07)",
+      <div 
+      className="bg-[#1e293b] rounded-xl border border-slate-700/60 shadow-lg"
+      style={{
         padding: "16px 20px", display: "flex", flexDirection: "column",
       }}>
         <div style={{
@@ -1113,7 +1121,7 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
               labelData={liveData}
             />
           </div>
-          <div style={{ width: isMobile ? "100%" : 460, flexShrink: 0 }}>
+          <div style={{ width: isMobile ? "100%" : 460, flexShrink: 0, height: TABLE_H, overflow: "hidden" }}>
             <RankTable
               data={liveData}
               flashMap={flashMap}
@@ -1166,17 +1174,26 @@ function IdeatradePoint({ onChartFlipClick }) {
   }), [allSections, activeCategory, searchQuery]);
 
   return (
-    <div style={{ width: "100%", minHeight: "100vh", background: "#060e1a", color: "#e2e8f0", fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+    <div
+        className="w-full min-h-screen bg-[#0f172a] text-white"
+        style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}
+      >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700;800&display=swap');
-        * { box-sizing: border-box; }
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        @keyframes flash-up   { 0% { background-color: rgba(34,197,94,0.45); } 100% { background-color: transparent; } }
+        @keyframes flash-down { 0% { background-color: rgba(239,68,68,0.45); } 100% { background-color: transparent; } }
+        .flash-up   { animation: flash-up   3s ease-out forwards; }
+        .flash-down { animation: flash-down 3s ease-out forwards; }
       `}</style>
 
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: "16px 20px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20, flexWrap: "wrap", rowGap: 8 }}>
+          <ToolHint onViewDetails={() => { window.scrollTo({ top: 0 }); }}>
+            Ideatradepoint 
+               </ToolHint>
           <div style={{ position: "relative", flexShrink: 0 }}>
             <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "#64748b", pointerEvents: "none" }}>
               <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1186,7 +1203,7 @@ function IdeatradePoint({ onChartFlipClick }) {
             <input
               type="text" placeholder="Search..." value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              style={{ background: "#0f1c2e", borderRadius: 8, padding: "7px 26px 7px 28px", fontSize: 13, color: "#e2e8f0", border: "1px solid rgba(255,255,255,0.1)", outline: "none", width: 120, fontFamily: "inherit" }}
+              style={{ background: "#0f1c2e", borderRadius: 8, padding: "8px 26px 8px 32px", fontSize: 14, color: "#e2e8f0", border: "1px solid rgba(255,255,255,0.2)", outline: "none", width: 200, fontFamily: "inherit" }}
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery("")} style={{ position: "absolute", right: 7, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 11 }}>✕</button>
@@ -1201,13 +1218,13 @@ function IdeatradePoint({ onChartFlipClick }) {
                   key={cat}
                   onClick={() => setActiveCategory(prev => prev === cat ? null : cat)}
                   style={{
-                    padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    padding: "8px 20px", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer",
                     background: isActive ? "#1d4ed8" : "transparent",
-                    border: isActive ? "1px solid #3b82f6" : "1px solid rgba(255,255,255,0.12)",
-                    color: isActive ? "#fff" : "#94a3b8",
+                    border: isActive ? "1px solid #3b82f6" : "1px solid rgba(255,255,255,0.25)",
+                    color: isActive ? "#fff" : "#cbd5e1",
                     transition: "all 0.15s", fontFamily: "inherit",
                     boxShadow: isActive ? "0 0 0 1px rgba(59,130,246,0.4), 0 2px 8px rgba(59,130,246,0.2)" : "none",
-                    whiteSpace: "nowrap",
+                    whiteSpace: "nowrap",letterSpacing: "0.02em",
                   }}
                 >{cat}</button>
               );
@@ -1216,9 +1233,9 @@ function IdeatradePoint({ onChartFlipClick }) {
 
           <button style={{
             marginLeft: "auto", display: "flex", alignItems: "center", gap: 5,
-            padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600,
-            background: "transparent", border: "1px solid rgba(255,255,255,0.12)",
-            color: "#94a3b8", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+            padding: "8px 20px", borderRadius: 8, fontSize: 14, fontWeight: 600,
+            background: "transparent", border: "1px solid rgba(255,255,255,0.25)",
+            color: "#cbd5e1", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
           }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>

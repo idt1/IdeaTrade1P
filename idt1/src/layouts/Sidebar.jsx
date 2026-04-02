@@ -39,6 +39,7 @@ import realflow1 from "@/assets/icons/realflow1.svg";
 import realflowGray from "@/assets/icons/realflow_gray.svg";
 import chartFlipId from "@/assets/icons/chartfilp.svg";
 import chartFlipIdGray from "@/assets/icons/chartfilpg.svg";
+import ideatradepoint from "@/assets/icons/ideatradepoint.svg";
 
 /* ================= ICON MAP ================= */
 const sidebarIcons = {
@@ -55,6 +56,7 @@ const sidebarIcons = {
   bidask:    { default: bidask,    active: abidask    },
   tickmatch: { default: tickmatch, active: atickmatch },
   dr:        { default: dr,        active: adr        },
+  ideatradepoint: { default: ideatradepoint, active: ideatradepoint },
 };
 
 const getIcon = (key, active) => {
@@ -554,6 +556,33 @@ const SidebarContent = ({
           >
             <DWIconSVG active={activePage === "dw"} />
             {!isCollapsed && <span>DW</span>}
+          </div>
+        </button>
+
+        {/* ── Idea Trade Point Button ── */}
+        <button
+          onClick={() => { navigate("/ideatradepoint"); setActivePage("ideatradepoint"); onMobileClose?.(); }}
+          onMouseEnter={(e) => handleMouseEnter(e, "Idea Trade Point")}
+          onMouseLeave={handleMouseLeave}
+          className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
+          ${activePage === "ideatradepoint" ? "bg-slate-800" : "hover:bg-white/5"}
+          ${isCollapsed ? "w-10 h-10 justify-center" : "w-full h-11 px-4 justify-between"}`}
+        >
+          <div className={`flex items-center gap-3 font-medium transition-colors pointer-events-none
+            ${activePage === "ideatradepoint" ? "text-white" : "text-gray-400"}
+            ${isCollapsed ? "justify-center w-full" : ""}`}
+          >
+            <img
+              src={getIcon("ideatradepoint", activePage === "ideatradepoint")}
+              className="w-5"
+              alt="Idea Trade Point"
+              style={
+                activePage === "ideatradepoint"
+                  ? { filter: "brightness(0) invert(1)" }
+                  : { filter: "brightness(0) invert(1) opacity(0.4)" }
+              }
+            />
+            {!isCollapsed && <span>IdeaTradePoint</span>}
           </div>
         </button>
 
