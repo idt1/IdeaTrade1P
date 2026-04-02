@@ -12,6 +12,16 @@ const SYMS = [
   "BH","CPN","MAJOR","HANA","SCC","BEM","WHA","TU","BEAUTY","ESSO",
 ];
 
+/* ================= TIME PERIODS ================= */
+const TIME_PERIODS = [
+  { key: "start", label: "Start",    sub: "10:00-12:30" },
+  { key: "half",  label: "Half-Day", sub: "12:00-14:30" },
+  { key: "end",   label: "End-Day",  sub: "14:15-16:30" },
+  { key: "all",   label: "All Day",  sub: "10:00-16:30" },
+];
+
+const MAX_SELECT = 5;
+
 /* ================= RNG + DATA ================= */
 function rng(s) {
   let x = s >>> 0;
@@ -51,19 +61,6 @@ function mkLWCData(seed, count = 20, points = 390, isUp = true) {
   });
 }
 
-function filterLWCByTime(seriesData, fromH, fromM, toH, toM) {
-  const fromSec = (fromH * 60 + fromM) * 60;
-  const toSec   = (toH   * 60 + toM  ) * 60;
-  return seriesData.map(pts =>
-    pts.filter(({ time }) => {
-      const ict    = time + 7 * 3600;
-      const secDay = ict % 86400;
-      return secDay >= fromSec && secDay <= toSec;
-    })
-  );
-}
-
-/* ================= CHARTFLIP SPARKLINE DATA ================= */
 function mkChartFlipSparklines(seed, count = 20) {
   const r = rng(seed + 9999);
   return Array.from({ length: count }, () => {
@@ -112,72 +109,26 @@ const ChartFlipHint = () => {
 
   return (
     <div className="relative inline-flex items-center">
-      <button
-        ref={btnRef}
-        onClick={toggle}
-        className="flex items-center justify-center text-slate-500 hover:text-slate-300 transition-all"
-      >
+      <button ref={btnRef} onClick={toggle}
+        className="flex items-center justify-center text-slate-500 hover:text-slate-300 transition-all">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" />
           <line x1="12" y1="8" x2="12" y2="8" strokeWidth="2.5" />
           <line x1="12" y1="12" x2="12" y2="16" />
         </svg>
       </button>
-
       {visible && (
-        <div
-          onClick={e => e.stopPropagation()}
-          className="fixed z-[9999] whitespace-nowrap"
-          style={{ top: pos.top, left: pos.left, transform: "translate(-95%, -130%)" }}
-        >
-          <div style={{
-            background: "#1e293b", borderRadius: 12, padding: "8px 14px",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.5)", position: "relative",
-          }}>
+        <div onClick={e => e.stopPropagation()} className="fixed z-[9999] whitespace-nowrap"
+          style={{ top: pos.top, left: pos.left, transform: "translate(-95%, -130%)" }}>
+          <div style={{ background: "#1e293b", borderRadius: 12, padding: "8px 14px", boxShadow: "0 4px 20px rgba(0,0,0,0.5)", position: "relative" }}>
             <p style={{ color: "#f1f5f9", fontSize: 12, fontWeight: 500, margin: 0 }}>
               คลิกที่ icon เพื่อไปหน้า ChartFlip ของหุ้นนั้น
             </p>
-            <div style={{
-              position: "absolute", bottom: -8, right: 14,
-              width: 0, height: 0,
-              borderLeft: "6px solid transparent", borderRight: "6px solid transparent",
-              borderTop: "8px solid #1e293b",
-            }} />
+            <div style={{ position: "absolute", bottom: -8, right: 14, width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "8px solid #1e293b" }} />
           </div>
         </div>
       )}
     </div>
-  );
-};
-
-/* ================= MINI SPARKLINE ================= */
-const MiniSparkline = ({ values, isUp, width = 80, height = 32 }) => {
-  if (!values || values.length < 2) return <span style={{ fontSize: 9, color: "#334155" }}>—</span>;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-  const pts = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * (width - 6) + 3;
-    const y = height - 5 - ((v - min) / range) * (height - 10);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(" ");
-  const color = isUp === true ? "#4ade80" : isUp === false ? "#f87171" : "#64748b";
-  const fillColor = isUp === true ? "rgba(74,222,128,0.08)" : isUp === false ? "rgba(248,113,113,0.08)" : "rgba(100,116,139,0.06)";
-  const firstPt = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * (width - 6) + 3;
-    const y = height - 5 - ((v - min) / range) * (height - 10);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
-  const fillPath = `M ${firstPt[0]} L ${firstPt.join(" L ")} L ${((values.length-1)/(values.length-1))*(width-6)+3},${height-2} L 3,${height-2} Z`;
-  const lastV = values[values.length - 1];
-  const lastX = (width - 6) + 3;
-  const lastY = height - 5 - ((lastV - min) / range) * (height - 10);
-  return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: "block" }}>
-      <path d={fillPath} fill={fillColor} />
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={lastX} cy={lastY} r="2.5" fill={color} />
-    </svg>
   );
 };
 
@@ -244,12 +195,12 @@ function useLiveData(initialData, cardKey) {
       const newFlash = {};
       const updated  = current.map((row, i) => {
         if (!indices.includes(i)) return row;
-        const oldVal   = parseFloat(row.value);
-        const delta    = (Math.random() - 0.5) * oldVal * 0.03;
-        const newVal   = Math.max(1, oldVal + delta);
+        const oldVal    = parseFloat(row.value);
+        const delta     = (Math.random() - 0.5) * oldVal * 0.03;
+        const newVal    = Math.max(1, oldVal + delta);
         const newChange = parseFloat(row.change) + (Math.random() - 0.5) * 1.2;
-        const clamped  = Math.max(-15, Math.min(15, newChange));
-        newFlash[i]    = delta > 0 ? "up" : "down";
+        const clamped   = Math.max(-15, Math.min(15, newChange));
+        newFlash[i]     = delta > 0 ? "up" : "down";
         return { ...row, value: newVal.toFixed(2), change: clamped.toFixed(2), isUp: clamped > 0.05 ? true : clamped < -0.05 ? false : null };
       });
       setLiveData(updated);
@@ -270,28 +221,59 @@ function useLiveData(initialData, cardKey) {
   return { liveData, flashMap, recentMap };
 }
 
-/* ================= INFO TOOLTIP ================= */
-const InfoTooltip = ({ children, lines = [], linkText = "", linkHref = "#" }) => {
+const CtrlTooltip = ({ max }) => {
   const [visible, setVisible] = useState(false);
-  const t = useRef(null);
-  const show = () => { clearTimeout(t.current); setVisible(true); };
-  const hide = () => { t.current = setTimeout(() => setVisible(false), 100); };
-  useEffect(() => () => clearTimeout(t.current), []);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+  const triggerRef = useRef(null);
+
+  const handleMouseEnter = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPos({
+        top:   rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setVisible(true);
+  };
+
   return (
-    <div className="relative inline-flex items-center">
-      <div onMouseEnter={show} onMouseLeave={hide}>{children}</div>
+    <div
+      ref={triggerRef}
+      style={{ display: "inline-flex", alignItems: "center" }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={() => setVisible(false)}
+    >
+      {/* ⓘ ไม่มีวงกลม */}
+      <span style={{
+        color: "#64748b", fontSize: 22,
+        cursor: "default", userSelect: "none",
+        lineHeight: 1,
+      }}>ⓘ</span>
+
       {visible && (
-        <div onMouseEnter={show} onMouseLeave={hide}
-          className="absolute left-full top-0 ml-3 z-[9999] w-64 bg-[#1a2235] border border-slate-600/70 rounded-xl shadow-2xl px-4 py-3 pointer-events-auto">
-          <div className="absolute -left-[7px] w-0 h-0 border-t-[7px] border-t-transparent border-b-[7px] border-b-transparent border-r-[7px] border-r-[#1a2235]" style={{ top: "calc(18px - 7px)" }} />
-          <div className="absolute -left-[9px] w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-r-[8px] border-r-slate-600/70" style={{ top: "calc(18px - 8px)" }} />
-          <div className="text-slate-200 text-[13px] leading-relaxed space-y-0.5 mb-2">
-            {lines.map((l, i) => <p key={i}>{l}</p>)}
-          </div>
-          {linkText && (
-            <a href={linkHref} target="_blank" rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300 text-[13px] underline">{linkText}</a>
-          )}
+        <div style={{
+          position: "fixed",
+          top:   pos.top,
+          right: pos.right,
+          background: "#1e293b",
+          border: "1px solid rgba(255,255,255,0.12)",
+          borderRadius: 10,
+          padding: "8px 14px",
+          whiteSpace: "nowrap",
+          fontSize: 12, color: "#f1f5f9", fontWeight: 500,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+          zIndex: 99999,
+          pointerEvents: "none",
+        }}>
+          <div style={{
+            position: "absolute", top: -7, right: 10,
+            width: 0, height: 0,
+            borderLeft: "6px solid transparent",
+            borderRight: "6px solid transparent",
+            borderBottom: "7px solid #1e293b",
+          }} />
+          Ctrl+คลิก เพื่อเพิ่มหุ้นเปรียบเทียบ (รวมไม่เกิน {max} เส้น)
         </div>
       )}
     </div>
@@ -301,18 +283,19 @@ const InfoTooltip = ({ children, lines = [], linkText = "", linkHref = "#" }) =>
 /* ================= RANK TABLE ================= */
 const RankTable = ({
   data, flashMap = {}, recentMap = {},
-  top5Len, highlighted, extraVisible,
-  onRowClick, onChartFlipClick,          // ← onChartFlipClick รับ symbol
+  top5Len,
+  highlighted = [],
+  extraVisibleSet = [],
+  onRowClick, onChartFlipClick,
   compact = false, sparklines = [],
 }) => {
   const [expanded, setExpanded] = useState(false);
   const visibleData = compact && !expanded ? data.slice(0, top5Len) : data;
+  const hiArr       = Array.isArray(highlighted) ? highlighted : (highlighted != null ? [highlighted] : []);
+  const allSelected = new Set([...hiArr, ...extraVisibleSet]);
 
   return (
-    <div className={`
-      bg-[#0f172a] rounded-lg border border-slate-700 overflow-hidden flex flex-col
-      ${compact ? "w-full max-h-[220px] sm:max-h-[260px]" : "h-full"}
-    `}>
+    <div className={`bg-[#0f172a] rounded-lg border border-slate-700 overflow-hidden flex flex-col ${compact ? "w-full max-h-[220px] sm:max-h-[260px]" : "h-full"}`}>
       <div className="overflow-y-auto flex-1 custom-scrollbar">
         <table className="w-full text-sm table-fixed">
           <thead className="sticky top-0 z-10">
@@ -332,19 +315,22 @@ const RankTable = ({
           <tbody>
             {visibleData.map((row, i) => {
               const isTop5  = i < top5Len;
-              const isHi    = isTop5 && highlighted === i;
-              const isExtra = !isTop5 && extraVisible === i;
+              const isHi    = isTop5 && hiArr.includes(i);
+              const isExtra = !isTop5 && extraVisibleSet.includes(i);
+              const isSel   = allSelected.has(i);
               const flash   = flashMap[i];
               const recent  = recentMap[i];
               const cc = row.isUp === true ? "text-green-400" : row.isUp === false ? "text-red-400" : "text-slate-400";
+              const rowOpacity = allSelected.size > 0 && !isSel ? 0.25 : 1;
               let bg = "hover:bg-slate-700/30";
               if (isHi)    bg = "bg-blue-900/20 border-l-2 border-l-blue-500";
               if (isExtra) bg = "bg-slate-600/20 border-l-2 border-l-slate-400";
               if (flash === "up")   bg += " flash-up";
               if (flash === "down") bg += " flash-down";
               return (
-                <tr key={i} onClick={() => onRowClick?.(i)}
-                  className={`border-b border-slate-700/50 cursor-pointer transition-colors ${bg}`}>
+                <tr key={i} onClick={(e) => onRowClick?.(i, e.ctrlKey || e.metaKey)}
+                  className={`border-b border-slate-700/50 cursor-pointer transition-colors ${bg}`}
+                  style={{ opacity: rowOpacity, transition: "opacity 0.3s" }}>
                   <td className="py-2.5 pl-3 pr-2 text-center text-slate-500 text-[11px]">{row.rank}</td>
                   <td className="py-2.5 pl-1 pr-1 font-semibold text-white max-w-0">
                     <span className="flex items-center gap-1">
@@ -370,13 +356,9 @@ const RankTable = ({
                     {row.isUp === true ? "+" : ""}{row.change}%
                   </td>
                   <td className="py-1.5 pl-1 pr-3 text-right" style={{ width: 90 }}>
-                    {/* ── ปุ่ม ChartFlip: navigate ไปหน้า chartflipid พร้อม symbol ── */}
-                    <button
-                      onClick={e => { e.stopPropagation(); onChartFlipClick?.(row.symbol); }}
+                    <button onClick={e => { e.stopPropagation(); onChartFlipClick?.(row.symbol); }}
                       className="inline-flex items-center justify-center rounded-lg border border-slate-600/80 bg-slate-800/70 hover:bg-blue-900/40 hover:border-blue-500/60 transition-all group"
-                      style={{ width: 30, height: 30 }}
-                      title={`ChartFlip: ${row.symbol}`}
-                    >
+                      style={{ width: 30, height: 30 }} title={`ChartFlip: ${row.symbol}`}>
                       <ChartFlipIcon size={14} color={row.isUp === true ? "#4ade80" : row.isUp === false ? "#f87171" : "#64748b"} />
                     </button>
                   </td>
@@ -402,18 +384,18 @@ const RankTable = ({
 
 /* ================= LIGHTWEIGHT CHART COMPONENT ================= */
 const LWCChart = ({
-  seriesData, highlighted, extraData,
+  seriesData, allSeriesData, extraVisibleSet = [], highlighted = [],
   height = 256, fullWidth = false,
   chartId, chartRefs,
   onZoom, globalLogical, setGlobalLogical,
 }) => {
-  const containerRef = useRef(null);
-  const chartRef     = useRef(null);
-  const linesRef     = useRef([]);
-  const extraLineRef = useRef(null);
-  const isDragging   = useRef(false);
-  const dragStart    = useRef({ x: 0, from: 0 });
-  const suppressSync = useRef(false);
+  const containerRef  = useRef(null);
+  const chartRef      = useRef(null);
+  const linesRef      = useRef([]);
+  const extraLinesRef = useRef(new Map());
+  const isDragging    = useRef(false);
+  const dragStart     = useRef({ lastX: 0 });
+  const suppressSync  = useRef(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -464,31 +446,22 @@ const LWCChart = ({
       return s;
     });
 
-    const ex = chart.addSeries(LineSeries, {
-      color: "transparent", lineWidth: 2.2,
-      lastValueVisible: true, priceLineVisible: false,
-      crosshairMarkerVisible: true, crosshairMarkerRadius: 4,
-    });
-    extraLineRef.current = ex;
     chart.timeScale().scrollToRealTime();
 
     chart.subscribeCrosshairMove((param) => {
       if (suppressSync.current) return;
-      if (param.logical !== undefined && param.logical !== null) {
-        setGlobalLogical?.(param.logical);
-      } else {
-        setGlobalLogical?.(null);
-      }
+      if (param.logical !== undefined && param.logical !== null) setGlobalLogical?.(param.logical);
+      else setGlobalLogical?.(null);
     });
 
     const ro = new ResizeObserver(() => {
-      if (containerRef.current)
-        chart.applyOptions({ width: containerRef.current.clientWidth });
+      if (containerRef.current) chart.applyOptions({ width: containerRef.current.clientWidth });
     });
     ro.observe(containerRef.current);
 
     return () => {
       ro.disconnect();
+      extraLinesRef.current.clear();
       chart.remove();
       if (chartRefs) delete chartRefs.current[chartId];
     };
@@ -499,21 +472,15 @@ const LWCChart = ({
     const chart = chartRef.current;
     if (!chart) return;
     suppressSync.current = true;
-    if (globalLogical !== null && globalLogical !== undefined) {
-      chart.setCrosshairPosition(undefined, undefined, globalLogical);
-    } else {
-      chart.clearCrosshairPosition();
-    }
+    if (globalLogical !== null && globalLogical !== undefined) chart.setCrosshairPosition(undefined, undefined, globalLogical);
+    else chart.clearCrosshairPosition();
     suppressSync.current = false;
   }, [globalLogical]);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const onWheel = (e) => {
-      e.preventDefault();
-      onZoom?.(e.deltaY, chartRef.current);
-    };
+    const onWheel = (e) => { e.preventDefault(); onZoom?.(e.deltaY, chartRef.current); };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
   }, [onZoom]);
@@ -521,11 +488,7 @@ const LWCChart = ({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const onDown = (e) => {
-      isDragging.current = true;
-      dragStart.current  = { x: e.clientX, lastX: e.clientX };
-      el.style.cursor    = "grabbing";
-    };
+    const onDown = (e) => { isDragging.current = true; dragStart.current = { lastX: e.clientX }; el.style.cursor = "grabbing"; };
     const onMove = (e) => {
       if (!isDragging.current || !chartRef.current) return;
       const dx = e.clientX - dragStart.current.lastX;
@@ -537,46 +500,53 @@ const LWCChart = ({
     const onUp = () => { isDragging.current = false; el.style.cursor = "default"; };
     el.addEventListener("mousedown", onDown);
     window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup",   onUp);
+    window.addEventListener("mouseup", onUp);
     return () => {
       el.removeEventListener("mousedown", onDown);
       window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup",   onUp);
+      window.removeEventListener("mouseup", onUp);
     };
   }, []);
 
   useEffect(() => {
-    linesRef.current.forEach((s, i) => {
-      const isHi  = highlighted === i;
-      const isDim = highlighted !== null && !isHi;
-      s.applyOptions({ color: isDim ? PALETTE[i] + "28" : PALETTE[i], lineWidth: isHi ? 3 : 2 });
+    const chart = chartRef.current;
+    if (!chart) return;
+    const newSet = new Set(extraVisibleSet);
+    extraLinesRef.current.forEach((series, dataIdx) => {
+      if (!newSet.has(dataIdx)) {
+        try { chart.removeSeries(series); } catch (_) {}
+        extraLinesRef.current.delete(dataIdx);
+      }
     });
-  }, [highlighted]);
+    newSet.forEach(dataIdx => {
+      if (!extraLinesRef.current.has(dataIdx) && allSeriesData?.[dataIdx]) {
+        const s = chart.addSeries(LineSeries, {
+          color: EXTRA_COLOR, lineWidth: 2.2,
+          lastValueVisible: true, priceLineVisible: false,
+          crosshairMarkerVisible: true, crosshairMarkerRadius: 4,
+        });
+        s.setData(allSeriesData[dataIdx]);
+        extraLinesRef.current.set(dataIdx, s);
+      }
+    });
+  }, [extraVisibleSet, allSeriesData]);
 
   useEffect(() => {
-    const showExtra = !!extraData;
+    const hiArr = Array.isArray(highlighted) ? highlighted : (highlighted != null ? [highlighted] : []);
+    const allSelected = new Set([...hiArr, ...extraVisibleSet]);
     linesRef.current.forEach((s, i) => {
+      const isHi  = hiArr.includes(i);
+      const isDim = allSelected.size > 0 && !isHi;
       s.applyOptions({
-        color: showExtra
-          ? "transparent"
-          : (highlighted === null ? PALETTE[i] : highlighted === i ? PALETTE[i] : PALETTE[i] + "28"),
+        color:     isDim ? PALETTE[i] + "28" : PALETTE[i],
+        lineWidth: isHi ? 3 : isDim ? 1 : 2,
       });
     });
-    if (extraLineRef.current) {
-      if (showExtra && extraData?.data?.length) {
-        extraLineRef.current.setData(extraData.data);
-        extraLineRef.current.applyOptions({ color: EXTRA_COLOR });
-      } else {
-        extraLineRef.current.applyOptions({ color: "transparent" });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [extraData]);
+  }, [highlighted, extraVisibleSet]);
 
   return (
-    <div
-      ref={containerRef}
-      className={`${fullWidth ? "w-full" : "w-full"} rounded-lg overflow-hidden border border-slate-600/60`}
+    <div ref={containerRef}
+      className="w-full rounded-lg overflow-hidden border border-slate-600/60"
       style={{ height: typeof height === "number" ? height : "100%", cursor: "default" }}
     />
   );
@@ -600,8 +570,7 @@ const SpinButton = ({ onClick, title, label }) => {
       color: "#ffffff", cursor: "pointer", fontSize: 11, fontWeight: 600, fontFamily: "monospace", flexShrink: 0, transition: "all .15s",
     }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
-    >
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}>
       <span ref={iconRef} style={{ display: "inline-flex" }}>
         <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M13.5 6A6 6 0 1 0 14 10"/><path d="M14 4v3h-3"/>
@@ -618,208 +587,6 @@ const SpinButton = ({ onClick, title, label }) => {
         </svg>
       </span>
     </button>
-  );
-};
-
-/* ================= TIME FILTERS ================= */
-const TIME_FILTERS = [
-  { key: "start", label: "Start",    range: "10:00–12:30", fromH: 10, fromM: 0,  toH: 12, toM: 30 },
-  { key: "half",  label: "Half-Day", range: "12:00–14:30", fromH: 12, fromM: 0,  toH: 14, toM: 30 },
-  { key: "end",   label: "End-Day",  range: "14:15–16:30", fromH: 14, fromM: 15, toH: 16, toM: 30 },
-  { key: "all",   label: "All",      range: "10:00–16:30", fromH:  9, fromM: 0,  toH: 23, toM: 59 },
-];
-
-/* ================= ZOOM MODAL ================= */
-const ZoomModal = ({
-  card, onClose,
-  highlighted, extraVisible, onRowClick, onReset,
-  flashMap, recentMap = {},
-  globalLogical, setGlobalLogical,
-  onChartFlipClick,                        // ← รับ prop มาด้วย
-}) => {
-  const [timeFilter, setTimeFilter] = useState("all");
-  const modalChartRefs   = useRef({});
-  const [modalBarWidth, setModalBarWidth] = useState(12);
-
-  useEffect(() => {
-    const fn = e => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", fn);
-    return () => window.removeEventListener("keydown", fn);
-  }, [onClose]);
-
-  if (!card) return null;
-  const { category, type, data, allSeriesData, sparklines = [] } = card;
-  const isPos = type === "+";
-  const modalBp = useBreakpoint();
-  const modalIsMobile = modalBp === "xs" || modalBp === "sm";
-
-  const f = TIME_FILTERS.find(x => x.key === timeFilter) || TIME_FILTERS[3];
-  const filteredSeries = useMemo(
-    () => filterLWCByTime(allSeriesData, f.fromH, f.fromM, f.toH, f.toM),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allSeriesData, timeFilter]
-  );
-
-  const extraSliced = extraVisible != null
-    ? { data: filteredSeries[extraVisible], symbol: data[extraVisible]?.symbol }
-    : null;
-
-  const handleModalZoom = useCallback((deltaY) => {
-    setModalBarWidth(prev => {
-      const factor = deltaY > 0 ? 0.82 : 1.22;
-      const next = Math.max(3, Math.min(200, prev * factor));
-      Object.values(modalChartRefs.current).forEach(c => {
-        c?.timeScale().applyOptions({ barSpacing: next });
-      });
-      return next;
-    });
-  }, []);
-
-  const handleModalReset = useCallback(() => {
-    onReset?.();
-    requestAnimationFrame(() => {
-      Object.values(modalChartRefs.current).forEach(c => {
-        if (!c) return;
-        c.timeScale().scrollToRealTime();
-      });
-    });
-  }, [onReset]);
-
-  return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#060d16", display: "flex", flexDirection: "column", fontFamily: "'JetBrains Mono', monospace" }}>
-      <div style={{ flexShrink: 0, background: "#07111c", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <div style={{ display: "flex", alignItems: "center", padding: "0 12px", height: 44, gap: 8, overflow: "hidden" }}>
-          <button onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", background: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: "#94a3b8", cursor: "pointer", fontSize: 11, fontWeight: 600, fontFamily: "monospace", flexShrink: 0 }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-            </svg>
-            Back
-          </button>
-          <span style={{ color: "#e2e8f0", fontSize: modalIsMobile ? 13 : 15, fontWeight: 800, letterSpacing: "0.08em", flexShrink: 0 }}>{category}</span>
-          <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 99, flexShrink: 0, background: isPos ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color: isPos ? "#4ade80" : "#f87171", border: `1px solid ${isPos ? "rgba(74,222,128,0.25)" : "rgba(248,113,113,0.25)"}`, whiteSpace: "nowrap" }}>
-            {isPos ? (modalIsMobile ? "▲ BUY" : "▲ BUY FLOW") : (modalIsMobile ? "▼ SELL" : "▼ SELL FLOW")}
-          </span>
-          {!modalIsMobile && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 4 }}>
-              {TIME_FILTERS.map(tf => {
-                const active = timeFilter === tf.key;
-                return (
-                  <button key={tf.key} onClick={() => setTimeFilter(tf.key)} style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "3px 10px", borderRadius: 6, cursor: "pointer", fontFamily: "monospace", flexShrink: 0, background: active ? "rgba(59,130,246,0.18)" : "transparent", border: `1px solid ${active ? "rgba(59,130,246,0.5)" : "rgba(255,255,255,0.08)"}`, transition: "all .15s" }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: active ? "#93c5fd" : "#64748b", lineHeight: 1.3 }}>{tf.label}</span>
-                    <span style={{ fontSize: 9, color: active ? "#60a5fa" : "#334155", lineHeight: 1.2 }}>{tf.range}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          <div style={{ flex: 1 }} />
-          <SpinButton onClick={handleModalReset} title="Reset" label="Reset" />
-        </div>
-        {modalIsMobile && (
-          <div style={{ display: "flex", gap: 4, padding: "6px 12px", overflowX: "auto", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
-            {TIME_FILTERS.map(tf => {
-              const active = timeFilter === tf.key;
-              return (
-                <button key={tf.key} onClick={() => setTimeFilter(tf.key)} style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontFamily: "monospace", flexShrink: 0, background: active ? "rgba(59,130,246,0.18)" : "rgba(255,255,255,0.03)", border: `1px solid ${active ? "rgba(59,130,246,0.5)" : "rgba(255,255,255,0.06)"}`, transition: "all .15s" }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: active ? "#93c5fd" : "#64748b", lineHeight: 1.3 }}>{tf.label}</span>
-                  <span style={{ fontSize: 9, color: active ? "#60a5fa" : "#334155", lineHeight: 1.2 }}>{tf.range}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden", flexDirection: modalIsMobile ? "column" : "row" }}>
-        {/* Chart */}
-        <div style={{ flex: 1, minWidth: 0, padding: modalIsMobile ? 6 : 8, display: "flex", flexDirection: "column" }}>
-          <LWCChart
-            key={`modal-chart-${timeFilter}`}
-            seriesData={filteredSeries.slice(0, 5)}
-            highlighted={highlighted}
-            extraData={extraSliced}
-            height="100%"
-            fullWidth
-            chartId={`modal-${category}-${type}`}
-            chartRefs={modalChartRefs}
-            onZoom={handleModalZoom}
-            globalLogical={globalLogical}
-            setGlobalLogical={setGlobalLogical}
-          />
-        </div>
-
-        {/* Rankings */}
-        <div style={{ width: modalIsMobile ? "100%" : 240, flexShrink: 0, display: "flex", flexDirection: "column", minHeight: 0, border: "1px solid rgba(255,255,255,0.08)", margin: modalIsMobile ? "0 6px 6px" : "8px 0 8px 0", borderRadius: 8, overflow: "hidden", background: "#0f172a" }}>
-          <div style={{ padding: "8px 12px 6px", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0, display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "#475569", fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" }}>Rankings</span>
-            <span style={{ color: "#1e3a5f", fontSize: 10 }}>{data.length} stocks</span>
-          </div>
-          <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }} className="custom-scrollbar">
-            {data.map((row, i) => {
-              const isTop5   = i < 5;
-              const isHi     = isTop5 && highlighted === i;
-              const isExtra  = !isTop5 && extraVisible === i;
-              const flash    = flashMap?.[i];
-              const recent   = recentMap?.[i];
-              const dotColor = isTop5 ? PALETTE[i] : isExtra ? EXTRA_COLOR : "#1e3a5f";
-              const rowBg    = flash === "up" ? "rgba(34,197,94,0.12)" : flash === "down" ? "rgba(239,68,68,0.12)" : isHi ? "rgba(59,130,246,0.07)" : "transparent";
-              const leftBorder = isHi ? `2px solid ${PALETTE[i]}` : isExtra ? `2px solid ${EXTRA_COLOR}` : "2px solid transparent";
-              const cc = row.isUp === true ? "#4ade80" : row.isUp === false ? "#f87171" : "#334155";
-              return (
-                <React.Fragment key={i}>
-                  {i === 5 && <div style={{ margin: "4px 12px", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center" }}><span style={{ fontSize: 9, color: "#334155", fontFamily: "monospace", letterSpacing: "0.1em" }}>OTHER</span></div>}
-                  <div onClick={() => onRowClick?.(i)} style={{ display: "grid", gridTemplateColumns: "28px 8px 1fr auto auto", alignItems: "center", gap: "0 8px", padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.08)", borderLeft: leftBorder, background: rowBg, cursor: "pointer", transition: "background .3s" }}>
-                    <span style={{ color: isTop5 ? "#94a3b8" : "#334155", fontSize: 11, fontWeight: isTop5 ? 700 : 400, textAlign: "right", fontFamily: "monospace" }}>{row.rank}</span>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: dotColor, justifySelf: "center" }} />
-                    <span style={{ color: "#e2e8f0", fontSize: 12, fontWeight: 700, fontFamily: "monospace" }}>
-                      {row.symbol}
-                      {(flash || recent) && <span style={{ marginLeft: 4, fontSize: 9, color: (flash || recent) === "up" ? "#4ade80" : "#f87171" }}>{(flash || recent) === "up" ? "▲" : "▼"}</span>}
-                    </span>
-                    <span style={{ fontSize: 11, fontFamily: "monospace", textAlign: "right", color: flash === "up" ? "#86efac" : flash === "down" ? "#fca5a5" : "#64748b" }}>{row.value}</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "monospace", textAlign: "right", minWidth: 48, color: cc }}>{row.isUp === true ? "+" : ""}{row.change}%</span>
-                  </div>
-                </React.Fragment>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ChartFlip Panel in modal — กดแล้ว navigate ด้วย */}
-        <div style={{ width: modalIsMobile ? "100%" : 200, flexShrink: 0, display: "flex", flexDirection: "column", minHeight: 0, border: "1px solid rgba(255,255,255,0.08)", margin: modalIsMobile ? "0 6px 6px" : "8px 8px 8px 4px", borderRadius: 8, overflow: "hidden", background: "#0f172a" }}>
-          <div style={{ padding: "8px 12px 6px", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
-            <ChartFlipIcon size={11} color="#64748b" />
-            <span style={{ color: "#475569", fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" }}>ChartFlip</span>
-          </div>
-          <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }} className="custom-scrollbar">
-            {data.map((row, i) => {
-              const isTop5 = i < 5;
-              const flash  = flashMap?.[i];
-              const cc = row.isUp === true ? "#4ade80" : row.isUp === false ? "#f87171" : "#64748b";
-              const rowBg = flash === "up" ? "rgba(34,197,94,0.1)" : flash === "down" ? "rgba(239,68,68,0.1)" : "transparent";
-              return (
-                <div
-                  key={i}
-                  onClick={() => onChartFlipClick?.(row.symbol)}   // ← navigate ด้วย
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: rowBg, cursor: "pointer", transition: "background .3s" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(59,130,246,0.07)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = rowBg; }}
-                >
-                  <span style={{ color: "#475569", fontSize: 10, fontFamily: "monospace", width: 16, textAlign: "right", flexShrink: 0 }}>{row.rank}</span>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: isTop5 ? PALETTE[i] : EXTRA_COLOR, flexShrink: 0 }} />
-                  <span style={{ color: "#e2e8f0", fontSize: 11, fontWeight: 700, fontFamily: "monospace", width: 44, flexShrink: 0 }}>{row.symbol}</span>
-                  <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
-                    <MiniSparkline values={sparklines[i]} isUp={row.isUp} width={60} height={28} />
-                  </div>
-                  <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "monospace", color: cc, flexShrink: 0, width: 42, textAlign: "right" }}>
-                    {row.isUp === true ? "+" : ""}{row.change}%
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
   );
 };
 
@@ -868,24 +635,111 @@ function useBreakpoint() {
   return bp;
 }
 
+/* ================= FULLSCREEN RANKINGS PANEL ================= */
+const FullscreenRankings = ({
+  data, flashMap = {}, recentMap = {}, totalCount,
+  highlighted = [], extraVisibleSet = [],
+  onRowClick, onChartFlipClick,
+}) => {
+  const top5    = data.slice(0, Math.min(5, totalCount));
+  const others  = data.slice(5, totalCount);
+  const hiArr   = Array.isArray(highlighted) ? highlighted : (highlighted != null ? [highlighted] : []);
+  const allSelected = new Set([...hiArr, ...extraVisibleSet]);
+
+  const RankRow = ({ row, i, isTop }) => {
+    const flash   = flashMap[i];
+    const recent  = recentMap[i];
+    const isHi    = isTop && hiArr.includes(i);
+    const isExtra = !isTop && extraVisibleSet.includes(i);
+    const isSel   = allSelected.has(i);
+    const cc      = row.isUp === true ? "#4ade80" : row.isUp === false ? "#f87171" : "#64748b";
+    const rowOpacity = allSelected.size > 0 && !isSel ? 0.18 : 1;
+    const rowBg      = flash === "up" ? "rgba(34,197,94,0.08)" : flash === "down" ? "rgba(239,68,68,0.08)" : isHi ? "rgba(59,130,246,0.08)" : isExtra ? "rgba(148,163,184,0.07)" : "transparent";
+    const dotColor   = isTop ? PALETTE[i] : isExtra ? EXTRA_COLOR : "#334155";
+    const borderLeft = isHi ? `3px solid ${PALETTE[i]}` : isExtra ? `3px solid ${EXTRA_COLOR}` : "3px solid transparent";
+
+    return (
+      <div onClick={(e) => onRowClick?.(i, e.ctrlKey || e.metaKey)} style={{
+        display: "grid", gridTemplateColumns: "28px 16px 1fr 80px 60px 52px",
+        alignItems: "center", padding: "0 14px",
+        height: isTop ? 46 : 40,
+        borderBottom: "1px solid rgba(255,255,255,0.04)",
+        background: rowBg, borderLeft,
+        cursor: "pointer", opacity: rowOpacity,
+        transition: "background 0.3s, opacity 0.3s",
+      }}>
+        <span style={{ fontSize: isTop ? 13 : 12, color: isTop ? "#64748b" : "#334155", fontWeight: 600, textAlign: "center", fontFamily: "monospace" }}>{row.rank}</span>
+        <span style={{ width: isTop ? 10 : 8, height: isTop ? 10 : 8, borderRadius: "50%", background: dotColor, display: "inline-block", flexShrink: 0 }} />
+        <span style={{ display: "flex", alignItems: "center", gap: 5, paddingLeft: 6 }}>
+          <span style={{ fontSize: isTop ? 14 : 13, fontWeight: isTop ? 800 : 600, color: isTop || isExtra ? "#e2e8f0" : "#94a3b8", letterSpacing: "0.04em", fontFamily: "monospace" }}>{row.symbol}</span>
+          {flash  && <span style={{ fontSize: 9, color: flash === "up" ? "#4ade80" : "#f87171" }}>{flash === "up" ? "▲" : "▼"}</span>}
+          {!flash && recent && <span style={{ fontSize: 8, color: recent === "up" ? "#4ade80" : "#f87171", opacity: 0.6 }}>{recent === "up" ? "▲" : "▼"}</span>}
+        </span>
+        <span style={{ textAlign: "right", fontSize: isTop ? 13 : 12, color: isTop ? "#cbd5e1" : "#64748b", fontFamily: "monospace", paddingRight: 8 }}>
+          <AnimatedCell value={row.value} flash={flash} />
+        </span>
+        <span style={{ textAlign: "right", fontSize: isTop ? 13 : 12, fontWeight: 700, color: cc, fontFamily: "monospace" }}>
+          {row.isUp === true ? "+" : ""}{row.change}%
+        </span>
+        <span style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <button onClick={e => { e.stopPropagation(); onChartFlipClick?.(row.symbol); }} style={{
+            background: "transparent", border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: 4, padding: "4px 7px", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }} title={`Chart Flip — ${row.symbol}`}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#34d399"; e.currentTarget.style.background = "rgba(52,211,153,0.08)"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.background = "transparent"; }}>
+            <ChartFlipIcon size={14} color={cc} />
+          </button>
+        </span>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", height: 44, borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#64748b", letterSpacing: "0.1em" }}>RANKINGS</span>
+        {allSelected.size > 0 && (
+          <span style={{ fontSize: 10, color: "#475569", fontFamily: "monospace" }}>{allSelected.size}/{MAX_SELECT} selected</span>
+        )}
+      </div>
+      <div style={{ flex: 1, overflowY: "auto" }}>
+        {top5.map((row, i) => <RankRow key={i} row={row} i={i} isTop />)}
+        {others.length > 0 && (
+          <div style={{ padding: "6px 14px", fontSize: 10, fontWeight: 700, color: "#334155", letterSpacing: "0.1em", borderBottom: "1px solid rgba(255,255,255,0.04)", background: "#0a1525" }}>
+            OTHER
+          </div>
+        )}
+        {others.map((row, j) => {
+          const i = j + 5;
+          return <RankRow key={i} row={row} i={i} isTop={false} />;
+        })}
+      </div>
+    </div>
+  );
+};
+
 /* ================= SECTION CARD ================= */
 const SectionCard = ({
   category, type, seed: initSeed,
   chartRefs, globalLogical, setGlobalLogical, onZoom,
 }) => {
   const navigate = useNavigate();
-  const [highlighted, setHighlighted]   = useState(null);
-  const [extraVisible, setExtraVisible] = useState(null);
-  const [modalOpen, setModalOpen]       = useState(false);
-  const [lastUpdated, setLastUpdated]   = useState(null);
+  const [selectedSet,  setSelectedSet]  = useState(new Set());
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [timePeriod,   setTimePeriod]   = useState("all");
+  const [lastUpdated,  setLastUpdated]  = useState(null);
 
   const bp        = useBreakpoint();
   const isMobile  = bp === "xs" || bp === "sm";
   const isTablet  = bp === "md";
   const isDesktop = !isMobile && !isTablet;
+  const isNarrowFS = bp === "xs" || bp === "sm" || bp === "md";
 
-  const isPos  = type === "+";
-  const POINTS = 390;
+  const isPos      = type === "+";
+  const POINTS     = 390;
+  const totalCount = 20;
 
   const baseData      = useMemo(() => mkFlowData(initSeed), [initSeed]);
   const allSeriesData = useMemo(() => mkLWCData(initSeed, 20, POINTS, isPos), [initSeed, isPos]);
@@ -895,7 +749,9 @@ const SectionCard = ({
 
   const { liveData, flashMap, recentMap } = useLiveData(baseData, cardKey);
 
-  /* ── navigate ไปหน้า ChartFlip พร้อม symbol ── */
+  const highlighted     = [...selectedSet].filter(i => i < 5);
+  const extraVisibleSet = [...selectedSet].filter(i => i >= 5);
+
   const handleChartFlipClick = useCallback((symbol) => {
     navigate("/chartflipid", { state: { symbol, from: "realflow" } });
   }, [navigate]);
@@ -904,116 +760,255 @@ const SectionCard = ({
     if (Object.keys(flashMap).length > 0) setLastUpdated(Date.now());
   }, [flashMap]);
 
-  const handleRefresh = useCallback(() => {
-    setHighlighted(null);
-    setExtraVisible(null);
-    Object.values(chartRefs.current).forEach(c => c?.timeScale().fitContent());
-  }, [chartRefs]);
-
-  const handleLegendClick = useCallback(idx => {
-    setHighlighted(prev => prev === idx ? null : idx);
+  const handleRowClick = useCallback((rowIdx, isCtrl) => {
+    if (isCtrl) {
+      setSelectedSet(prev => {
+        const next = new Set(prev);
+        if (next.has(rowIdx)) next.delete(rowIdx);
+        else if (next.size < MAX_SELECT) next.add(rowIdx);
+        return next;
+      });
+    } else {
+      setSelectedSet(prev => prev.size === 1 && prev.has(rowIdx) ? new Set() : new Set([rowIdx]));
+    }
   }, []);
 
-  const handleRowClick = useCallback(rowIdx => {
-    if (rowIdx < 5) { setExtraVisible(null); handleLegendClick(rowIdx); }
-    else { setHighlighted(null); setExtraVisible(prev => prev === rowIdx ? null : rowIdx); }
-  }, [handleLegendClick]);
+  const handleFullscreen = useCallback(() => setIsFullscreen(prev => !prev), []);
 
-  const extraData = extraVisible != null
-    ? { data: allSeriesData[extraVisible], symbol: liveData[extraVisible]?.symbol }
-    : null;
+  const handleRefresh = useCallback(() => {
+    setSelectedSet(new Set());
+    setTimePeriod("all");
+    const fsId = isFullscreen ? `${chartId}-fs` : chartId;
+    if (chartRefs?.current?.[fsId]) chartRefs.current[fsId].timeScale().scrollToRealTime();
+  }, [chartRefs, chartId, isFullscreen]);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKey = (e) => { if (e.key === "Escape") setIsFullscreen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isFullscreen]);
 
   const chartHeight = isMobile ? 180 : isTablet ? 220 : 256;
 
-  return (
-    <>
-      <div className="bg-[#1e293b] rounded-xl p-3 sm:p-4 lg:p-5 border border-slate-700/60 shadow-lg hover:border-slate-600 transition-colors">
-        {/* Card header */}
-        <div className="flex justify-between items-center mb-2 sm:mb-3">
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
-            <h3 className="text-sm sm:text-base font-bold text-white shrink-0">{category}</h3>
-            <span className={`text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full border shrink-0 ${isPos ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-red-500/20 text-red-400 border-red-500/30"}`}>
-              {isMobile ? (isPos ? "▲ BUY" : "▼ SELL") : (isPos ? "▲ BUY FLOW" : "▼ SELL FLOW")}
+  /* ── FULLSCREEN LAYOUT ── */
+  if (isFullscreen) {
+    return (
+      <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "#060e1a", display: "flex", flexDirection: "column" }}>
+
+        {/* Top bar */}
+        <div style={{
+          minHeight: 52, background: "#07111c",
+          borderBottom: "1px solid rgba(255,255,255,0.07)",
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "8px 16px", flexShrink: 0, flexWrap: "wrap",
+        }}>
+          <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
+            Real Flow tracks stock market money flow in real-time.
+          </ToolHint>
+
+          <button onClick={() => setIsFullscreen(false)} style={{
+            display: "flex", alignItems: "center", gap: 5,
+            background: "transparent", border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: 6, padding: "5px 12px",
+            color: "#94a3b8", cursor: "pointer", fontSize: 13, fontFamily: "inherit",
+          }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#64748b"; e.currentTarget.style.color = "#e2e8f0"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "#94a3b8"; }}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 3L5 8l5 5"/>
+            </svg>
+            back
+          </button>
+
+          <button onClick={handleRefresh} style={{
+            width: 30, height: 30, borderRadius: 6,
+            border: "1px solid rgba(255,255,255,0.12)",
+            background: "transparent", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b",
+          }} title="Reset"
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#64748b"; e.currentTarget.style.color = "#e2e8f0"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "#64748b"; }}>
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13.5 6A6 6 0 1 0 14 10"/><path d="M14 4v3h-3"/>
+            </svg>
+          </button>
+
+          <span style={{ fontSize: 16, fontWeight: 800, color: "#e2e8f0", fontFamily: "monospace", letterSpacing: "0.04em" }}>{category}</span>
+          <span style={{
+            fontSize: 11, fontWeight: 700, padding: "3px 12px", borderRadius: 99,
+            background: isPos ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
+            color: isPos ? "#4ade80" : "#f87171",
+            border: `1px solid ${isPos ? "rgba(74,222,128,0.3)" : "rgba(248,113,113,0.3)"}`,
+            display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
+          }}>
+            <span style={{ fontSize: 9 }}>{isPos ? "▲" : "▼"}</span>
+            {isPos ? "BUY FLOW" : "SELL FLOW"}
+          </span>
+
+          {selectedSet.size > 0 && (
+            <span style={{
+              fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 99,
+              background: "rgba(59,130,246,0.12)", color: "#60a5fa",
+              border: "1px solid rgba(96,165,250,0.3)",
+              fontFamily: "monospace", whiteSpace: "nowrap",
+            }}>
+              {selectedSet.size}/{MAX_SELECT} เส้น
             </span>
-            <LastUpdateBadge lastUpdated={lastUpdated} />
-          </div>
-          <div className="flex gap-1 sm:gap-1.5 shrink-0">
-            <button
-              onClick={() => setModalOpen(true)}
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-slate-600 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 hover:border-slate-400 transition-all"
-              title="Fullscreen">
-              <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5"/>
-              </svg>
-            </button>
-            <SpinButton onClick={handleRefresh} title="Refresh" />
+          )}
+
+          <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.08)", margin: "0 4px", flexShrink: 0 }} />
+
+          {/* ── TIME PERIOD BUTTONS ── */}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginLeft: "auto", alignItems: "center" }}>
+
+            {/* ⓘ inline tooltip */}
+            <CtrlTooltip max={MAX_SELECT} />
+            
+            {TIME_PERIODS.map(({ key, label, sub }) => {
+              const isActive = timePeriod === key;
+              return (
+                <button key={key} onClick={() => setTimePeriod(key)} style={{
+                  background: isActive ? "#1d4ed8" : "transparent",
+                  border: isActive ? "1px solid #3b82f6" : "1px solid rgba(255,255,255,0.10)",
+                  borderRadius: 6,
+                  padding: "4px 14px",
+                  cursor: "pointer",
+                  color: isActive ? "#fff" : "#64748b",
+                  fontSize: 12,
+                  fontFamily: "inherit",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  lineHeight: 1.3,
+                  transition: "all 0.15s",
+                  boxShadow: isActive ? "0 0 0 1px rgba(59,130,246,0.3)" : "none",
+                  whiteSpace: "nowrap",
+                }}
+                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)"; e.currentTarget.style.color = "#94a3b8"; } }}
+                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.10)"; e.currentTarget.style.color = "#64748b"; } }}>
+                  <span style={{ fontWeight: 600 }}>{label}</span>
+                  <span style={{ fontSize: 10, opacity: 0.75 }}>{sub}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {isDesktop ? (
-          /* Desktop: chart + rank table side by side */
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 380px", gap: 12, height: 256 }}>
+        {/* Body */}
+        <div style={{ flex: 1, display: "flex", flexDirection: isNarrowFS ? "column" : "row", minHeight: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, minHeight: 0, padding: isNarrowFS ? "8px 8px 0" : "12px 0 12px 12px", display: "flex" }}>
             <LWCChart
               seriesData={allSeriesData.slice(0, 5)}
+              allSeriesData={allSeriesData}
+              extraVisibleSet={extraVisibleSet}
               highlighted={highlighted}
-              extraData={extraData}
-              height={256}
-              chartId={chartId}
+              height="100%"
+              fullWidth
+              chartId={`${chartId}-fs`}
               chartRefs={chartRefs}
               onZoom={onZoom}
               globalLogical={globalLogical}
               setGlobalLogical={setGlobalLogical}
             />
-            {/* ── Desktop RankTable: ส่ง onChartFlipClick ── */}
-            <RankTable
-              data={liveData} flashMap={flashMap} recentMap={recentMap}
-              top5Len={5} highlighted={highlighted} extraVisible={extraVisible}
-              onRowClick={handleRowClick}
-              onChartFlipClick={handleChartFlipClick}
-              compact={false}
-              sparklines={sparklines}
-            />
           </div>
-        ) : (
-          /* Mobile/Tablet: stacked */
-          <div className="flex flex-col gap-2">
-            <LWCChart
-              seriesData={allSeriesData.slice(0, 5)}
+          <div style={{
+            width: isNarrowFS ? "100%" : 300,
+            height: isNarrowFS ? 260 : undefined,
+            flexShrink: 0, background: "#07111c",
+            borderLeft: isNarrowFS ? "none" : "1px solid rgba(255,255,255,0.07)",
+            borderTop:  isNarrowFS ? "1px solid rgba(255,255,255,0.10)" : "none",
+            overflow: "hidden",
+          }}>
+            <FullscreenRankings
+              data={liveData} flashMap={flashMap} recentMap={recentMap}
+              totalCount={totalCount}
               highlighted={highlighted}
-              extraData={extraData}
-              height={chartHeight}
-              chartId={chartId}
-              chartRefs={chartRefs}
-              onZoom={onZoom}
-              globalLogical={globalLogical}
-              setGlobalLogical={setGlobalLogical}
-            />
-            {/* ── Mobile RankTable: ส่ง onChartFlipClick ── */}
-            <RankTable
-              data={liveData} flashMap={flashMap} recentMap={recentMap}
-              top5Len={5} highlighted={highlighted} extraVisible={extraVisible}
+              extraVisibleSet={extraVisibleSet}
               onRowClick={handleRowClick}
               onChartFlipClick={handleChartFlipClick}
-              compact={true}
-              sparklines={sparklines}
             />
           </div>
-        )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── NORMAL (card) LAYOUT ── */
+  return (
+    <div className="bg-[#1e293b] rounded-xl p-3 sm:p-4 lg:p-5 border border-slate-700/60 shadow-lg hover:border-slate-600 transition-colors">
+      <div className="flex justify-between items-center mb-2 sm:mb-3">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
+          <h3 className="text-sm sm:text-base font-bold text-white shrink-0">{category}</h3>
+          <span className={`text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full border shrink-0 ${isPos ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-red-500/20 text-red-400 border-red-500/30"}`}>
+            {isMobile ? (isPos ? "▲ BUY" : "▼ SELL") : (isPos ? "▲ BUY FLOW" : "▼ SELL FLOW")}
+          </span>
+          <LastUpdateBadge lastUpdated={lastUpdated} />
+        </div>
+        <div className="flex gap-1 sm:gap-1.5 shrink-0">
+          <button onClick={handleFullscreen}
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border border-slate-600 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 hover:border-slate-400 transition-all"
+            title="Fullscreen">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5"/>
+            </svg>
+          </button>
+          <SpinButton onClick={handleRefresh} title="Refresh" />
+        </div>
       </div>
 
-      {modalOpen && (
-        <ZoomModal
-          card={{ category, type, data: liveData, allSeriesData, sparklines }}
-          onClose={() => setModalOpen(false)}
-          highlighted={highlighted} extraVisible={extraVisible}
-          onRowClick={handleRowClick} onReset={handleRefresh}
-          flashMap={flashMap} recentMap={recentMap}
-          globalLogical={globalLogical}
-          setGlobalLogical={setGlobalLogical}
-          onChartFlipClick={handleChartFlipClick}  // ← ส่งเข้า modal ด้วย
-        />
+      {isDesktop ? (
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 380px", gap: 12, height: 256 }}>
+          <LWCChart
+            seriesData={allSeriesData.slice(0, 5)}
+            allSeriesData={allSeriesData}
+            extraVisibleSet={extraVisibleSet}
+            highlighted={highlighted}
+            height={256}
+            chartId={chartId}
+            chartRefs={chartRefs}
+            onZoom={onZoom}
+            globalLogical={globalLogical}
+            setGlobalLogical={setGlobalLogical}
+          />
+          <RankTable
+            data={liveData} flashMap={flashMap} recentMap={recentMap}
+            top5Len={5}
+            highlighted={highlighted}
+            extraVisibleSet={extraVisibleSet}
+            onRowClick={handleRowClick}
+            onChartFlipClick={handleChartFlipClick}
+            compact={false}
+            sparklines={sparklines}
+          />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <LWCChart
+            seriesData={allSeriesData.slice(0, 5)}
+            allSeriesData={allSeriesData}
+            extraVisibleSet={extraVisibleSet}
+            highlighted={highlighted}
+            height={chartHeight}
+            chartId={chartId}
+            chartRefs={chartRefs}
+            onZoom={onZoom}
+            globalLogical={globalLogical}
+            setGlobalLogical={setGlobalLogical}
+          />
+          <RankTable
+            data={liveData} flashMap={flashMap} recentMap={recentMap}
+            top5Len={5}
+            highlighted={highlighted}
+            extraVisibleSet={extraVisibleSet}
+            onRowClick={handleRowClick}
+            onChartFlipClick={handleChartFlipClick}
+            compact={true}
+            sparklines={sparklines}
+          />
+        </div>
       )}
-    </>
+    </div>
   );
 };
 
@@ -1021,8 +1016,8 @@ const SectionCard = ({
 export default function RealFlow() {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState(null);
-  const [searchQuery, setSearchQuery]        = useState("");
-  const [globalLogical, setGlobalLogical]    = useState(null);
+  const [searchQuery,    setSearchQuery]    = useState("");
+  const [globalLogical,  setGlobalLogical]  = useState(null);
   const chartRefs = useRef({});
   const [barWidth, setBarWidth] = useState(80);
   const bp = useBreakpoint();
@@ -1096,8 +1091,7 @@ export default function RealFlow() {
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs transition-colors">✕</button>
               )}
             </div>
-            <button
-              onClick={() => navigate("/hisrealflow")}
+            <button onClick={() => navigate("/hisrealflow")}
               className="order-3 lg:order-4 flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all border bg-transparent border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white focus:outline-none ml-auto shrink-0"
               title="View History">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
