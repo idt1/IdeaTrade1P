@@ -1,7 +1,9 @@
 // src/pages/tools/RubberThai.jsx
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSubscription } from "../../context/SubscriptionContext";
+
+// 🟢 1. เปลี่ยนจาก useSubscription มาใช้ useAuth
+import { useAuth } from "@/context/AuthContext"; 
 import ToolHint from "../../components/ToolHint.jsx";
 
 import RubberThaiDashboard from "./components/RubberThaiDashboard.jsx";
@@ -578,7 +580,8 @@ export default function RubberThai() {
     [chartRefs]
   );
 
-  const { accessData, isFreeAccess, currentUser } = useSubscription();
+  // 🟢 2. ดึงข้อมูล User จาก AuthContext
+  const { userData, currentUser, loading } = useAuth();
 
   // ================= Chart Height Calculation =================
   const [chartHeight, setChartHeight] = useState(240);
@@ -609,23 +612,45 @@ export default function RubberThai() {
 
   /* ================= MEMBER CHECK ================= */
   useEffect(() => {
-    if (isFreeAccess) { setIsMember(true); return; }
-    const toolId = "rubber";
-    if (accessData && accessData[toolId]) {
-      const expireTimestamp = accessData[toolId];
+    if (loading) return; // รอให้ข้อมูลโหลดเสร็จก่อน
+
+    const toolId = 'rubber'; 
+
+    // 🟢 3. ตรวจสอบสิทธิ์จาก userData.subscriptions ใน AuthContext
+    if (userData && userData.subscriptions && userData.subscriptions[toolId]) {
+      const expireTimestamp = userData.subscriptions[toolId];
       let expireDate;
+      
       try {
-        expireDate = typeof expireTimestamp.toDate === "function"
-          ? expireTimestamp.toDate()
-          : new Date(expireTimestamp);
+        if (typeof expireTimestamp.toDate === 'function') {
+          expireDate = expireTimestamp.toDate();
+        } else {
+          expireDate = new Date(expireTimestamp);
+        }
       } catch (e) {
         expireDate = new Date(0);
       }
-      setIsMember(expireDate.getTime() > new Date().getTime());
+
+      if (expireDate.getTime() > new Date().getTime()) {
+        setIsMember(true);
+      } else {
+        setIsMember(false);
+      }
     } else {
-      setIsMember(false);
+      // Fallback: หากยังไม่เจอลองเช็คใน LocalStorage
+      const saved = localStorage.getItem("userProfile");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setIsMember(parsed.role === "member" || parsed.role === "membership");
+        } catch (error) {
+          setIsMember(false);
+        }
+      } else {
+        setIsMember(false);
+      }
     }
-  }, [accessData, isFreeAccess]);
+  }, [userData, loading]);
 
   /* ================= SCROLL LOGIC ================= */
   const checkScroll = () => {
@@ -639,7 +664,6 @@ export default function RubberThai() {
     if (!scrollContainerRef.current) return;
     isPaused.current = true;
     const { current } = scrollContainerRef;
-    // ปรับให้เลื่อนครั้งละ 350 เท่ากับ PetroleumInsights
     current.scrollBy({ left: direction === "left" ? -350 : 350, behavior: "smooth" });
     scrollDirection.current = direction === "left" ? -1 : 1;
     setTimeout(checkScroll, 300);
@@ -684,7 +708,7 @@ export default function RubberThai() {
     : 42;
 
   /* ==========================================================
-     SHARED JSX
+      SHARED JSX
   ========================================================== */
   const featuresSectionJSX = (
     <div className="w-full max-w-5xl mb-12">
@@ -800,7 +824,6 @@ export default function RubberThai() {
           <div className="text-center w-full max-w-md mx-auto mt-4">
             <div className="flex flex-col md:flex-row items-center justify-center gap-4">
               
-              {/* ตรวจสอบว่าถ้า "ไม่มี" user ค่อยแสดงปุ่ม Sign In */}
               {!currentUser && (
                 <button
                   onClick={() => navigate("/login")}
@@ -810,7 +833,6 @@ export default function RubberThai() {
                 </button>
               )}
 
-              {/* ปุ่ม Join Membership แสดงตลอดสำหรับคนที่ไม่ใช่ Member */}
               <button
                 onClick={() => navigate("/member-register")}
                 className="w-full md:w-auto px-8 py-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold hover:brightness-110 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300"
@@ -860,7 +882,6 @@ export default function RubberThai() {
             <button
               onClick={() => {
                 setEnteredTool(true);
-                // แอบใส่คำสั่งเลื่อนจอขึ้นบนสุดไว้ให้ด้วยครับ เผื่อกด Start Tool แล้วจอยังไม่เลื่อน
                 setTimeout(() => document.querySelector('main')?.scrollTo(0, 0), 10);
               }}
               className="group relative inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] hover:scale-105 transition-all duration-300"
