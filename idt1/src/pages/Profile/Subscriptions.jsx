@@ -1,10 +1,11 @@
 // src/pages/ManageSubscription.jsx
 import React, { useState, useEffect } from 'react';
 import './Subscriptions.css'; 
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db, auth } from "@/firebase"; 
 import { useNavigate } from 'react-router-dom';
 
+// ⚠️ เช็ค Path นี้ให้ตรงกับตำแหน่งไฟล์ AuthContext ของคุณ
 import { useAuth } from '@/context/AuthContext'; 
 
 const ManageSubscription = () => {
@@ -15,9 +16,11 @@ const ManageSubscription = () => {
   const [searchTerm, setSearchTerm] = useState('');
   
   const navigate = useNavigate();
+  
   const authContext = useAuth();
   const userData = authContext?.userData || null;
   const loading = authContext?.loading || false;
+  const currentUser = authContext?.currentUser || auth.currentUser; // 🟢 ดึงข้อมูลผู้ใช้ที่ล็อกอินอยู่
 
   useEffect(() => {
     const processAndSetSubscriptions = (savedSubs = []) => {
@@ -95,6 +98,7 @@ const ManageSubscription = () => {
         processAndSetSubscriptions([]); 
       }
     }
+
   }, [userData, loading]); 
 
   const gridCols = "grid-cols-[2.5fr_1.5fr_2.5fr_1.5fr_1.5fr_2fr]";
@@ -105,20 +109,22 @@ const ManageSubscription = () => {
     });
   };
 
-  /* ======================= TEST BLOCK: จำลองวันหมดอายุ ======================= */
+  /* ======================= 🟢 TEST BLOCK (ระบบจำลองวันหมดอายุอัปเดตใหม่) ======================= */
   const handleTestStatus = async (item, mode) => {
-    const user = auth.currentUser;
-    if (!user) return alert("ไม่พบข้อมูลผู้ใช้ กรุณาล็อกอินใหม่");
-
-    // กำหนดวันหมดอายุเป้าหมาย
-    const targetExpireDate = new Date();
-    if (mode === 'expiring') {
-      targetExpireDate.setDate(targetExpireDate.getDate() + 2); // สมมติให้เหลือ 2 วัน
-    } else {
-      targetExpireDate.setDate(targetExpireDate.getDate() - 1); // สมมติให้หมดอายุไปแล้ว 1 วัน
+    if (!currentUser) {
+      alert("ไม่พบข้อมูลผู้ใช้ กรุณาล็อกอินใหม่");
+      return;
     }
 
-    // คำนวณหาวันที่ซื้อ (purchaseDate) ย้อนหลัง เพื่อให้ตรงกับวันหมดอายุที่เราต้องการทดสอบ
+    // 1. กำหนดวันหมดอายุเป้าหมาย (เหลือ 2 วัน หรือ หมดอายุไปแล้ว 1 วัน)
+    const targetExpireDate = new Date();
+    if (mode === 'expiring') {
+      targetExpireDate.setDate(targetExpireDate.getDate() + 2); 
+    } else {
+      targetExpireDate.setDate(targetExpireDate.getDate() - 1); 
+    }
+
+    // 2. คำนวณวันที่ซื้อ (purchaseDate) ย้อนหลัง เพื่อหลอกระบบ
     const mockPurchaseDate = new Date(targetExpireDate);
     if (item.cycle?.toLowerCase() === 'monthly') {
       mockPurchaseDate.setDate(mockPurchaseDate.getDate() - 30);
@@ -127,28 +133,39 @@ const ManageSubscription = () => {
     }
 
     try {
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
-      
-      if (userSnap.exists()) {
-        const data = userSnap.data();
-        const mySubs = data.mySubscriptions || [];
+      // 3. ค้นหา Document ของ User ด้วย Email (ชัวร์สุด)
+      const userEmail = currentUser.email || currentUser.uid;
+      const q = query(collection(db, "users"), where("email", "==", userEmail));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0];
+        const userRef = doc(db, "users", userDoc.id);
+        const data = userDoc.data();
+        let mySubs = data.mySubscriptions || [];
         
-        // หาแพ็กเกจที่ตรงกันเพื่ออัปเดต
+        // 4. หา Index ของเครื่องมือตัวที่เรากดปุ่ม
         const subIndex = mySubs.findIndex(s => s.name === item.name && s.cycle === item.cycle);
         
         if (subIndex > -1) {
-          mySubs[subIndex].purchaseDate = mockPurchaseDate.toISOString(); // อัปเดตวันที่ซื้อจำลองกลับไปที่ Firestore
+          // 5. แทนที่วันที่ซื้อเดิม ด้วยวันที่เราจำลองขึ้นมา
+          mySubs[subIndex].purchaseDate = mockPurchaseDate.toISOString();
           
           await updateDoc(userRef, {
             mySubscriptions: mySubs
           });
           
-          window.location.reload(); // รีเฟรชหน้าจอเพื่อดึงข้อมูลใหม่
+          console.log(`✅ จำลองสถานะสำเร็จ! (${mode})`);
+          window.location.reload(); // รีเฟรชหน้าจอ
+        } else {
+          alert("ไม่พบเครื่องมือนี้ในฐานข้อมูลของคุณ");
         }
+      } else {
+        alert("ไม่พบข้อมูลบัญชีของคุณในระบบ");
       }
     } catch (error) {
-      console.error("Error updating test status:", error);
+      console.error("❌ Error updating test status:", error);
+      alert("เกิดข้อผิดพลาดในการอัปเดตข้อมูล: " + error.message);
     }
   };
   /* ============================================================================ */
@@ -191,8 +208,6 @@ const ManageSubscription = () => {
 
     return (
       <div key={item.key} className={`${bgClass} border ${cardBorder} rounded-xl mb-4 p-5 md:py-4 md:px-6 hover:border-gray-600 transition-all backdrop-blur-sm`}>
-        
-        {/* === Mobile View === */}
         <div className="lg:hidden flex flex-col gap-4">
           <div className="flex justify-between items-center">
             <h3 className="font-bold text-[#4db8ff] text-xl tracking-tight">{safeName}</h3>
@@ -218,19 +233,16 @@ const ManageSubscription = () => {
               <div className="text-gray-400 text-[12px] pb-1.5">
                 {item.paymentMethod || 'Bank Transfer'}
               </div>
-              
-              {/* 🟢 ปุ่มทดสอบสำหรับ Mobile */}
+              {/* 🟢 ปุ่มกดจำลองสถานะ Mobile */}
               <div className="flex gap-1 opacity-40 hover:opacity-100 transition-opacity">
                 <button onClick={() => handleTestStatus(item, 'expiring')} className="text-[9px] bg-yellow-600/80 text-white px-1.5 py-0.5 rounded">T: 2 Days</button>
                 <button onClick={() => handleTestStatus(item, 'expired')} className="text-[9px] bg-red-600/80 text-white px-1.5 py-0.5 rounded">T: Expired</button>
               </div>
-
             </div>
           </div>
           <div className="mt-1">{btnMobile}</div>
         </div>
 
-        {/* === Desktop View === */}
         <div className={`hidden lg:grid ${gridCols} gap-4 items-center`}>
             <div className="font-bold text-[#4db8ff] text-[15px] text-left truncate">{safeName}</div>
             <div className="text-white text-[14px] text-left capitalize">{safeCycle}</div>
@@ -248,16 +260,13 @@ const ManageSubscription = () => {
               {item.priceValue.toLocaleString()} <span className="font-normal text-gray-400">฿</span>
             </div>
             <div className="text-center">{btnDesktop}</div>
-            
             <div className="flex flex-col items-end gap-1">
               <div className="text-gray-400 text-[13px] text-right truncate">{item.paymentMethod || 'Bank Transfer'}</div>
-              
-              {/* 🟢 ปุ่มทดสอบสำหรับ Desktop */}
+              {/* 🟢 ปุ่มกดจำลองสถานะ Desktop */}
               <div className="flex gap-1 opacity-20 hover:opacity-100 transition-opacity">
                 <button onClick={() => handleTestStatus(item, 'expiring')} className="text-[9px] bg-yellow-600/80 text-white px-1.5 py-0.5 rounded">T: 2 Days</button>
                 <button onClick={() => handleTestStatus(item, 'expired')} className="text-[9px] bg-red-600/80 text-white px-1.5 py-0.5 rounded">T: Expired</button>
               </div>
-
             </div>
         </div>
       </div>
