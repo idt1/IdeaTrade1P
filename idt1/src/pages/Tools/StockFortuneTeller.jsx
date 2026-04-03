@@ -1,7 +1,8 @@
 // src/pages/tools/StockFortuneTeller.jsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSubscription } from "../../context/SubscriptionContext";
+// 🟢 1. เปลี่ยนมาใช้ AuthContext เป็นศูนย์กลางตรวจสอบสิทธิ์
+import { useAuth } from "@/context/AuthContext"; 
 import ToolHint from "@/components/ToolHint.jsx";
 
 import StockFortuneTellerDashboard from "./components/StockFortuneTellerDashboard.jsx";
@@ -331,14 +332,6 @@ const SHAREHOLDER_NAMES = {
   MINT: "ไมเนอร์ อินเตอร์เนชั่นแนล",
   SCGP: "เอสซีจี แพคเกจจิ้ง",
 };
-
-const MANAGER_NAMES = [
-  "กลุ่มผู้บริหาร A",
-  "กองทุนรวม B",
-  "นักลงทุนสถาบัน C",
-  "ผู้ถือหุ้นรายใหญ่ D",
-  "กองทุนต่างประเทศ E",
-];
 
 const MANAGER_NAMES_BY_SYMBOL = {
   BANPU: ["วเศษ วิศิษฎ์วิญญ", "ศุภชัย เจียรวนนท์", "อิสระ ว่องกุศลกิจ", "ก่อศักดิ์ ไชยรัศมีศักดิ์", "ประทีป ตั้งมติธรรม"],
@@ -1484,7 +1477,8 @@ export default function StockFortuneTeller() {
 
   const { toasts, showToast } = useToast();
 
-  const { accessData, isFreeAccess, currentUser } = useSubscription();
+  // 🟢 2. ดึงข้อมูลผู้ใช้ วันหมดอายุ และ สถานะการโหลด ผ่าน useAuth()
+  const { userData, currentUser, loading } = useAuth();
 
   const symbols = [
     "BANPU", "BGRIM", "EGCO", "GPSC", "GULF", "OR", "PTT", "PTTEP",
@@ -1496,18 +1490,14 @@ export default function StockFortuneTeller() {
   ];
   const filteredSymbols = symbols.filter((s) => s.toLowerCase().includes(symbol.toLowerCase()));
 
-  const mockData = useMemo(() => generateMockData(selectedSymbol), [selectedSymbol]);
-
+  // 🟢 3. ตรวจสอบสิทธิ์ด้วย userData.subscriptions จาก Firestore
   useEffect(() => {
-    if (isFreeAccess) {
-      setIsMember(true);
-      return;
-    }
+    if (loading) return;
 
-    const toolId = "fortune";
+    const toolId = "fortune"; // ไอดีของเครื่องมือ
 
-    if (accessData && accessData[toolId]) {
-      const expireTimestamp = accessData[toolId];
+    if (userData && userData.subscriptions && userData.subscriptions[toolId]) {
+      const expireTimestamp = userData.subscriptions[toolId];
       let expireDate;
 
       try {
@@ -1520,15 +1510,27 @@ export default function StockFortuneTeller() {
         expireDate = new Date(0);
       }
 
+      // ถ้าวันหมดยังมากกว่าเวลาปัจจุบัน = มีสิทธิ์เข้าถึง!
       if (expireDate.getTime() > new Date().getTime()) {
         setIsMember(true);
       } else {
         setIsMember(false);
       }
     } else {
-      setIsMember(false);
+      // กรณีหาใน Firestore ไม่เจอ หรือไม่ได้ล็อกอิน (เผื่อให้สิทธิ์ผ่าน localStorage ได้)
+      const saved = localStorage.getItem("userProfile");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setIsMember(parsed.role === "member" || parsed.role === "membership");
+        } catch (error) {
+          setIsMember(false);
+        }
+      } else {
+        setIsMember(false);
+      }
     }
-  }, [accessData, isFreeAccess]);
+  }, [userData, loading]);
 
   const checkScroll = () => {
     const el = scrollContainerRef.current;
@@ -1579,6 +1581,7 @@ export default function StockFortuneTeller() {
   const handleSaveLayout = () => {
     try {
       localStorage.setItem("stockFortuneFilters", JSON.stringify(filters));
+      showToast("Layout saved successfully!");
     } catch (e) {
       console.error("Failed to save layout", e);
     }
@@ -1713,9 +1716,10 @@ export default function StockFortuneTeller() {
 
           <div className="text-center w-full max-w-md mx-auto mt-4">
             <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+              {/* ตรวจสอบล็อกอินจาก currentUser แทน */}
               {!currentUser && (
                 <button
-                  onClick={() => navigate("/login")}
+                  onClick={() => navigate("/welcome")}
                   className="w-full md:w-auto px-8 py-3 rounded-full bg-slate-800 text-white font-semibold border border-slate-600 hover:bg-slate-700 hover:border-slate-500 transition-all duration-300"
                 >
                   Sign In
