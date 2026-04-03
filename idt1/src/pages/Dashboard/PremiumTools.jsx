@@ -3,8 +3,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ToolsCard from "@/components/ToolsCard";
 
-// ✅ 1. Import Context เข้ามาใช้เป็นศูนย์กลางข้อมูลสิทธิ์
-import { useSubscription } from "@/context/SubscriptionContext";
+// 🟢 1. อิมพอร์ต useAuth เข้ามาใช้เป็นศูนย์กลางเหมือนหน้าอื่นๆ
+import { useAuth } from "@/context/AuthContext"; // ⚠️ เช็ค Path ให้ตรงกับ AuthContext ของคุณ
 
 import fortuneIcon from "@/assets/icons/fortune.svg";
 import petroleumIcon from "@/assets/icons/petroleum.svg";
@@ -15,10 +15,6 @@ import goldIcon from "@/assets/icons/gold.svg";
 import bidaskIcon from "@/assets/icons/bidask.svg";
 import tickmatchIcon from "@/assets/icons/tickmatch.svg";
 import drIcon from "@/assets/icons/dr.svg";
-
-// Import Firebase (เก็บ auth ไว้เผื่อเช็กสถานะล็อกอินเฉยๆ)
-import { auth } from "@/firebase"; 
-import { onAuthStateChanged } from "firebase/auth";
 
 /* =======================
    Data Configuration
@@ -112,46 +108,46 @@ export default function PremiumTools() {
   const navigate = useNavigate();
   const [isMember, setIsMember] = useState(false);
   
-  // ✅ 2. ดึง accessData มาจาก Context (ตัวเดียวกับที่ Sidebar ใช้)
-  const { accessData } = useSubscription();
+  // 🟢 2. ดึง userData จาก Context มาตรวจสอบวันหมดอายุ
+  const authContext = useAuth();
+  const userData = authContext?.userData || null;
   
   // กรองเฉพาะ Tools ที่เป็น Premium
   const premiumTools = projects.filter((tool) => tool.premium);
 
-  // ✅ 3. ฟังก์ชันเช็กสถานะปลดล็อกจากการเปรียบเทียบเวลา (เหมือนใน Sidebar เลย)
+  // 🟢 3. ฟังก์ชันเช็กสถานะปลดล็อก (อ้างอิงจากช่อง subscriptions ตรงๆ)
   const isToolUnlocked = (id) => {
-    const expireTimestamp = accessData[id];
+    if (!userData || !userData.subscriptions) return false;
+    
+    const expireTimestamp = userData.subscriptions[id.toLowerCase()];
     if (!expireTimestamp) return false;
     
     let expireDate;
     try {
-      expireDate = typeof expireTimestamp.toDate === 'function' ? expireTimestamp.toDate() : new Date(expireTimestamp);
+      expireDate = typeof expireTimestamp.toDate === 'function' 
+        ? expireTimestamp.toDate() 
+        : new Date(expireTimestamp);
     } catch (error) {
       expireDate = new Date(0); 
     }
+    
     return expireDate > new Date(); // ตรวจสอบว่าเลยวันปัจจุบันหรือยัง
   };
 
-  /* ✅ 4. ลบการดึงฐานข้อมูลแบบเก่าทิ้งไป เก็บไว้แค่เช็กสถานะการเป็น Member ทั่วไป */
+  /* 🟢 4. เช็กสถานะทั่วไป (Fallback กรณีไม่ได้ล็อกอิน) */
   useEffect(() => {
-    const loadDemoProfile = () => {
+    if (userData) {
+      setIsMember(userData.role === "member" || userData.role === "membership" || Object.keys(userData.subscriptions || {}).length > 0);
+    } else {
       const saved = localStorage.getItem("userProfile");
       if (saved) {
-        const userData = JSON.parse(saved);
-        setIsMember(userData.role === "member" || userData.role === "membership");
+        const parsedData = JSON.parse(saved);
+        setIsMember(parsedData.role === "member" || parsedData.role === "membership");
       } else {
         setIsMember(false);
       }
-    };
-
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        loadDemoProfile();
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
+    }
+  }, [userData]);
 
   return (
     <div className="w-full">
@@ -177,16 +173,14 @@ export default function PremiumTools() {
       {/* ===== Grid Section ===== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {premiumTools.map((tool) => {
-          // ✅ 5. เช็กว่า Tool นี้ถูกปลดล็อกหรือไม่โดยเรียกใช้ฟังก์ชัน
+          // 🟢 5. เช็กว่า Tool นี้ถูกปลดล็อกหรือไม่
           const unlocked = isToolUnlocked(tool.id);
           
           return (
             <ToolsCard
               key={tool.id}
               project={tool}
-              // ส่งค่า isMember เป็น unlocked เพื่อให้การ์ดเปลี่ยนสีตามสถานะ
               isMember={unlocked} 
-              // จำลอง unlockedList ให้ตรงกับ ToolsCard props (ถ้า ToolsCard ต้องการ)
               unlockedList={unlocked ? [tool.id] : []} 
             />
           );

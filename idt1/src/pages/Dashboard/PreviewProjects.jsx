@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import mitIcon from "@/assets/icons/amit.svg"; 
 import ToolsCard from "@/components/ToolsCard.jsx";
 
-// ✅ 1. Import Context เข้ามาใช้เป็นศูนย์กลางข้อมูลสิทธิ์
-import { useSubscription } from "@/context/SubscriptionContext";
+// 🟢 1. เปลี่ยนมาใช้ useAuth เพื่อดึงข้อมูลจากศูนย์กลางเดียวกับหน้า ManageSubscription
+import { useAuth } from "@/context/AuthContext"; 
 
 import fortuneIcon from "@/assets/icons/fortune.svg";
 import petroleumIcon from "@/assets/icons/petroleum.svg";
@@ -16,10 +16,6 @@ import goldIcon from "@/assets/icons/gold.svg";
 import bidaskIcon from "@/assets/icons/bidask.svg";
 import tickmatchIcon from "@/assets/icons/tickmatch.svg";
 import drIcon from "@/assets/icons/dr.svg";
-
-// Import Firebase (เก็บ auth ไว้เผื่อเช็กสถานะล็อกอินทั่วไป)
-import { auth } from "@/firebase"; 
-import { onAuthStateChanged } from "firebase/auth";
 
 /* =======================
    Project Data
@@ -118,48 +114,48 @@ export default function PreviewProjects() {
   const navigate = useNavigate();
   const [isMember, setIsMember] = useState(false);
 
-  // ✅ 2. ดึง accessData มาจาก Context (ตัวเดียวกับที่ Sidebar และ PremiumTools ใช้)
-  const { accessData } = useSubscription();
+  // 🟢 2. ดึง userData จาก AuthContext มาใช้งาน
+  const authContext = useAuth();
+  const userData = authContext?.userData || null;
 
-  // ✅ 3. ฟังก์ชันเช็กสถานะปลดล็อกจากการเปรียบเทียบเวลา
+  // 🟢 3. อัปเกรดฟังก์ชันเช็กสถานะ ให้ดูจาก Map: subscriptions ตรงๆ เหมือนหน้า ManageSubscription
   const isToolUnlocked = (id) => {
-    const expireTimestamp = accessData[id];
+    if (!userData || !userData.subscriptions) return false;
+    
+    // ดึง Timestamp ของเครื่องมือที่ระบุ
+    const expireTimestamp = userData.subscriptions[id.toLowerCase()];
     if (!expireTimestamp) return false;
     
     let expireDate;
     try {
-      expireDate = typeof expireTimestamp.toDate === 'function' ? expireTimestamp.toDate() : new Date(expireTimestamp);
+      expireDate = typeof expireTimestamp.toDate === 'function' 
+        ? expireTimestamp.toDate() 
+        : new Date(expireTimestamp);
     } catch (error) {
       expireDate = new Date(0); 
     }
+    
     return expireDate > new Date(); // ตรวจสอบว่าเลยวันปัจจุบันหรือยัง
   };
 
-  /* ✅ 4. ลบการดึงฐานข้อมูลแบบเก่าทิ้งไป เก็บไว้แค่เช็กสถานะการเป็น Member ทั่วไป (Fallback) */
+  /* 🟢 4. เช็กสถานะ isMember ทั่วไป (ใช้เป็น Fallback สำหรับ UI บางส่วน) */
   useEffect(() => {
-    const loadDemoProfile = () => {
+    if (userData) {
+      setIsMember(userData.role === "member" || userData.role === "membership" || Object.keys(userData.subscriptions || {}).length > 0);
+    } else {
+      // Fallback: ดึงจาก LocalStorage กรณีไม่ได้ล็อกอิน (หรือโหลดไม่ทัน)
       const saved = localStorage.getItem("userProfile");
       if (saved) {
-        const userData = JSON.parse(saved);
-        setIsMember(userData.role === "member" || userData.role === "membership");
+        const parsedData = JSON.parse(saved);
+        setIsMember(parsedData.role === "member" || parsedData.role === "membership");
       } else {
         setIsMember(false);
       }
-    };
-
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        loadDemoProfile();
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
+    }
+  }, [userData]);
 
   /* ===== Permission Logic ===== */
-  // ให้ความสำคัญกับ isToolUnlocked ก่อน ถ้าหมดอายุแล้วก็เข้าไม่ได้
-  const canAccess = (project) =>
-    !project.premium || isToolUnlocked(project.id);
+  const canAccess = (project) => !project.premium || isToolUnlocked(project.id);
 
   const handleOpenTool = (project) => {
     if (canAccess(project)) {
@@ -268,16 +264,14 @@ export default function PreviewProjects() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {projects.map((project) => {
-          // ✅ 5. เช็กว่า Tool นี้ถูกปลดล็อกหรือไม่โดยเรียกใช้ฟังก์ชัน
+          // 🟢 5. เรียกใช้ isToolUnlocked ได้เลย มันจะไปอ่านวันหมดอายุที่แม่นยำจาก Context ให้อัตโนมัติ
           const unlocked = isToolUnlocked(project.id);
           
           return (
             <ToolsCard
               key={project.id}
               project={project}
-              // ส่งค่า isMember เป็น unlocked เพื่อให้การ์ดเปลี่ยนสีตามสถานะ
               isMember={unlocked} 
-              // จำลอง unlockedList ให้ตรงกับ ToolsCard props
               unlockedList={unlocked ? [project.id] : []}
             />
           );
