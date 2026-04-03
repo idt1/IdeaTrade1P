@@ -1,7 +1,9 @@
 // src/pages/tools/PetroleumInsights.jsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSubscription } from "../../context/SubscriptionContext";
+
+// 🟢 1. เปลี่ยนมาดึง useAuth เพื่อใช้ตรวจสอบสิทธิ์
+import { useAuth } from "@/context/AuthContext";
 
 // นำเข้า Dashboard ตัวเต็มมาใช้แสดงในพรีวิว
 import PetroleumDashboard from "./components/PetroleumDashboard";
@@ -639,19 +641,18 @@ export default function PetroleumInsights() {
     []
   );
 
-  const { accessData, isFreeAccess, currentUser } = useSubscription();
+  // 🟢 2. ดึงข้อมูล User จาก AuthContext
+  const { userData, currentUser, loading } = useAuth();
 
  /* ===============================  MEMBER CHECK  ================================ */
   useEffect(() => {
-    if (isFreeAccess) {
-      setIsMember(true);
-      return;
-    }
+    if (loading) return; // รอให้ข้อมูลโหลดเสร็จก่อน
 
     const toolId = 'petroleum'; 
 
-    if (accessData && accessData[toolId]) {
-      const expireTimestamp = accessData[toolId];
+    // 🟢 3. ตรวจสอบสิทธิ์จาก userData.subscriptions ใน AuthContext
+    if (userData && userData.subscriptions && userData.subscriptions[toolId]) {
+      const expireTimestamp = userData.subscriptions[toolId];
       let expireDate;
       
       try {
@@ -670,9 +671,20 @@ export default function PetroleumInsights() {
         setIsMember(false);
       }
     } else {
-      setIsMember(false);
+      // Fallback: หากยังไม่เจอลองเช็คใน LocalStorage
+      const saved = localStorage.getItem("userProfile");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setIsMember(parsed.role === "member" || parsed.role === "membership");
+        } catch (error) {
+          setIsMember(false);
+        }
+      } else {
+        setIsMember(false);
+      }
     }
-  }, [accessData, isFreeAccess]);
+  }, [userData, loading]);
 
   /* ===============================
       SCROLL LOGIC
@@ -807,7 +819,7 @@ export default function PetroleumInsights() {
               {/* ตรวจสอบว่าถ้า "ไม่มี" user ค่อยแสดงปุ่ม Sign In */}
               {!currentUser && (
                 <button
-                  onClick={() => navigate("/login")}
+                  onClick={() => navigate("/welcome")}
                   className="w-full md:w-auto px-8 py-3 rounded-full bg-slate-800 text-white font-semibold border border-slate-600 hover:bg-slate-700 hover:border-slate-500 transition-all duration-300"
                 >
                   Sign In
