@@ -612,7 +612,8 @@ const SidebarContent = ({
           {!isCollapsed && <span className="pointer-events-none">Profile</span>}
         </button>
 
-        {(isMember || Object.keys(accessData).length > 0) && (
+        {/* ✅ เปลี่ยนเงื่อนไขมาใช้ isLoggedIn แทน เพื่อให้คนที่ล็อกอินแล้วทุกคนเห็นเมนูนี้ */}
+        {isLoggedIn && (
           <button
             onClick={() => handleNavigation("subscription")}
             onMouseEnter={(e) => handleMouseEnter(e, "Manage Subscription")}
