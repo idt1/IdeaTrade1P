@@ -1,7 +1,10 @@
 // ─── ALL CHARTS POWERED BY lightweight-charts (LWC) ─────────────────────────
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSubscription } from "../../context/SubscriptionContext";
+
+// 🟢 1. อิมพอร์ต useAuth เข้ามาใช้ตรวจสอบสิทธิ์จากศูนย์กลาง
+import { useAuth } from "@/context/AuthContext"; // ⚠️ เช็ค Path ให้ตรงด้วยนะครับ
+
 import FlowIntradayDashboard from "./components/FlowIntradayDashboard.jsx";
 import {
   createChart,
@@ -11,7 +14,6 @@ import {
   LineStyle,
 } from "lightweight-charts";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ToolHint from "@/components/ToolHint.jsx";
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
@@ -772,11 +774,14 @@ function AlertSettingsTooltip() {
 export default function FlowIntraday() {
   const navigate = useNavigate();
   const scrollContainerRef = useRef(null);
-  const { accessData, isFreeAccess, currentUser } = useSubscription();
+
+  // 🟢 2. ดึงข้อมูล User จาก AuthContext
+  const { userData, currentUser, loading } = useAuth();
+  
   const windowWidth = useWindowWidth();
   const isMobile = windowWidth < 640;
 
-  const [isMember,        setIsMember]        = useState(false);
+  const [isMember,         setIsMember]        = useState(false);
   const [enteredTool,     setEnteredTool]     = useState(false);
   const [layout,          setLayout]          = useState("12");
   const [symbols,         setSymbols]         = useState(Array(12).fill(""));
@@ -879,16 +884,38 @@ export default function FlowIntraday() {
   }, [newListName, watchlists.length, selectedSymbols]);
   const handleDeleteWatchlist = useCallback((id) => { setWatchlists(prev => prev.filter(w => w.id !== id)); setActiveWatchlist(prev => prev === id ? null : prev); }, []);
 
+  // 🟢 3. ตรวจสอบสิทธิ์จาก userData.subscriptions ใน AuthContext
   useEffect(() => {
-    if (isFreeAccess) { setIsMember(true); return; }
+    if (loading) return; 
+
     const toolId = "flow";
-    if (accessData && accessData[toolId]) {
-      const ts = accessData[toolId];
+
+    if (userData && userData.subscriptions && userData.subscriptions[toolId]) {
+      const expireTimestamp = userData.subscriptions[toolId];
       let expireDate;
-      try { expireDate = typeof ts.toDate === "function" ? ts.toDate() : new Date(ts); } catch (e) { expireDate = new Date(0); }
+      try { 
+        expireDate = typeof expireTimestamp.toDate === "function" 
+          ? expireTimestamp.toDate() 
+          : new Date(expireTimestamp); 
+      } catch (e) { 
+        expireDate = new Date(0); 
+      }
       setIsMember(expireDate.getTime() > new Date().getTime());
-    } else { setIsMember(false); }
-  }, [accessData, isFreeAccess]);
+    } else { 
+      // Fallback
+      const saved = localStorage.getItem("userProfile");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setIsMember(parsed.role === "member" || parsed.role === "membership");
+        } catch (error) {
+          setIsMember(false);
+        }
+      } else {
+        setIsMember(false);
+      }
+    }
+  }, [userData, loading]);
 
   const checkScroll = useCallback(() => {
     if (!scrollContainerRef.current) return;
