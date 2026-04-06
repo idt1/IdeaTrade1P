@@ -2,7 +2,10 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { useSubscription } from "../../context/SubscriptionContext";
+
+// 🟢 1. เปลี่ยนมาใช้ useAuth แทน useSubscription จากระบบเก่า
+import { useAuth } from "@/context/AuthContext"; // ⚠️ เช็ค Path ให้ตรงด้วยนะครับ
+
 import TickMatchDashboard from "./components/TickMatchDashboard.jsx";
 import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import LinkOffOutlinedIcon from "@mui/icons-material/LinkOffOutlined";
@@ -506,32 +509,6 @@ const mockDatabase = {
       { price: "59.25", buy: 18000, sell: 28000 }, { price: "59.50", buy: 10000, sell: 32000 },
     ]
   },
-  "SCB": {
-    sumBuy: "6,540,200,000", sumSell: "7,210,800,000", netVol: "-670,600,000",
-    ticks: [
-      { time: "09:30.015", last: "108.00", vol: "4,000",  type: "S", sum: "-432,000"   },
-      { time: "09:31.125", last: "108.00", vol: "2,000",  type: "S", sum: "-648,000"   },
-      { time: "09:33.235", last: "107.50", vol: "6,000",  type: "S", sum: "-1,293,000" },
-      { time: "09:35.345", last: "107.50", vol: "3,000",  type: "B", sum: "-970,500"   },
-      { time: "09:38.455", last: "107.00", vol: "5,000",  type: "S", sum: "-1,505,500" },
-      { time: "09:42.001", last: "107.00", vol: "8,000",  type: "S", sum: "-2,361,500" },
-      { time: "09:47.110", last: "107.50", vol: "4,000",  type: "B", sum: "-1,931,500" },
-      { time: "09:52.220", last: "107.00", vol: "7,000",  type: "S", sum: "-2,681,500" },
-      { time: "09:57.330", last: "106.50", vol: "10,000", type: "S", sum: "-3,746,500" },
-      { time: "10:02.440", last: "107.00", vol: "5,000",  type: "B", sum: "-3,211,500" },
-    ],
-    flips: [
-      { id: 1, time: "09:40.100", from: "410,000",    to: "-1,100,000" },
-      { id: 2, time: "10:05.200", from: "-1,100,000", to: "380,000"    },
-      { id: 3, time: "10:50.300", from: "380,000",    to: "-670,600"   },
-    ],
-    charts: [
-      { price: "108.50", buy: 4000,  sell: 20000 }, { price: "108.00", buy: 8000,  sell: 25000 },
-      { price: "107.50", buy: 14000, sell: 28000 }, { price: "107.00", buy: 18000, sell: 32000 },
-      { price: "106.50", buy: 10000, sell: 22000 }, { price: "106.00", buy: 28000, sell: 12000 },
-      { price: "105.50", buy: 35000, sell: 8000  }, { price: "105.00", buy: 40000, sell: 5000  },
-    ]
-  },
 };
 
 // ─── FULLSCREEN SYMBOL INPUT ─────────────────────────────────
@@ -629,58 +606,83 @@ function FullscreenSymbolInput({ value, onChange }) {
 
 export default function TickMatch() {
   const navigate = useNavigate();
-  const scrollContainerRef = useRef(null);
-
-  const [isMember, setIsMember]       = useState(false);
+  const [isMember, setIsMember] = useState(false);
   const [enteredTool, setEnteredTool] = useState(false);
-  const [showLeft, setShowLeft]       = useState(false);
-  const [showRight, setShowRight]     = useState(true);
+
+  const scrollContainerRef = useRef(null);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(true);
 
   const scrollDirection = useRef(1);
-  const isPaused        = useRef(false);
+  const isPaused = useRef(false);
 
-  const { accessData, isFreeAccess, currentUser } = useSubscription();
+  // 🟢 2. ดึงข้อมูลผู้ใช้จาก AuthContext
+  const { userData, currentUser, loading } = useAuth();
 
+  /* =============================== MEMBER CHECK ================================ */
+  // 🟢 3. ตรวจสอบสิทธิ์จาก userData.subscriptions ใน AuthContext
   useEffect(() => {
-    if (isFreeAccess) { setIsMember(true); return; }
-    const toolId = 'tickmatch';
-    if (accessData && accessData[toolId]) {
-      const expireTimestamp = accessData[toolId];
-      let expireDate;
-      try {
-        expireDate = typeof expireTimestamp.toDate === 'function' ? expireTimestamp.toDate() : new Date(expireTimestamp);
-      } catch (e) { expireDate = new Date(0); }
-      setIsMember(expireDate.getTime() > new Date().getTime());
-    } else {
-      setIsMember(false);
-    }
-  }, [accessData, isFreeAccess]);
+    if (loading) return; 
 
-  const checkScroll = () => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      setShowLeft(scrollLeft > 1);
-      setShowRight(!(Math.ceil(scrollLeft + clientWidth) >= scrollWidth - 2));
+    const toolId = "tickmatch";
+
+    if (userData && userData.subscriptions && userData.subscriptions[toolId]) {
+      const expireTimestamp = userData.subscriptions[toolId];
+      let expireDate;
+      try { 
+        expireDate = typeof expireTimestamp.toDate === "function" 
+          ? expireTimestamp.toDate() 
+          : new Date(expireTimestamp); 
+      } catch (e) { 
+        expireDate = new Date(0); 
+      }
+      setIsMember(expireDate.getTime() > new Date().getTime());
+    } else { 
+      // Fallback
+      const saved = localStorage.getItem("userProfile");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setIsMember(parsed.role === "member" || parsed.role === "membership");
+        } catch (error) {
+          setIsMember(false);
+        }
+      } else {
+        setIsMember(false);
+      }
     }
+  }, [userData, loading]);
+
+  /* ================= SCROLL LOGIC ================= */
+  const checkScroll = () => {
+    if (!scrollContainerRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+    setShowLeft(scrollLeft > 1);
+    setShowRight(Math.ceil(scrollLeft + clientWidth) < scrollWidth - 2);
   };
 
   const scroll = (direction) => {
     if (!scrollContainerRef.current) return;
     isPaused.current = true;
     const { current } = scrollContainerRef;
-    current.scrollBy({ left: direction === "left" ? -350 : 350, behavior: "smooth" });
-    scrollDirection.current = direction === "left" ? -1 : 1;
+    const scrollAmount = 350;
+    if (direction === "left") {
+      current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+      scrollDirection.current = -1;
+    } else {
+      current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+      scrollDirection.current = 1;
+    }
     setTimeout(checkScroll, 300);
-    setTimeout(() => { isPaused.current = false; }, 500);
+    setTimeout(() => { isPaused.current = false }, 500);
   };
 
-  // ✅ Fix: Move scrollContainerRef.current inside setInterval
   useEffect(() => {
     const speed = 1;
     const intervalTime = 15;
     
     const autoScrollInterval = setInterval(() => {
-      const container = scrollContainerRef.current; // 🔥 Moved inside
+      const container = scrollContainerRef.current; 
       if (isPaused.current || !container) return;
       
       const { scrollLeft, scrollWidth, clientWidth } = container;
@@ -1068,146 +1070,72 @@ export default function TickMatch() {
     );
   };
 
-  /* ── ✅ Fix: Preview Layout changed from Component to a regular Function ── */
-  const renderPreviewLayout = (showStartButton) => (
-    <div className="relative w-full min-h-screen text-white overflow-x-hidden animate-fade-in pb-20">
+  const renderLandingPage = (showStartBtn = false) => (
+    <div className="relative w-full min-h-screen text-white overflow-hidden animate-fade-in pb-20">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
+      <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
       <div className="relative z-10 max-w-6xl mx-auto px-4 py-8 flex flex-col items-center">
-
         <div className="text-center mb-10">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
-            <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">TickMatch</span>
+            <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent">TickMatch</span>
           </h1>
-          <p className="text-slate-400 text-lg md:text-xl font-light">Tracking "Big Money" Footprints</p>
+          <p className="text-slate-400 text-lg">Deciphering "Big Money" through Order Flow Intelligence</p>
         </div>
-
         <div className="relative group w-full max-w-5xl mb-16">
-          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700"></div>
-          <div className="relative h-[450px] md:h-[650px] flex flex-col bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
-            <div className="flex-none bg-[#0f172a] px-4 py-3 border-b border-slate-700/50 flex gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
-              <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-              <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
-            </div>
-            <div className="flex-1 overflow-hidden bg-[#0B1221] pointer-events-none">
-              <div className="w-full h-[900px] opacity-90 group-hover:opacity-100 transition duration-500">
-                <TickMatchDashboard />
-              </div>
-            </div>
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700" />
+          <div className="relative bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
+            <div className="aspect-[16/9] w-full bg-[#0B1221]"><TickMatchDashboard /></div>
           </div>
         </div>
-
-        {/* 🌟 4 Main Features Section 🌟 */}
         <div className="w-full max-w-5xl mb-12">
-          <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left border-l-4 border-cyan-500 pl-4">
-            4 Main Features
-          </h2>
-          <div 
-            className="relative group" 
-            onMouseEnter={() => { isPaused.current = true; }} 
-            onMouseLeave={() => { isPaused.current = false; }}
-            onTouchStart={() => { isPaused.current = true; }}
-            onTouchEnd={() => { isPaused.current = false; }}
-          >
-            <button
-              onClick={() => scroll("left")}
-              aria-label="Scroll Left"
-              className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20
-                          w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white
-                          hover:bg-cyan-500 hover:border-cyan-400 hover:text-white
-                          hover:shadow-[0_0_15px_rgba(6,182,212,0.5)]
-                          flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95
-                          ${showLeft ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-              </svg>
+          <h2 className="text-2xl font-bold mb-8 border-l-4 border-cyan-500 pl-4">4 Main Features</h2>
+          <div className="relative group" onMouseEnter={() => isPaused.current = true} onMouseLeave={() => isPaused.current = false}>
+            <button onClick={() => scroll("left")} className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white flex items-center justify-center transition-all ${showLeft ? 'opacity-100' : 'opacity-0'}`}>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
             </button>
-
-            <div 
-              ref={scrollContainerRef} 
-              onScroll={checkScroll} 
-              className="flex overflow-x-auto gap-6 py-4 px-1 hide-scrollbar" 
-              style={scrollbarHideStyle}
-            >
+            <div ref={scrollContainerRef} onScroll={checkScroll} className="flex overflow-x-auto gap-4 py-4 hide-scrollbar" style={scrollbarHideStyle}>
               {features.map((item, index) => (
-                <div 
-                  key={index} 
-                  className="w-[350px] md:w-[400px] flex-shrink-0 group/card bg-[#0f172a]/60 border border-slate-700/50 p-8 rounded-xl hover:bg-[#1e293b]/60 hover:border-cyan-500/30 transition duration-300"
-                >
-                  <h3 className="text-xl font-bold text-white mb-3 group-hover/card:text-cyan-400 transition-colors">
-                    {item.title}
-                  </h3>
-                  <p className="text-slate-400 text-sm leading-relaxed">
-                    {item.desc}
-                  </p>
+                <div key={index} className="w-[280px] md:w-[350px] flex-shrink-0 bg-[#0f172a]/60 border border-slate-700/50 p-6 rounded-xl hover:border-cyan-500/30 transition duration-300">
+                  <h3 className="text-lg font-bold text-white mb-3">{item.title}</h3>
+                  <p className="text-slate-400 text-sm">{item.desc}</p>
                 </div>
               ))}
             </div>
-
-            <button
-              onClick={() => scroll("right")}
-              aria-label="Scroll Right"
-              className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-20 z-20
-                          w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white
-                          hover:bg-cyan-500 hover:border-cyan-400 hover:text-white
-                          hover:shadow-[0_0_15px_rgba(6,182,212,0.5)]
-                          flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95
-                          ${showRight ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-              </svg>
+            <button onClick={() => scroll("right")} className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white flex items-center justify-center transition-all ${showRight ? 'opacity-100' : 'opacity-0'}`}>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
             </button>
           </div>
         </div>
-
-        {showStartButton ? (
-          <div className="flex gap-4 justify-center w-full">
-            <button onClick={() => { setEnteredTool(true); localStorage.setItem("tickToolEntered", "true"); }}
-              className="group relative inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] hover:scale-105 transition-all duration-300">
-              <span className="mr-2">Start Using Tool</span>
-              <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-            </button>
-          </div>
-        ) : (
-          <div className="text-center w-full max-w-md mx-auto mt-4">
-            <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-              {!currentUser && (
-                <button onClick={() => navigate("/login")}
-                  className="w-full md:w-auto px-8 py-3 rounded-full bg-slate-800 text-white font-semibold border border-slate-600 hover:bg-slate-700 hover:border-slate-500 transition-all duration-300">
-                  Sign In
-                </button>
-              )}
-              <button onClick={() => navigate("/member-register")}
-                className="w-full md:w-auto px-8 py-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold hover:brightness-110 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300">
-                Join Membership
-              </button>
+        <div className="text-center w-full max-w-md mx-auto mt-4">
+          {showStartBtn ? (
+             <button onClick={() => { setEnteredTool(true); localStorage.setItem("TickMatchToolEntered", "true"); }} className="px-8 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-lg hover:scale-105 transition-all">Start Using Tool</button>
+          ) : (
+            <div className="flex gap-4 justify-center">
+              {!currentUser && <button onClick={() => navigate("/login")} className="px-8 py-3 rounded-full bg-slate-800 border border-slate-600 hover:bg-slate-700 transition-colors">Sign In</button>}
+              <button onClick={() => navigate("/member-register")} className="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 font-bold hover:brightness-110 shadow-lg shadow-cyan-500/25 transition-all">Join Membership</button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
 
-  // ✅ Use the new render function instead of component
-  if (!isMember)               return renderPreviewLayout(false);
-  if (isMember && !enteredTool) return renderPreviewLayout(true);
+  if (!isMember) return renderLandingPage(false);
+  if (isMember && !enteredTool) return renderLandingPage(true);
 
-  /* ── CASE 3: Full Dashboard ── */
-  const todayStr = new Date().toISOString().split('T')[0];
+  // ส่วน Dashboard จริง
   return (
-    <div className="w-full min-h-screen bg-[#0b111a] text-white p-3 sm:p-6 flex flex-col pb-24">
-      <div className="max-w-[1600px] w-full mx-auto flex-1">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <AnalysisPanel defaultSymbol="" defaultDate={todayStr}
+    <div className="w-full min-h-screen lg:h-[calc(100dvh-64px)] lg:overflow-hidden bg-[#0b111a] text-white px-3 md:px-6 py-3 md:py-6 flex flex-col">
+      <div className="max-w-[1800px] mx-auto flex-1 lg:min-h-0 flex flex-col">
+        <div className="flex-1 lg:min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 overflow-visible pt-4">
+          <AnalysisPanel
             toolHint={
               <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
                 Match tick-by-tick data patterns, recognize trading flow correlations, detect relationships between assets, and analyze pattern-based insights
               </ToolHint>
             }
           />
-          <AnalysisPanel defaultSymbol="" defaultDate={todayStr} />
+          <AnalysisPanel />
         </div>
       </div>
     </div>
