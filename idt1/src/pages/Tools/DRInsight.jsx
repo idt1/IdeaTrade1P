@@ -1,7 +1,11 @@
 // src/pages/tools/DRInsight.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSubscription } from "../../context/SubscriptionContext";
+import { createPortal } from "react-dom";
+
+// 🟢 1. อิมพอร์ต useAuth เข้ามาใช้ตรวจสอบสิทธิ์จากศูนย์กลาง
+import { useAuth } from "@/context/AuthContext"; // ⚠️ เช็ค Path ให้ตรงด้วยนะครับ
+
 import drIcon from "@/assets/icons/dr.svg";
 import { Settings as SettingsIcon } from '@mui/icons-material';
 import ToolHint from "@/components/ToolHint.jsx";
@@ -281,6 +285,7 @@ function WaveSkeleton({ delay = 0, height = "180px" }) {
     </div>
   );
 }
+
 /* ===============================
     LEGEND PILLS
 ================================ */
@@ -762,7 +767,8 @@ export default function DRInsight() {
   // Detect screen size for adaptive layouts
   const [screenSize, setScreenSize] = useState("mobile");
 
-  const { accessData, isFreeAccess, currentUser } = useSubscription();
+  // 🟢 2. ดึงข้อมูลผู้ใช้จาก AuthContext
+  const { userData, currentUser, loading } = useAuth();
 
   useEffect(() => {
     const updateSize = () => {
@@ -777,22 +783,39 @@ export default function DRInsight() {
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
+  /* =============================== MEMBER CHECK ================================ */
+  // 🟢 3. ตรวจสอบสิทธิ์จาก userData.subscriptions ใน AuthContext
   useEffect(() => {
-    if (isFreeAccess) { setIsMember(true); return; }
-    const toolId = 'dr';
-    if (accessData && accessData[toolId]) {
-      const expireTimestamp = accessData[toolId];
+    if (loading) return; 
+
+    const toolId = "dr";
+
+    if (userData && userData.subscriptions && userData.subscriptions[toolId]) {
+      const expireTimestamp = userData.subscriptions[toolId];
       let expireDate;
-      try {
-        expireDate = typeof expireTimestamp.toDate === 'function'
-          ? expireTimestamp.toDate()
-          : new Date(expireTimestamp);
-      } catch (e) { expireDate = new Date(0); }
+      try { 
+        expireDate = typeof expireTimestamp.toDate === "function" 
+          ? expireTimestamp.toDate() 
+          : new Date(expireTimestamp); 
+      } catch (e) { 
+        expireDate = new Date(0); 
+      }
       setIsMember(expireDate.getTime() > new Date().getTime());
-    } else {
-      setIsMember(false);
+    } else { 
+      // Fallback
+      const saved = localStorage.getItem("userProfile");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setIsMember(parsed.role === "member" || parsed.role === "membership");
+        } catch (error) {
+          setIsMember(false);
+        }
+      } else {
+        setIsMember(false);
+      }
     }
-  }, [accessData, isFreeAccess]);
+  }, [userData, loading]);
 
   const handleStockClick = (symbol) => {
     setIsLoadingCharts(true);
