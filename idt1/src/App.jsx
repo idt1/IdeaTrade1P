@@ -39,6 +39,7 @@ function MainLayout() {
     "/dw",
     "/ideatradepoint",       
     "/hisideatradepoint",
+    "/sectorrotation"
   ];
   
   // เช็คว่า path ปัจจุบันอยู่ในรายการที่ต้องซ่อน Sidebar หรือไม่
