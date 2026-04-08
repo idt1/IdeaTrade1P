@@ -42,6 +42,7 @@ import realflowGray from "@/assets/icons/realflow_gray.svg";
 import chartFlipId from "@/assets/icons/chartfilp.svg";
 import chartFlipIdGray from "@/assets/icons/chartfilpg.svg";
 import ideatradepoint from "@/assets/icons/ideatradepoint.svg";
+import sectorrotation from "@/assets/icons/sector.svg";
 
 /* ================= ICON MAP ================= */
 const sidebarIcons = {
@@ -59,6 +60,7 @@ const sidebarIcons = {
   tickmatch: { default: tickmatch, active: atickmatch },
   dr:        { default: dr,        active: adr        },
   ideatradepoint: { default: ideatradepoint, active: ideatradepoint },
+  sectorrotation: { default: sectorrotation, active: sectorrotation },
 };
 
 const getIcon = (key, active) => {
@@ -579,6 +581,34 @@ const SidebarContent = ({
             {!isCollapsed && <span>IdeaTradePoint</span>}
           </div>
         </button>
+
+        {/* ── Sector Rotation Button ── */}
+        <button
+          onClick={() => { navigate("/sector-rotation"); setActivePage("sectorrotation"); onMobileClose?.(); }}
+          onMouseEnter={(e) => handleMouseEnter(e, "Sector Rotation")}
+          onMouseLeave={handleMouseLeave}
+          className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
+          ${activePage === "sectorrotation" ? "bg-slate-800" : "hover:bg-white/5"}
+          ${isCollapsed ? "w-10 h-10 justify-center" : "w-full h-11 px-4 justify-between"}`}
+        >
+          <div className={`flex items-center gap-3 font-medium transition-colors pointer-events-none
+            ${activePage === "sectorrotation" ? "text-white" : "text-gray-400"}
+            ${isCollapsed ? "justify-center w-full" : ""}`}
+          >
+            <img
+              src={getIcon("sectorrotation", activePage === "sectorrotation")}
+              className="w-7"
+              alt="Sector Rotation"
+              style={
+                activePage === "sectorrotation"
+                  ? { filter: "brightness(0) invert(1)" }
+                  : { filter: "brightness(0) invert(1) opacity(0.4)" }
+              }
+            />
+            {!isCollapsed && <span>Sector Rotation</span>}
+          </div>
+        </button>
+
 
         {/* ACCOUNT SECTION */}
         {isCollapsed ? <div className="w-8 h-[1px] bg-white/10 my-1 shrink-0" /> : <div className="mt-6 mb-2 px-2 text-[11px] uppercase text-gray-500 shrink-0">Account</div>}
