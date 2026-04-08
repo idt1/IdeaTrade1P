@@ -31,6 +31,7 @@ import HisRealFlow from "@/pages/Hidden/hisrealflow";
 import DWViewCharts from "@/pages/Hidden/DW";
 import IdeaTradePoint from "@/pages/Hidden/ideatradepoint";
 import HisIdeaTradePoint from "@/pages/Hidden/hisideatradepoint";
+import SectorRotation from "@/pages/Hidden/SectorRotation";
 
 /* ================= CONSTANTS ================= */
 const CHART_IMAGE_URL = "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1964&auto=format&fit=crop";
@@ -77,6 +78,9 @@ const TOOL_CONFIG = {
 
   "ideatradepoint":            { component: IdeaTradePoint,   id: "ideatradepoint",             name: "Idea Trade Point",             isPremium: false },
   "hisideatradepoint":         { component: HisIdeaTradePoint,   id: "hisideatradepoint",             name: "Historical Idea Trade Point",             isPremium: false },
+
+  "sectorrotation":         { component: SectorRotation,   id: "sectorrotation",             name: "Sector Rotation",             isPremium: false },
+
 };
 
 const FULL_WIDTH_PAGES = []; 
@@ -163,6 +167,7 @@ export default function Dashboard({ initialPage }) {
       else if (path === "dw") setActivePage("dw"); 
       else if (path === "ideatradepoint") setActivePage("ideatradepoint");
       else if (path === "hisideatradepoint") setActivePage("hisideatradepoint");
+      else if (path === "sectorrotation") setActivePage("sectorrotation");
 
       else setActivePage("preview-projects"); 
     }
