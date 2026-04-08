@@ -7,7 +7,6 @@ import { createPortal } from "react-dom";
 import { useAuth } from "@/context/AuthContext"; // ⚠️ เช็ค Path ให้ตรงด้วยนะครับ
 
 import drIcon from "@/assets/icons/dr.svg";
-import { Settings as SettingsIcon } from '@mui/icons-material';
 import ToolHint from "@/components/ToolHint.jsx";
 import DRInsightDashboard from "./components/DRInsightDashboard.jsx";
 import { createChart, AreaSeries } from 'lightweight-charts';
@@ -502,9 +501,6 @@ function ChartCard({ chartKey, chartSelections, setChartSelections, chartData, t
         </select>
         <div className="flex items-center gap-3 text-slate-600">
           <button onClick={() => onFullscreen(chartKey)} className="hover:text-cyan-400 transition text-slate-400" title="Fullscreen">⛶</button>
-          <button className="hover:text-cyan-400 transition text-slate-400">
-            <SettingsIcon sx={{ fontSize: 16, color: "inherit" }} />
-          </button>
         </div>
       </div>
 
@@ -717,7 +713,6 @@ function MobileDashboard({
                 </select>
                 <div className="flex items-center gap-3 text-slate-600 opacity-50">
                   <span className="text-sm">⛶</span>
-                  <span className="text-sm">⚙</span>
                 </div>
               </div>
               <div className="w-full h-[200px] shrink-0">
@@ -1057,7 +1052,7 @@ export default function DRInsight() {
                         <option>Select a symbol...</option>
                       </select>
                       <div className="flex gap-3 text-slate-600 opacity-50">
-                        <span className="text-sm">⛶</span><span className="text-sm">⚙</span>
+                        <span className="text-sm">⛶</span>
                       </div>
                     </div>
                     <div className="flex-1 min-h-0 w-full">
@@ -1142,7 +1137,6 @@ export default function DRInsight() {
                         </select>
                         <div className="flex gap-3 text-white">
                           <button onClick={() => setFullscreenChart(chartKey)} className="hover:text-cyan-400 transition">⛶</button>
-                          <button className="hover:text-cyan-400 transition"><SettingsIcon sx={{ fontSize: 18 }} /></button>
                         </div>
                       </div>
                       <div className="flex-1 min-h-0 bg-[#0B1221] border border-slate-800/40 rounded-b-xl relative overflow-hidden">
