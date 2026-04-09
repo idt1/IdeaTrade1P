@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Rocket from "./rocket";
+import Rocket from "./rocket"; // เช็คตำแหน่ง import Rocket ให้ถูกต้องด้วยนะครับ
 
 // ✅ Import Firebase เพิ่มเติม
 import { db } from "@/firebase"; 
@@ -77,10 +77,9 @@ export default function Register() {
         registeredAt: new Date()
       });
 
-      // ✅ 2. ยิง API ไปที่ Backend ผ่าน Proxy (ถ้าไม่ได้ใช้แล้ว สามารถลบออกได้นะครับ)
-      // เปลี่ยนจาก localhost:8000 เป็นการเรียก /api/register แทน เพื่อให้วิ่งผ่าน Proxy ไปพอร์ต 5000 ของเรา
+      // ✅ 2. ยิง API ไปที่ Backend ผ่าน Proxy
       try {
-        const response = await fetch('/api/register', { // 🔴 แก้ไขตรงนี้
+        const response = await fetch('/api/register', { 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
@@ -110,8 +109,10 @@ export default function Register() {
     }
   };
 
+  // ======================
+  // Render UI
+  // ======================
   return (
-    // ... UI โค้ดเดิมของคุณทั้งหมด (ผมไม่ได้แก้ตรงนี้นะครับ)
     <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4 font-sans">
       <div className="w-full max-w-5xl bg-slate-800 rounded-2xl md:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row">
         
@@ -123,48 +124,102 @@ export default function Register() {
             {/* First & Last Name */}
             <div className="flex flex-col md:flex-row gap-4">
               <div className="relative w-full">
-                <input type="text" name="firstName" placeholder="Enter your first name" value={formData.firstName} onChange={handleChange} className={`w-full bg-slate-700/50 text-white border px-4 py-3 rounded-lg ${errorField === "firstName" ? "border-orange-400" : "border-slate-600"}`} />
+                <input 
+                  type="text" 
+                  name="firstName" 
+                  placeholder="Enter your first name" 
+                  value={formData.firstName} 
+                  onChange={handleChange} 
+                  className={`w-full bg-slate-700/50 text-white border px-4 py-3 rounded-lg outline-none focus:border-blue-400 transition-colors ${errorField === "firstName" ? "border-orange-400" : "border-slate-600"}`} 
+                />
                 {errorField === "firstName" && <ErrorPopup />}
               </div>
               <div className="relative w-full">
-                <input type="text" name="lastName" placeholder="Enter your last name" value={formData.lastName} onChange={handleChange} className={`w-full bg-slate-700/50 text-white border px-4 py-3 rounded-lg ${errorField === "lastName" ? "border-orange-400" : "border-slate-600"}`} />
+                <input 
+                  type="text" 
+                  name="lastName" 
+                  placeholder="Enter your last name" 
+                  value={formData.lastName} 
+                  onChange={handleChange} 
+                  className={`w-full bg-slate-700/50 text-white border px-4 py-3 rounded-lg outline-none focus:border-blue-400 transition-colors ${errorField === "lastName" ? "border-orange-400" : "border-slate-600"}`} 
+                />
                 {errorField === "lastName" && <ErrorPopup />}
               </div>
             </div>
 
             {/* Email */}
             <div className="relative">
-              <input type="email" name="email" placeholder="Enter your email" value={formData.email} onChange={handleChange} className={`w-full bg-slate-700/50 text-white border px-4 py-3 rounded-lg ${errorField === "email" ? "border-orange-400" : "border-slate-600"}`} />
+              <input 
+                type="email" 
+                name="email" 
+                placeholder="Enter your email" 
+                value={formData.email} 
+                onChange={handleChange} 
+                className={`w-full bg-slate-700/50 text-white border px-4 py-3 rounded-lg outline-none focus:border-blue-400 transition-colors ${errorField === "email" ? "border-orange-400" : "border-slate-600"}`} 
+              />
               {errorField === "email" && <ErrorPopup />}
             </div>
 
             {/* Phone */}
             <div className="relative">
-              <input type="tel" name="phone" placeholder="Enter your phone number" value={formData.phone} onChange={handleChange} className={`w-full bg-slate-700/50 text-white border px-4 py-3 rounded-lg ${errorField === "phone" ? "border-orange-400" : "border-slate-600"}`} />
+              <input 
+                type="tel" 
+                name="phone" 
+                placeholder="Enter your phone number" 
+                value={formData.phone} 
+                onChange={handleChange} 
+                className={`w-full bg-slate-700/50 text-white border px-4 py-3 rounded-lg outline-none focus:border-blue-400 transition-colors ${errorField === "phone" ? "border-orange-400" : "border-slate-600"}`} 
+              />
               {errorField === "phone" && <ErrorPopup />}
             </div>
 
             {/* Privacy Policy */}
-            <div className="relative flex items-center gap-2">
-              <input type="checkbox" name="agree" checked={formData.agree} onChange={handleChange} className="w-4 h-4" />
-              <span className="text-sm text-gray-400">I accept all <span className="underline hover:text-white cursor-pointer">Terms Service and Privacy Policy</span> <span className="text-red-500">*</span></span>
+            <div className="relative flex items-center gap-2 pt-2">
+              <input 
+                type="checkbox" 
+                name="agree" 
+                checked={formData.agree} 
+                onChange={handleChange} 
+                className="w-4 h-4 cursor-pointer accent-blue-500" 
+              />
+              <span className="text-sm text-gray-400">
+                I accept all <span className="underline hover:text-white cursor-pointer transition-colors">Terms Service and Privacy Policy</span> <span className="text-red-500">*</span>
+              </span>
               {showPrivacyPopup && (
                 <div className="absolute left-0 -bottom-10 w-full bg-white border border-orange-400 text-gray-800 text-sm px-3 py-2 shadow-sm z-20">
-                  <div className="flex items-center gap-2"><span className="bg-orange-500 text-white w-4 h-4 flex items-center justify-center text-xs font-bold">!</span> Please accept the Terms of Service.</div>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-orange-500 text-white w-4 h-4 flex items-center justify-center text-xs font-bold">!</span> 
+                    Please accept the Terms of Service.
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Buttons */}
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              <button type="button" onClick={() => navigate("/")} className="py-3 rounded-lg bg-gray-600 text-gray-200 hover:bg-gray-500 transition">Cancel</button>
-              <button type="submit" disabled={isSubmitting} className={`py-3 rounded-lg text-white transition ${isSubmitting ? 'bg-sky-400 cursor-not-allowed' : 'bg-sky-600 hover:bg-sky-500'}`}>{isSubmitting ? 'Creating...' : 'Create an account'}</button>
+            <div className="grid grid-cols-2 gap-4 pt-4 mt-2">
+              <button 
+                type="button" 
+                onClick={() => navigate("/")} 
+                className="py-3 rounded-lg bg-gray-600 text-gray-200 hover:bg-gray-500 font-semibold transition-colors shadow-md"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                disabled={isSubmitting} 
+                className={`py-3 rounded-lg text-white font-semibold transition-all shadow-md ${isSubmitting ? 'bg-sky-400/70 cursor-not-allowed' : 'bg-sky-600 hover:bg-sky-500 hover:shadow-sky-500/30'}`}
+              >
+                {isSubmitting ? 'Creating...' : 'Create an account'}
+              </button>
             </div>
           </form>
         </div>
 
         {/* RIGHT SIDE */}
-        <div className="w-full min-h-[300px] h-80 sm:h-96 lg:w-1/2 lg:h-auto relative flex items-end justify-center pt-0 scale-100"><Rocket /></div>
+        <div className="w-full min-h-[300px] h-80 sm:h-96 lg:w-1/2 lg:h-auto relative flex items-end justify-center pt-0 scale-100 bg-[#0d1624]">
+           <Rocket />
+        </div>
+        
       </div>
     </div>
   );
