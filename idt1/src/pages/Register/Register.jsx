@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Rocket from "./rocket"; 
 
-// ✅ Import collection และ addDoc สำหรับการสร้างสุ่ม Document ID
+// ✅ Import getDoc เพิ่มเข้ามา เพื่อใช้เช็คข้อมูลซ้ำ
 import { db } from "@/firebase"; 
-import { collection, addDoc } from "firebase/firestore"; 
+import { doc, setDoc, getDoc } from "firebase/firestore"; 
 
 const ErrorPopup = () => (
   <div className="absolute left-0 -bottom-9 z-20 w-full flex items-center gap-2 bg-white text-gray-800 text-sm px-3 py-2 border border-orange-400 shadow-sm">
@@ -54,22 +54,30 @@ export default function Register() {
     setIsSubmitting(true);
     try {
       const emailKey = formData.email.trim().toLowerCase();
+      const docRef = doc(db, "users", emailKey);
       
-      // 🟢 1. บันทึกข้อมูลลง Firestore (สุ่ม ID และเตรียมโครงสร้างให้ครบแบบเดิม)
-      const usersCollectionRef = collection(db, "users");
-      await addDoc(usersCollectionRef, {
+      // 🟢 1. เช็คก่อนว่าอีเมลนี้ เคยลงทะเบียนไว้ใน Database หรือยัง?
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        alert("อีเมลนี้ถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น หรือไปที่หน้าล็อกอินครับ");
+        setIsSubmitting(false);
+        return; // หยุดการทำงาน ไม่บันทึกทับของเดิม
+      }
+
+      // 🟢 2. ถ้ายืนยันว่าเป็นอีเมลใหม่ ให้บันทึกข้อมูล พร้อมโครงสร้างเริ่มต้น
+      await setDoc(docRef, {
         email: emailKey,
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone,
         registeredAt: new Date(),
-        role: "member",             // สถานะเริ่มต้น
-        mySubscriptions: [],        // Array เปล่า รอรับประวัติการซื้อแพ็กเกจ
-        subscriptions: {},          // Map เปล่า รอรับ Timestamp วันหมดอายุของแต่ละเครื่องมือ
-        unlockedItems: []           // Array เปล่า รอรับชื่อเครื่องมือที่ปลดล็อก
+        role: "member",
+        mySubscriptions: [],        
+        subscriptions: {},          
+        unlockedItems: []           
       });
 
-      // 🟢 2. ยิง API ไปที่ Backend (ซ่อน Error ใน Console หากติดต่อ Backend ไม่ได้)
+      // 🟢 3. ยิง API ไปที่ Backend 
       try {
         const response = await fetch('/api/register', { 
           method: 'POST',
@@ -86,7 +94,7 @@ export default function Register() {
         console.log("บันทึกข้อมูลลง Firebase สำเร็จ");
       }
 
-      // 🟢 3. เสร็จสิ้น เด้งไปหน้า Welcome เพื่อกรอก OTP
+      // 🟢 4. เสร็จสิ้น เด้งไปหน้า Welcome
       alert("บันทึกข้อมูลเรียบร้อย! กรุณายืนยันตัวตนด้วย OTP"); 
       localStorage.setItem("rememberedEmail", emailKey); 
       navigate("/"); 
