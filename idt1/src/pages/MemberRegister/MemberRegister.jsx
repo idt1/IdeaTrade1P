@@ -401,16 +401,66 @@ export default function MemberRegister() {
 
           {/* Tools */}
           <div className="bg-[#0F1B2D] p-5 rounded-xl">
-            <h2 className="text-xl font-semibold mb-4">Select Your Tools</h2>
+            <div className="flex items-center justify-between mb-4 gap-3">
+              <h2 className="text-xl font-semibold">Select Your Tools</h2>
+
+              {(() => {
+                // tools ที่เลือกได้ใน cycle ปัจจุบัน (ไม่นับอันที่ล็อค)
+                const selectableTools = TOOLS.filter(
+                  (tool) => !getToolStatus(tool.id, billingCycle).isLocked
+                );
+
+                const allSelected =
+                  selectableTools.length > 0 &&
+                  selectableTools.every((tool) =>
+                    selectedTools.some(
+                      (t) => t.id === tool.id && t.billing === billingCycle
+                    )
+                  );
+
+                const handleSelectAll = () => {
+                  if (allSelected) {
+                    // Deselect เฉพาะ cycle ปัจจุบัน
+                    setSelectedTools((prev) =>
+                      prev.filter((t) => t.billing !== billingCycle)
+                    );
+                  } else {
+                    // Select all ของ cycle ปัจจุบัน (คงของอีก cycle ไว้)
+                    setSelectedTools((prev) => {
+                      const others = prev.filter((t) => t.billing !== billingCycle);
+                      const current = selectableTools.map((tool) => ({
+                        id: tool.id,
+                        billing: billingCycle,
+                      }));
+                      return [...others, ...current];
+                    });
+                  }
+                };
+
+                return (
+                  <button
+                    onClick={handleSelectAll}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition whitespace-nowrap
+                      ${
+                        allSelected
+                          ? "border-red-500/50 text-red-400 hover:bg-red-500/10"
+                          : "border-[#0E6BA8] text-[#0EA5E9] hover:bg-[#0E6BA8]/20"
+                      }`}
+                  >
+                    {allSelected ? "Deselect All" : "Select All"}
+                  </button>
+                );
+              })()}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {TOOLS.map((tool) => {
-                // ✅ 7. ดึงสถานะการล็อคจากฟังก์ชันใหม่ (ตอนนี้ไม่ล็อคเลย ให้กด Extend/Upgrade ได้)
                 const { isLocked, text } = getToolStatus(tool.id, billingCycle);
-                
+
                 const active = selectedTools.some(
                   (t) => t.id === tool.id && t.billing === billingCycle
                 );
-                
+
                 return (
                   <div
                     key={tool.id}
@@ -420,7 +470,7 @@ export default function MemberRegister() {
                     className={`px-4 md:px-5 py-4 rounded-xl border flex items-center gap-2 min-h-[72px] transition-all
                     ${
                       isLocked
-                        ? "border-[#1F3354] bg-[#0A1224] opacity-50 cursor-not-allowed" 
+                        ? "border-[#1F3354] bg-[#0A1224] opacity-50 cursor-not-allowed"
                         : active
                         ? "border-[#0E6BA8] bg-[#102B46] cursor-pointer"
                         : "border-[#1F3354] bg-[#13233A] cursor-pointer hover:border-[#0E6BA8]/50"
@@ -430,7 +480,6 @@ export default function MemberRegister() {
                       <span className={isLocked ? "line-through text-[#9FB3C8]" : "text-white"}>
                         {tool.name}
                       </span>
-                      {/* ✅ 8. แสดง Badge พิเศษตามสถานะ (ทบเวลา / อัปเกรด) */}
                       {!isLocked && text && (
                         <span className={`text-[10px] mt-0.5 px-1.5 py-0.5 rounded-sm w-fit font-medium
                           ${text === "Renew" ? "bg-amber-500/20 text-amber-400" : ""}
