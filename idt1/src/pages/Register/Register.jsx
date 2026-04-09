@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Rocket from "./rocket"; 
 
-// ✅ Import collection และ addDoc สำหรับการสุ่ม ID แบบเดิม
+// ✅ Import collection และ addDoc สำหรับการสร้างสุ่ม Document ID
 import { db } from "@/firebase"; 
 import { collection, addDoc } from "firebase/firestore"; 
 
@@ -55,17 +55,21 @@ export default function Register() {
     try {
       const emailKey = formData.email.trim().toLowerCase();
       
-      // 🟢 1. บันทึกข้อมูลลง Firestore (แบบเดิม: ให้ Firebase สุ่ม ID อัตโนมัติให้)
+      // 🟢 1. บันทึกข้อมูลลง Firestore (สุ่ม ID และเตรียมโครงสร้างให้ครบแบบเดิม)
       const usersCollectionRef = collection(db, "users");
       await addDoc(usersCollectionRef, {
+        email: emailKey,
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone,
-        email: emailKey,
-        registeredAt: new Date()
+        registeredAt: new Date(),
+        role: "member",             // สถานะเริ่มต้น
+        mySubscriptions: [],        // Array เปล่า รอรับประวัติการซื้อแพ็กเกจ
+        subscriptions: {},          // Map เปล่า รอรับ Timestamp วันหมดอายุของแต่ละเครื่องมือ
+        unlockedItems: []           // Array เปล่า รอรับชื่อเครื่องมือที่ปลดล็อก
       });
 
-      // 🟢 2. ยิง API ไปที่ Backend (ปรับปรุงโค้ดไม่ให้ Error แดงๆ ขึ้นใน Console)
+      // 🟢 2. ยิง API ไปที่ Backend (ซ่อน Error ใน Console หากติดต่อ Backend ไม่ได้)
       try {
         const response = await fetch('/api/register', { 
           method: 'POST',
@@ -79,17 +83,17 @@ export default function Register() {
           if(!response.ok) console.warn("Backend แจ้งเตือน:", data.message);
         }
       } catch (apiErr) {
-        console.log("โฟกัสการบันทึกที่ Firebase สำเร็จแล้ว (ไม่มี Backend ไม่เป็นไร)");
+        console.log("บันทึกข้อมูลลง Firebase สำเร็จ");
       }
 
-      // 🟢 3. ข้อมูลเข้า Firebase สำเร็จ เด้งไปหน้า Welcome
+      // 🟢 3. เสร็จสิ้น เด้งไปหน้า Welcome เพื่อกรอก OTP
       alert("บันทึกข้อมูลเรียบร้อย! กรุณายืนยันตัวตนด้วย OTP"); 
       localStorage.setItem("rememberedEmail", emailKey); 
       navigate("/"); 
 
     } catch (error) {
       console.error("Error Registration:", error);
-      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูลลง Firebase เช็ค Rules บนเว็บหรือยัง?");
+      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูลลง Firebase");
     } finally {
       setIsSubmitting(false);
     }
