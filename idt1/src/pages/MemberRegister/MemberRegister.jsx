@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
-// ✅ 1. เพิ่ม setDoc ที่นี่ครับ
-import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
+// ✅ 1. เพิ่ม deleteDoc เข้ามา เพื่อใช้ลบไฟล์ temp (อีเมล) หลังจากย้ายข้อมูลเสร็จ
+import { doc, getDoc, setDoc, Timestamp, deleteDoc } from "firebase/firestore";
 import { db, auth } from "/src/firebase";
 
 import KbankIcon from "@/assets/icons/Kbank.png";
@@ -247,18 +247,36 @@ export default function MemberRegister() {
       const newToolIds = selectedTools.map((t) => t.id);
 
       if (currentUser) {
-        const userRef = doc(db, "users", currentUser.uid);
+        // 🟢 อ้างอิงเอกสารหลักโดยใช้ UID แบบดั้งเดิม
+        const uid = currentUser.uid;
+        const userRef = doc(db, "users", uid);
         const userSnap = await getDoc(userRef);
         
         let oldUnlockedItems = [];
         let oldSubscriptions = [];
         let currentSubExpirations = {};
+        let existingData = {};
 
         if (userSnap.exists()) {
-          const userData = userSnap.data();
-          oldUnlockedItems = userData.unlockedItems || [];
-          oldSubscriptions = userData.mySubscriptions || [];
-          currentSubExpirations = userData.subscriptions || {};
+          existingData = userSnap.data();
+          oldUnlockedItems = existingData.unlockedItems || [];
+          oldSubscriptions = existingData.mySubscriptions || [];
+          currentSubExpirations = existingData.subscriptions || {};
+        }
+
+        // 🟢 ไปดึงข้อมูลชื่อ-นามสกุล ที่พักไว้ตอนสมัครในไฟล์อีเมล
+        let registrationData = {};
+        const storedEmail = localStorage.getItem("rememberedEmail");
+        const emailKey = (currentUser.email || storedEmail)?.toLowerCase();
+
+        if (emailKey) {
+          const tempRef = doc(db, "users", emailKey);
+          const tempSnap = await getDoc(tempRef);
+          if (tempSnap.exists()) {
+            registrationData = tempSnap.data();
+            // เมื่อดึงข้อมูลเสร็จ ลบไฟล์อีเมลทิ้ง เพื่อไม่ให้ DB รก
+            await deleteDoc(tempRef).catch(() => console.log("ลบไฟล์ Temp ไม่ได้"));
+          }
         }
 
         const updatedSubscriptions = [
@@ -274,7 +292,7 @@ export default function MemberRegister() {
           let expireDate = new Date();
           
           const existingTimestamp = currentSubExpirations[t.id];
-          if (existingTimestamp && existingTimestamp.toDate() > new Date()) {
+          if (existingTimestamp && typeof existingTimestamp.toDate === "function" && existingTimestamp.toDate() > new Date()) {
             expireDate = existingTimestamp.toDate();
           }
 
@@ -287,7 +305,11 @@ export default function MemberRegister() {
           newExpirations[t.id] = Timestamp.fromDate(expireDate);
         });
 
+        // 🟢 บันทึกข้อมูลรวมทั้งหมดลง UID แบบ { merge: true } รับประกันของไม่หาย
         await setDoc(userRef, {
+          ...registrationData, // ข้อมูลจากตอนสมัคร
+          ...existingData,     // ข้อมูลที่มีอยู่เดิมใน UID
+          email: emailKey || existingData.email || "", // กันเหนียวฟิลด์อีเมล
           role: "membership",
           unlockedItems: mergedUnlockedItems,
           mySubscriptions: updatedSubscriptions,
