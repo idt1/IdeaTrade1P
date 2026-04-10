@@ -1,35 +1,54 @@
 // src/pages/Profile.jsx
-import React, { useState } from 'react'; // ลบ useEffect ออกได้เลยเพราะเราดึงมาจาก Context แล้ว
+import React, { useState } from 'react'; 
 import './Profile.css';
 import { useAuth } from '@/context/AuthContext';
 
-// ✅ Import เฉพาะสิ่งที่ใช้ตอนกด Save
 import { db } from "@/firebase"; 
 import { doc, setDoc } from "firebase/firestore";
 
 const Profile = () => {
-  // ดึงข้อมูลทั้งหมดจากถังส่วนกลาง
   const { currentUser, userData, setUserData } = useAuth();
   
   const [activeTab, setActiveTab] = useState('Profile');
   const [isSaving, setIsSaving] = useState(false);
 
-  // ❌ ลบ useEffect อันยาวๆ ของเก่าทิ้งไปได้เลยครับ เพราะ AuthContext จัดการดึงให้แล้ว
-
-  // ถ้าข้อมูลยังโหลดไม่เสร็จ (userData เป็น null) ให้ขึ้น Loading ไว้ก่อน
   if (!userData) return <div className="text-white text-center mt-20">Loading profile...</div>;
+
+  // 🟢 เพิ่มฟังก์ชันสำหรับแปลงเวลา Last Login
+  const getFormattedLastLogin = () => {
+    // เช็คว่ามีฟิลด์ lastLoginAt ในฐานข้อมูลหรือไม่
+    if (userData.lastLoginAt) {
+      // เช็คว่ามันเป็น Firestore Timestamp หรือเปล่า (มี .toDate())
+      if (typeof userData.lastLoginAt.toDate === 'function') {
+        const date = userData.lastLoginAt.toDate();
+        return date.toLocaleString('en-GB', {
+          day: 'numeric', month: 'short', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', hour12: false
+        });
+      } 
+      // เผื่อกรณีมันดึงมาเป็น Date string ธรรมดา
+      return new Date(userData.lastLoginAt).toLocaleString('en-GB', {
+        day: 'numeric', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: false
+      });
+    }
+    return "Unknown"; // ถ้าไม่มีข้อมูล
+  };
 
   const handleSave = async () => {
     if (!currentUser) return alert("กรุณาล็อกอินใหม่อีกครั้ง");
 
     setIsSaving(true);
     try {
-      const docRef = doc(db, "users", currentUser.uid);
+      // 🟢 ตรงนี้ก็ต้องอ้างอิงไฟล์ให้ถูก (เผื่อว่าคุณกำลังใช้ email เป็นชื่อไฟล์)
+      // ถ้า AuthContext จัดการให้ userData.email ตรงกับไฟล์ใน Firestore ก็ใช้ emailKey 
+      const emailKey = (currentUser.email || userData.email).toLowerCase();
+      const docRef = doc(db, "users", emailKey); // 👈 เปลี่ยนจาก currentUser.uid เป็น emailKey
+      
       await setDoc(docRef, {
         firstName: userData.firstName,
         lastName: userData.lastName,
         phone: userData.phone,
-        email: userData.email, // ใช้จาก userData ได้เลย
         updatedAt: new Date()
       }, { merge: true });
 
@@ -81,7 +100,8 @@ const Profile = () => {
               
               <div className="flex flex-col gap-1 w-full">
                 <h2 className="text-lg md:text-xl font-bold text-white text-left">Personal Information</h2>
-                <p className="text-xs text-gray-500 text-left">Last Login: {userData.lastLogin}</p>
+                {/* 🟢 แสดงเวลา Login ที่แปลงร่างแล้ว */}
+                <p className="text-xs text-gray-500 text-left">Last Login: {getFormattedLastLogin()}</p>
               </div>
               
               <div className="flex flex-col gap-5 w-full">
