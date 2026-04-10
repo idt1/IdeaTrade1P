@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
-// ✅ 1. เพิ่ม setDoc ที่นี่ครับ
+// ✅ นำเข้า doc, getDoc, setDoc, Timestamp
 import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 import { db, auth } from "/src/firebase";
 
@@ -81,16 +81,20 @@ export default function MemberRegister() {
     return result;
   };
 
-  // ✅ 4. ดึงข้อมูล User ตอนเปิดหน้า
+  // ✅ 4. ดึงข้อมูล User ตอนเปิดหน้า (อัปเดตให้ดึงจากไฟล์ชื่อ อีเมล)
   useEffect(() => {
     const fetchUserSubscriptions = async () => {
       setTimeout(async () => {
         const currentUser = auth.currentUser;
+        const storedEmail = localStorage.getItem("rememberedEmail");
+        const emailKey = (currentUser?.email || storedEmail)?.toLowerCase();
+
         let parsedSubs = {};
 
-        if (currentUser) {
+        if (emailKey) {
           try {
-            const userRef = doc(db, "users", currentUser.uid);
+            // 🟢 ดึงข้อมูลจากไฟล์อีเมล แทน UID
+            const userRef = doc(db, "users", emailKey);
             const userSnap = await getDoc(userRef);
             
             if (userSnap.exists()) {
@@ -223,6 +227,8 @@ export default function MemberRegister() {
   const handleConfirmPayment = async () => {
     try {
       const currentUser = auth.currentUser;
+      const storedEmail = localStorage.getItem("rememberedEmail");
+      const emailKey = (currentUser?.email || storedEmail)?.toLowerCase();
 
       const newSubscriptions = selectedTools.map((t) => {
         const toolInfo = TOOLS.find((x) => x.id === t.id);
@@ -246,8 +252,9 @@ export default function MemberRegister() {
 
       const newToolIds = selectedTools.map((t) => t.id);
 
-      if (currentUser) {
-        const userRef = doc(db, "users", currentUser.uid);
+      if (emailKey) {
+        // 🟢 บันทึกข้อมูลแพ็กเกจลงในไฟล์ชื่อ "อีเมล" ด้วยคำสั่ง merge: true
+        const userRef = doc(db, "users", emailKey);
         const userSnap = await getDoc(userRef);
         
         let oldUnlockedItems = [];
@@ -274,7 +281,7 @@ export default function MemberRegister() {
           let expireDate = new Date();
           
           const existingTimestamp = currentSubExpirations[t.id];
-          if (existingTimestamp && existingTimestamp.toDate() > new Date()) {
+          if (existingTimestamp && typeof existingTimestamp.toDate === "function" && existingTimestamp.toDate() > new Date()) {
             expireDate = existingTimestamp.toDate();
           }
 
@@ -287,6 +294,7 @@ export default function MemberRegister() {
           newExpirations[t.id] = Timestamp.fromDate(expireDate);
         });
 
+        // 🟢 merge: true จะช่วยรักษาข้อมูลชื่อ เบอร์โทร ให้คงอยู่ ไม่หายแน่นอน
         await setDoc(userRef, {
           role: "membership",
           unlockedItems: mergedUnlockedItems,
@@ -295,6 +303,7 @@ export default function MemberRegister() {
         }, { merge: true });
 
       } else {
+        // Fallback กรณีไม่มีอีเมล (LocalStorage)
         const storedProfile = localStorage.getItem("userProfile");
         let parsedProfile = storedProfile ? JSON.parse(storedProfile) : { role: "free", unlockedItems: [], mySubscriptions: [], subscriptions: {} };
         
@@ -402,9 +411,61 @@ export default function MemberRegister() {
           {/* Tools */}
           <div className="bg-[#0F1B2D] p-5 rounded-xl">
             <h2 className="text-xl font-semibold mb-4">Select Your Tools</h2>
+            
+            <div className="flex items-center justify-between mb-4 gap-3">
+              <h2 className="text-xl font-semibold">Select Your Tools</h2>
+
+              {/* 🟢 ปุ่ม Select All ของเพื่อนคุณ อยู่ตรงนี้ครับ! */}
+              {(() => {
+                const selectableTools = TOOLS.filter(
+                  (tool) => !getToolStatus(tool.id, billingCycle).isLocked
+                );
+
+                const allSelected =
+                  selectableTools.length > 0 &&
+                  selectableTools.every((tool) =>
+                    selectedTools.some(
+                      (t) => t.id === tool.id && t.billing === billingCycle
+                    )
+                  );
+
+                const handleSelectAll = () => {
+                  if (allSelected) {
+                    // Deselect เฉพาะ cycle ปัจจุบัน
+                    setSelectedTools((prev) =>
+                      prev.filter((t) => t.billing !== billingCycle)
+                    );
+                  } else {
+                    // Select all ของ cycle ปัจจุบัน (คงของอีก cycle ไว้)
+                    setSelectedTools((prev) => {
+                      const others = prev.filter((t) => t.billing !== billingCycle);
+                      const current = selectableTools.map((tool) => ({
+                        id: tool.id,
+                        billing: billingCycle,
+                      }));
+                      return [...others, ...current];
+                    });
+                  }
+                };
+
+                return (
+                  <button
+                    onClick={handleSelectAll}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition whitespace-nowrap
+                      ${
+                        allSelected
+                          ? "border-red-500/50 text-red-400 hover:bg-red-500/10"
+                          : "border-[#0E6BA8] text-[#0EA5E9] hover:bg-[#0E6BA8]/20"
+                      }`}
+                  >
+                    {allSelected ? "Deselect All" : "Select All"}
+                  </button>
+                );
+              })()}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {TOOLS.map((tool) => {
-                // ✅ 7. ดึงสถานะการล็อคจากฟังก์ชันใหม่ (ตอนนี้ไม่ล็อคเลย ให้กด Extend/Upgrade ได้)
                 const { isLocked, text } = getToolStatus(tool.id, billingCycle);
                 
                 const active = selectedTools.some(
@@ -430,7 +491,6 @@ export default function MemberRegister() {
                       <span className={isLocked ? "line-through text-[#9FB3C8]" : "text-white"}>
                         {tool.name}
                       </span>
-                      {/* ✅ 8. แสดง Badge พิเศษตามสถานะ (ทบเวลา / อัปเกรด) */}
                       {!isLocked && text && (
                         <span className={`text-[10px] mt-0.5 px-1.5 py-0.5 rounded-sm w-fit font-medium
                           ${text === "Renew" ? "bg-amber-500/20 text-amber-400" : ""}
