@@ -410,7 +410,6 @@ export default function MemberRegister() {
 
           {/* Tools */}
           <div className="bg-[#0F1B2D] p-5 rounded-xl">
-            <h2 className="text-xl font-semibold mb-4">Select Your Tools</h2>
             
             <div className="flex items-center justify-between mb-4 gap-3">
               <h2 className="text-xl font-semibold">Select Your Tools</h2>
