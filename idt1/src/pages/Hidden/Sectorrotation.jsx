@@ -491,7 +491,7 @@ function SectorMultiSelect({ options, selected, onChange, max = 10 }) {
                         {selected.length > 0 ? `${selected.length}/${max} Selected` : "Search sub-sector..."}
                     </span>
                 </div>
-                
+
                 {/* 🟢 จัดการกากบาท (Clear) และสามเหลี่ยม (Caret) */}
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     {selected.length > 0 && (
@@ -508,9 +508,9 @@ function SectorMultiSelect({ options, selected, onChange, max = 10 }) {
                 </div>
             </div>
 
-            {/* Dropdown List */}
+                       {/* Dropdown List */}
             {isOpen && (
-                <div className="custom-scrollbar" style={{
+                <div style={{
                     position: "absolute", top: "100%", left: 0, marginTop: 4,
                     background: "#0f172a", border: "1px solid #1e293b",
                     borderRadius: 8, width: 220, zIndex: 150,
@@ -536,7 +536,7 @@ function SectorMultiSelect({ options, selected, onChange, max = 10 }) {
                         />
                     </div>
 
-                    <div style={{ padding: "6px 0", overflowY: "auto", flex: 1 }}>
+                    <div className="custom-scrollbar" style={{ padding: "6px 0", overflowY: "auto", flex: 1 }}>
                         {filteredOptions.length === 0 ? (
                             <div style={{ padding: "12px", color: "#64748b", fontSize: 12, textAlign: "center" }}>No match found</div>
                         ) : (
@@ -589,7 +589,7 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
     const isDragging = useRef(false);
     const startX = useRef(0);
     const scrollLeft = useRef(0);
-    
+
     const [showDropdown, setShowDropdown] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
 
@@ -605,23 +605,23 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
 
     const updateFlowBadgePosition = useCallback(() => {
         if (!scrollRef.current || !flowBadgeRef.current || !chartData.length) return;
-        
+
         const scrollDiv = scrollRef.current;
         const frameW = scrollDiv.clientWidth;
         const currentScroll = scrollDiv.scrollLeft;
         const rightEdgeX = currentScroll + frameW;
-        
+
         const padL = 40, padR = 60, padT = 50, padB = 40;
         const W = Math.max(window.innerWidth * 2, 1200);
         const chartW = W - padL - padR;
 
         let fractionalIndex = ((rightEdgeX - padL) / chartW) * (chartData.length - 1);
         fractionalIndex = Math.max(0, Math.min(chartData.length - 1, fractionalIndex));
-        
+
         const idx1 = Math.floor(fractionalIndex);
         const idx2 = Math.ceil(fractionalIndex);
         const weight = fractionalIndex - idx1;
-        
+
         const val1 = chartData[idx1];
         const val2 = chartData[idx2];
         const currentVal = val1 + (val2 - val1) * weight;
@@ -630,7 +630,7 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
         const mx = Math.max(...chartData);
         const range = mx - mn || 1;
         const perc = (mx - currentVal) / range;
-        
+
         flowBadgeRef.current.style.top = `calc(${padT}px + ${perc} * (100% - ${padT + padB}px))`;
     }, [chartData]);
 
@@ -676,10 +676,10 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
         const canvas = canvasRef.current;
         if (!canvas || chartData.length === 0) return;
         const dpr = window.devicePixelRatio || 1;
-        
+
         const W = Math.max(window.innerWidth * 2, 1200);
         const H = canvas.parentElement.offsetHeight;
-        
+
         canvas.width = W * dpr;
         canvas.height = H * dpr;
         canvas.style.width = `${W}px`;
@@ -718,15 +718,35 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
         });
         ctx.stroke();
 
-        const dates = [];
-        for (let i = 1; i <= cols; i++) dates.push(`Day ${i * 8}`);
-        
-        ctx.fillStyle = "#cbd5e1";
-        ctx.font = "bold 11px sans-serif";
-        ctx.textAlign = "center";
+        const totalPoints = chartData.length; // 160
+        const startDate = new Date("2019-01-02");
+        const endDate = new Date();
+
+        ctx.fillStyle = "#64748b";
+        ctx.font = "11px ui-sans-serif,system-ui,sans-serif";
+
         for (let i = 0; i <= cols; i++) {
             const x = padL + (i / cols) * chartW;
-            if(i < dates.length) ctx.fillText(dates[i], x, H - padB + 20);
+            
+            // หาว่า x นี้ตรงกับ index ที่เท่าไหร่
+            const dataIdx = Math.round((i / cols) * (totalPoints - 1));
+            
+            // interpolate วันที่
+            const t = dataIdx / (totalPoints - 1);
+            const ts = startDate.getTime() + t * (endDate.getTime() - startDate.getTime());
+            const d = new Date(ts);
+            
+            const dd = String(d.getDate()).padStart(2, "0");
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const yyyy = d.getFullYear();
+            const label = `${dd}/${mm}/${yyyy}`;
+            
+            // สลับ textAlign ขอบซ้าย-ขวาไม่ให้ถูก clip
+            if (i === 0) ctx.textAlign = "left";
+            else if (i === cols) ctx.textAlign = "right";
+            else ctx.textAlign = "center";
+            
+            ctx.fillText(label, x, H - padB + 18);
         }
 
         if (scrollRef.current) scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
@@ -753,25 +773,43 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
                     padding: "10px 16px", background: "#0b1121", borderBottom: "1px solid #1e293b",
                     zIndex: 20, flexShrink: 0
                 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <button style={{
-                            width: 32, height: 32, borderRadius: "50%", background: "#1e293b", color: "#cbd5e1",
-                            border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold"
-                        }}>?</button>
-                        
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20, flexWrap: "wrap", rowGap: 8 }}>
+                              <ToolHint onViewDetails={() => { window.scrollTo({ top: 0 }); }}>
+                                Sectorrotation
+                              </ToolHint>
+
                         <button onClick={onClose} style={{
-                            background: "#1e293b", color: "#cbd5e1", border: "none",
-                            padding: "0 12px", height: 32, borderRadius: 6, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center"
-                        }}>← back</button>
-                        
-                        <button onClick={handleLast} style={{
-                            width: 32, height: 32, borderRadius: "50%", background: "#1e293b", color: "#cbd5e1", padding: 6,
-                            border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center"
-                        }}><IconRefresh /></button>
+                                display: "flex", alignItems: "center", gap: 5,
+                                background: "transparent", border: "1px solid rgba(255,255,255,0.12)",
+                                borderRadius: 6, padding: "5px 12px",
+                                color: "#94a3b8", cursor: "pointer", fontSize: 13, fontFamily: "inherit",
+                            }}
+                                onMouseEnter={e => { e.currentTarget.style.borderColor = "#64748b"; e.currentTarget.style.color = "#e2e8f0"; }}
+                                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "#94a3b8"; }}
+                            >
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M10 3L5 8l5 5"/>
+                                </svg>
+                                back
+                            </button>
+
+                            <button onClick={handleLast} style={{
+                                width: 30, height: 30, borderRadius: 6,
+                                border: "1px solid rgba(255,255,255,0.12)",
+                                background: "transparent", cursor: "pointer",
+                                display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b",
+                            }} title="Reset"
+                                onMouseEnter={e => { e.currentTarget.style.borderColor = "#64748b"; e.currentTarget.style.color = "#e2e8f0"; }}
+                                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "#64748b"; }}
+                            >
+                                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M13.5 6A6 6 0 1 0 14 10"/><path d="M14 4v3h-3"/>
+                                </svg>
+                            </button>
 
                         {/* 🟢 Dropdown พร้อมปุ่มกากบาท (Clear) และสามเหลี่ยม (Caret) */}
                         <div style={{ position: "relative" }}>
-                            <div 
+                            <div
                                 onClick={() => { setShowDropdown(true); }}
                                 style={{
                                     display: "flex", alignItems: "center", gap: 8, background: "#1e293b", padding: "0 12px",
@@ -780,7 +818,7 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
                             >
                                 <IconSearch />
                                 {showDropdown ? (
-                                    <input 
+                                    <input
                                         autoFocus
                                         type="text"
                                         placeholder="Search sub-sector (id)..."
@@ -796,11 +834,11 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
                                 {/* 🟢 จัดการกากบาท (Clear) และสามเหลี่ยม (Caret) */}
                                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                     {showDropdown && searchTerm && (
-                                        <div 
-                                            onMouseDown={(e) => { 
-                                                e.preventDefault(); 
-                                                e.stopPropagation(); 
-                                                setSearchTerm(""); 
+                                        <div
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setSearchTerm("");
                                             }}
                                             style={{ cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center" }}
                                         >
@@ -812,7 +850,7 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
                                     </div>
                                 </div>
                             </div>
-                            
+
                             {/* Dropdown Menu */}
                             {showDropdown && (
                                 <div className="custom-scrollbar" style={{
@@ -824,12 +862,12 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
                                     maxHeight: 280, overflowY: "auto"
                                 }}>
                                     {allSectors.filter(id => id.toLowerCase().includes(searchTerm.toLowerCase())).map(id => (
-                                        <div 
+                                        <div
                                             key={id}
-                                            onMouseDown={(e) => { 
+                                            onMouseDown={(e) => {
                                                 e.preventDefault();
-                                                if (onSectorChange) onSectorChange(id); 
-                                                setShowDropdown(false); 
+                                                if (onSectorChange) onSectorChange(id);
+                                                setShowDropdown(false);
                                                 setSearchTerm("");
                                             }}
                                             style={{
@@ -869,15 +907,15 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
                     </div>
                 </div>
 
-                <div 
+                <div
                     ref={scrollRef}
                     onScroll={updateFlowBadgePosition}
                     onMouseDown={onMouseDown}
                     onMouseLeave={onMouseLeave}
                     onMouseUp={onMouseUp}
                     onMouseMove={onMouseMove}
-                    style={{ 
-                        flex: 1, position: "relative", 
+                    style={{
+                        flex: 1, position: "relative",
                         overflowX: "hidden", overflowY: "hidden",
                         display: "flex",
                         cursor: "grab"
@@ -891,7 +929,7 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
                 {hasFlow && (() => {
                     const isUp = chartData[chartData.length - 1] >= chartData[0];
                     const badgeBg = isUp ? "#22c55e" : "#f59e0b";
-                    
+
                     return (
                         <div
                             ref={flowBadgeRef}
@@ -935,7 +973,7 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
                         <div
                             key={st.sym}
                             style={{
-                                background: "rgba(30,41,59,0.7)", 
+                                background: "rgba(30,41,59,0.7)",
                                 color: "#cbd5e1",
                                 padding: "10px 0",
                                 border: "1px solid #1e293b",
@@ -1330,7 +1368,7 @@ export default function SectorRotation() {
 
     return (
         <div style={{ background: "#080c14", color: "#e2e8f0", fontFamily: "ui-sans-serif,system-ui,sans-serif", minHeight: "100vh", padding: "20px" }}>
-            
+
             {/* 🟢 ฝัง CSS ลงไปเลยเพื่อแก้ปัญหา Scrollbar สีขาวในรูป */}
             <style>
                 {`
@@ -1364,11 +1402,11 @@ export default function SectorRotation() {
                             <span style={{ color: "#e2e8f0", fontSize: 13, flex: 1, fontWeight: "bold" }}>
                                 {marketFilter === "SET&MAI" ? "SET & MAI" : marketFilter}
                             </span>
-                            
+
                             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                 {marketFilter !== "SET" && (
-                                    <div 
-                                        style={{ display: "flex", alignItems: "center", cursor: "pointer", color: "#94a3b8" }} 
+                                    <div
+                                        style={{ display: "flex", alignItems: "center", cursor: "pointer", color: "#94a3b8" }}
                                         onClick={(e) => { e.stopPropagation(); handleMarketChange("SET"); }}
                                     >
                                         <IconX />
