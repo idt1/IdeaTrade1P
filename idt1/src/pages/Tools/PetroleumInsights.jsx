@@ -743,10 +743,10 @@ export default function PetroleumInsights() {
   );
 
   const dashboardPreview = (
-    <div className="relative group w-full mb-12">
+    <div className="relative group w-full mb-12 max-w-5xl mx-auto">
       <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700" />
       <div className="relative bg-[#0e1118] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
-        <ScaledDashboardPreview dashboardWidth={1280} dashboardHeight={780} />
+        <ScaledDashboardPreview dashboardWidth={1280} dashboardHeight={700} />
       </div>
     </div>
   );
