@@ -76,19 +76,36 @@ export default function BidAsk() {
         setTimeout(() => { isPaused.current = false; }, 500);
     };
 
+    // 🟢 ปรับ Auto Scroll ให้สมูทขึ้น ใช้ requestAnimationFrame แทน setInterval ถ้าระบบรองรับ
     useEffect(() => {
         const container = scrollContainerRef.current;
         if (!container) return;
-        const id = setInterval(() => {
-            if (isPaused.current || !container) return;
-            const { scrollLeft, scrollWidth, clientWidth } = container;
-            const maxScroll = scrollWidth - clientWidth;
-            if (scrollDirection.current === 1 && Math.ceil(scrollLeft) >= maxScroll - 2) scrollDirection.current = -1;
-            else if (scrollDirection.current === -1 && scrollLeft <= 2) scrollDirection.current = 1;
-            container.scrollLeft += scrollDirection.current;
-            checkScroll();
-        }, 15);
-        return () => clearInterval(id);
+
+        let animationFrameId;
+        const speed = 1;
+
+        const scrollLoop = () => {
+            if (!isPaused.current && container) {
+                const { scrollLeft, scrollWidth, clientWidth } = container;
+                const maxScroll = scrollWidth - clientWidth;
+                
+                if (scrollDirection.current === 1 && Math.ceil(scrollLeft) >= maxScroll - 2) {
+                    scrollDirection.current = -1;
+                } else if (scrollDirection.current === -1 && scrollLeft <= 2) {
+                    scrollDirection.current = 1;
+                }
+                
+                container.scrollLeft += scrollDirection.current * speed;
+                checkScroll();
+            }
+            // เรียกซ้ำเพื่อความลื่นไหล
+            animationFrameId = requestAnimationFrame(scrollLoop);
+        };
+
+        // เริ่มลูป
+        animationFrameId = requestAnimationFrame(scrollLoop);
+
+        return () => cancelAnimationFrame(animationFrameId);
     }, [isMember, enteredTool]);
 
     useEffect(() => {
@@ -106,27 +123,27 @@ export default function BidAsk() {
     ];
 
     const headerJSX = (
-        <div className="text-center mb-10">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
+        <div className="text-center mb-8 md:mb-10 mt-6 md:mt-0">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-3 md:mb-4 tracking-tight">
                 <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">
                     BidAsk
                 </span>
             </h1>
-            <p className="text-slate-400 text-lg md:text-xl font-light">
+            <p className="text-slate-400 text-base md:text-lg lg:text-xl font-light px-4">
                 Deciphering "Big Money" through Order Flow Intelligence
             </p>
         </div>
     );
 
     const dashboardPreviewJSX = (
-        <div className="relative group w-full max-w-5xl mb-16">
+        <div className="relative group w-full max-w-5xl mb-12 md:mb-16">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700" />
             <div className="relative bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
-                <div className="bg-[#0f172a] px-4 py-3 flex items-center justify-between border-b border-slate-700/50">
+                <div className="bg-[#0f172a] px-4 py-2 md:py-3 flex items-center justify-between border-b border-slate-700/50">
                     <div className="flex gap-2">
-                        <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                        <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                        <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                        <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-red-500/80" />
+                        <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-yellow-500/80" />
+                        <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-500/80" />
                     </div>
                 </div>
                 <div className="aspect-[3/4] md:aspect-[17/10] w-full bg-[#0B1221] relative overflow-hidden group">
@@ -139,24 +156,27 @@ export default function BidAsk() {
     );
 
     const featuresSectionJSX = (
-        <div className="w-full max-w-5xl mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left border-l-4 border-cyan-500 pl-4">
+        <div className="w-full max-w-5xl mb-10 md:mb-12">
+            <h2 className="text-xl md:text-2xl lg:text-3xl font-bold mb-6 md:mb-8 text-left border-l-4 border-cyan-500 pl-4">
                 4 Main Features
             </h2>
             <div className="relative group" onMouseEnter={() => isPaused.current = true} onMouseLeave={() => isPaused.current = false}>
-                <button onClick={() => scroll("left")} className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${showLeft ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`} aria-label="Scroll Left">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                <button onClick={() => scroll("left")} className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-8 lg:-translate-x-20 z-20 w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${showLeft ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`} aria-label="Scroll Left">
+                    <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
                 </button>
-                <div ref={scrollContainerRef} onScroll={checkScroll} className="flex overflow-x-auto gap-6 py-4 px-1 hide-scrollbar" style={scrollbarHideStyle}>
+                
+                {/* 🟢 ปรับขนาดกล่องบน Mobile ให้กระชับขึ้น (w-[260px]) เพื่อไม่ให้ยาวเกินไป */}
+                <div ref={scrollContainerRef} onScroll={checkScroll} className="flex overflow-x-auto gap-4 md:gap-6 py-2 md:py-4 px-1 hide-scrollbar" style={scrollbarHideStyle}>
                     {features.map((item, index) => (
-                        <div key={index} className="w-[350px] md:w-[400px] flex-shrink-0 snap-center group/card bg-[#0f172a]/60 border border-slate-700/50 p-8 rounded-xl hover:bg-[#1e293b]/60 hover:border-cyan-500/30 transition duration-300">
-                            <h3 className="text-xl font-bold text-white mb-3 group-hover/card:text-cyan-400 transition-colors">{item.title}</h3>
-                            <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
+                        <div key={index} className="w-[260px] md:w-[350px] lg:w-[400px] flex-shrink-0 snap-center group/card bg-[#0f172a]/60 border border-slate-700/50 p-6 md:p-8 rounded-xl hover:bg-[#1e293b]/60 hover:border-cyan-500/30 transition duration-300">
+                            <h3 className="text-lg md:text-xl font-bold text-white mb-2 md:mb-3 group-hover/card:text-cyan-400 transition-colors">{item.title}</h3>
+                            <p className="text-slate-400 text-xs md:text-sm leading-relaxed">{item.desc}</p>
                         </div>
                     ))}
                 </div>
-                <button onClick={() => scroll("right")} className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${showRight ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`} aria-label="Scroll Right">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+
+                <button onClick={() => scroll("right")} className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-8 lg:translate-x-20 z-20 w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${showRight ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`} aria-label="Scroll Right">
+                    <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
                 </button>
             </div>
         </div>
@@ -221,14 +241,17 @@ export default function BidAsk() {
        CASE 3 : FULL PRODUCTION DASHBOARD
     ========================================================== */
     return (
-        <div className="w-full min-h-screen lg:h-[calc(100dvh-64px)] lg:overflow-hidden bg-[#0b111a] text-white px-3 md:px-6 py-3 md:py-6 flex flex-col">
+        <div className="w-full min-h-screen lg:h-[calc(100dvh-64px)] lg:overflow-hidden bg-[#0b111a] text-white px-2 md:px-6 py-2 md:py-6 flex flex-col">
             <div className="w-full max-w-none mx-auto flex-1 lg:min-h-0 flex flex-col">
-                <div className="flex-1 lg:min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 overflow-visible pt-4">
+                <div className="flex-1 lg:min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6 overflow-visible pt-2 md:pt-4">
                     <ReplayPanel
                         toolHint={
-                            <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
-                                Replay market tick-by-tick data, analyze bid/ask pressure, and visualize order flow intelligence to decipher "big money" moves
-                            </ToolHint>
+                            // 🟢 ToolHint z-index ควรอยู่ต่ำกว่า Sidebar (ที่ปกติน่าจะ z-40 หรือ z-50)
+                            <div className="z-30">
+                                <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                                    Replay market tick-by-tick data, analyze bid/ask pressure, and visualize order flow intelligence to decipher "big money" moves
+                                </ToolHint>
+                            </div>
                         }
                     />
                     <ReplayPanel />
@@ -261,7 +284,6 @@ function ReplayPanel({ toolHint }) {
     const [endTime, setEndTime] = useState("14:46");
     const [currentTime, setCurrentTime] = useState("10:00:00");
     
-    // 🟢 เปลี่ยนข้อมูลจำลองให้สร้าง 20 บรรทัดแทน 10 บรรทัด เพื่อให้ข้อมูลเต็มกรอบพอดี
     const [orderBook, setOrderBook] = useState(Array(20).fill({ bidVol: 0, bid: "-", ask: "-", askVol: 0 }));
 
     const totalBid = orderBook.reduce((sum, row) => sum + (row.bidVol || 0), 0);
@@ -286,7 +308,6 @@ function ReplayPanel({ toolHint }) {
         if (!isSearched) return;
         const basePrice = 72 - (sliderValue * 0.02);
         
-        // 🟢 สร้างข้อมูลการสุ่มจำลองแบบ 20 บรรทัด
         const newBook = Array(20).fill(0).map((_, i) => ({
             bidVol: Math.floor(200000 + Math.random() * 400000),
             bid: (basePrice - i * 0.25).toFixed(2),
@@ -297,18 +318,21 @@ function ReplayPanel({ toolHint }) {
     }, [sliderValue, isSearched]);
 
     return (
-        <div className="bg-[#111827] border border-slate-700 rounded-xl flex flex-col h-[600px] lg:h-full lg:min-h-0 relative">
+        <div className="bg-[#111827] border border-slate-700 rounded-xl flex flex-col h-[550px] sm:h-[600px] lg:h-full lg:min-h-0 relative">
             <style>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
             `}</style>
-            {toolHint && <div className="absolute -top-3 -left-3 z-50">{toolHint}</div>}
-            <div className="p-3 md:p-4 border-b border-slate-700 bg-[#0f172a] shrink-0 relative">
-                <div className="flex flex-wrap gap-3 mb-3">
-                    <div className="relative flex-1 min-w-[200px] basis-full sm:basis-auto">
-                        <div className={`flex items-center bg-[#111827] border rounded-md px-3 py-2 ${isFocused ? 'border-cyan-500' : 'border-slate-600'}`}>
+            
+            {/* 🟢 ToolHint container ที่ปรับ z-index ให้อยู่ใต้ Sidebar (ใช้ z-30) */}
+            {toolHint && <div className="absolute -top-2 -left-2 sm:-top-3 sm:-left-3 z-30">{toolHint}</div>}
+            
+            <div className="p-2 sm:p-3 md:p-4 border-b border-slate-700 bg-[#0f172a] shrink-0 relative">
+                <div className="flex flex-wrap gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <div className="relative flex-1 min-w-[150px] sm:min-w-[200px] basis-full sm:basis-auto">
+                        <div className={`flex items-center bg-[#111827] border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 ${isFocused ? 'border-cyan-500' : 'border-slate-600'}`}>
                             <input
                                 value={symbol}
                                 onChange={(e) => { setSymbol(e.target.value.toUpperCase()); setShowSymbolDropdown(true); }}
@@ -320,15 +344,15 @@ function ReplayPanel({ toolHint }) {
                             {symbol && <button onClick={() => { setSymbol(""); setIsSearched(false); }} className="text-slate-500 hover:text-red-400"><CloseIcon sx={{ fontSize: 14 }} /></button>}
                         </div>
                         {showSymbolDropdown && (
-                            <div className="absolute left-0 right-0 mt-1 bg-[#0f172a] border border-slate-700 rounded-md shadow-2xl z-[100] max-h-40 overflow-y-auto custom-scrollbar">
+                            <div className="absolute left-0 right-0 mt-1 bg-[#0f172a] border border-slate-700 rounded-md shadow-2xl z-40 max-h-40 overflow-y-auto custom-scrollbar">
                                 {filteredSymbols.map(s => (
                                     <div key={s} onMouseDown={(e) => { e.preventDefault(); setSymbol(s); setShowSymbolDropdown(false); }} className="px-3 py-2 text-xs hover:bg-cyan-500/20 cursor-pointer font-bold">{s}</div>
                                 ))}
                             </div>
                         )}
-                        <label className="absolute left-2 -top-2 text-[10px] px-1 bg-[#0f172a] text-slate-300">Symbol*</label>
+                        <label className="absolute left-2 -top-2 text-[9px] sm:text-[10px] px-1 bg-[#0f172a] text-slate-300">Symbol*</label>
                     </div>
-                    <div className="flex-1 min-w-[140px] z-20">
+                    <div className="flex-1 min-w-[120px] sm:min-w-[140px] z-20">
                         <DatePicker
                             dates={tradingDates}
                             selected={startDate}
@@ -336,7 +360,7 @@ function ReplayPanel({ toolHint }) {
                             label="Start Date"
                         />
                     </div>
-                    <div className="flex-1 min-w-[140px] z-10">
+                    <div className="flex-1 min-w-[120px] sm:min-w-[140px] z-10">
                         <DatePicker
                             dates={tradingDates}
                             selected={startDate}
@@ -345,51 +369,51 @@ function ReplayPanel({ toolHint }) {
                         />
                     </div>
                 </div>
-                <div className="flex flex-wrap gap-3">
-                    <div className="relative flex-1 min-w-[100px]">
-                        <div className="flex items-center justify-between bg-[#111827] border border-slate-600 rounded-md px-3 h-[38px] relative overflow-hidden group hover:border-slate-400 transition-colors">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                    <div className="relative flex-1 min-w-[80px] sm:min-w-[100px]">
+                        <div className="flex items-center justify-between bg-[#111827] border border-slate-600 rounded-md px-2 sm:px-3 h-[34px] sm:h-[38px] relative overflow-hidden group hover:border-slate-400 transition-colors">
                             <input 
                                 type="time"
                                 value={startTime}
                                 onChange={(e) => setStartTime(e.target.value)}
-                                className="w-full bg-transparent outline-none text-white text-xs font-mono appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer relative z-10"
+                                className="w-full bg-transparent outline-none text-white text-[10px] sm:text-xs font-mono appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer relative z-10"
                                 style={{ colorScheme: 'dark' }}
                             />
-                            <svg className="w-4 h-4 text-slate-400 absolute right-3 pointer-events-none group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <svg className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 absolute right-2 sm:right-3 pointer-events-none group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </div>
-                        <label className="absolute left-2 -top-2 text-[10px] px-1 bg-[#0f172a] text-slate-300">Start Time</label>
+                        <label className="absolute left-2 -top-2 text-[9px] sm:text-[10px] px-1 bg-[#0f172a] text-slate-300">Start Time</label>
                     </div>
 
-                    <div className="relative flex-1 min-w-[100px]">
-                        <div className="flex items-center justify-between bg-[#111827] border border-slate-700 opacity-80 rounded-md px-3 h-[38px] relative overflow-hidden group hover:border-slate-500 transition-colors">
+                    <div className="relative flex-1 min-w-[80px] sm:min-w-[100px]">
+                        <div className="flex items-center justify-between bg-[#111827] border border-slate-700 opacity-80 rounded-md px-2 sm:px-3 h-[34px] sm:h-[38px] relative overflow-hidden group hover:border-slate-500 transition-colors">
                             <input 
                                 type="time"
                                 value={endTime}
                                 onChange={(e) => setEndTime(e.target.value)}
-                                className="w-full bg-transparent outline-none text-slate-300 text-xs font-mono appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer relative z-10"
+                                className="w-full bg-transparent outline-none text-slate-300 text-[10px] sm:text-xs font-mono appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer relative z-10"
                                 style={{ colorScheme: 'dark' }}
                             />
-                            <svg className="w-4 h-4 text-slate-500 absolute right-3 pointer-events-none group-hover:text-slate-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <svg className="w-3 h-3 sm:w-4 sm:h-4 text-slate-500 absolute right-2 sm:right-3 pointer-events-none group-hover:text-slate-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </div>
-                        <label className="absolute left-2 -top-2 text-[10px] px-1 bg-[#0f172a] text-slate-400">End Time</label>
+                        <label className="absolute left-2 -top-2 text-[9px] sm:text-[10px] px-1 bg-[#0f172a] text-slate-400">End Time</label>
                     </div>
 
-                    <div className="relative flex-[0.5] min-w-[70px]">
-                        <div className="flex items-center bg-[#111827] border border-slate-600 rounded-md px-2 h-[38px]">
+                    <div className="relative flex-[0.5] min-w-[60px] sm:min-w-[70px]">
+                        <div className="flex items-center bg-[#111827] border border-slate-600 rounded-md px-2 h-[34px] sm:h-[38px]">
                             <input 
                                 type="number" 
                                 min="1" max="10" 
                                 value={speed} 
                                 onChange={(e) => setSpeed(Number(e.target.value))} 
-                                className="w-full bg-transparent outline-none text-white text-xs font-mono" 
+                                className="w-full bg-transparent outline-none text-white text-[10px] sm:text-xs font-mono" 
                             />
                         </div>
-                        <label className="absolute left-2 -top-2 text-[10px] px-1 bg-[#0f172a] text-slate-300">Speed</label>
+                        <label className="absolute left-2 -top-2 text-[9px] sm:text-[10px] px-1 bg-[#0f172a] text-slate-300">Speed</label>
                     </div>
 
-                    <button onClick={() => { if (symbol) setIsSearched(true); setIsPlaying(true); }} className="flex-[1.5] min-w-[100px] bg-indigo-600 hover:bg-indigo-500 rounded-md h-[38px] text-xs font-bold text-white transition-colors">SEARCH</button>
+                    <button onClick={() => { if (symbol) setIsSearched(true); setIsPlaying(true); }} className="flex-[1.5] min-w-[80px] sm:min-w-[100px] bg-indigo-600 hover:bg-indigo-500 rounded-md h-[34px] sm:h-[38px] text-[10px] sm:text-xs font-bold text-white transition-colors">SEARCH</button>
                 </div>
-                <div className="mt-2 bg-black text-yellow-400 font-mono text-center py-1.5 rounded text-[10px] sm:text-xs">10:00:00</div>
+                <div className="mt-2 bg-black text-yellow-400 font-mono text-center py-1 sm:py-1.5 rounded text-[9px] sm:text-[10px]">10:00:00</div>
             </div>
 
             <div className="flex-1 min-h-0 flex flex-col bg-[#0b111a]">
@@ -398,16 +422,16 @@ function ReplayPanel({ toolHint }) {
                         <OrderRow key={i} bidVol={row.bidVol.toLocaleString()} bid={row.bid} ask={row.ask} askVol={row.askVol.toLocaleString()} />
                     ))}
                 </div>
-                <div className="shrink-0 grid grid-cols-4 items-center border-t border-slate-700 bg-[#111827] text-[10px] xl:text-xs h-10 px-1 sm:px-0">
+                <div className="shrink-0 grid grid-cols-4 items-center border-t border-slate-700 bg-[#111827] text-[9px] xl:text-xs h-8 sm:h-10 px-1 sm:px-0">
                     <div className="flex items-center justify-end pr-1 sm:pr-3 font-bold text-blue-400 whitespace-nowrap overflow-hidden text-ellipsis">
                         <span className="hidden xl:inline">Total:&nbsp;</span>{totalBid.toLocaleString()}
                     </div>
                     <div className="flex items-center justify-center gap-1 xl:gap-1.5 whitespace-nowrap overflow-hidden text-ellipsis">
-                        <span className="text-blue-400 text-[8px] xl:text-[10px] font-semibold hidden lg:inline">SUM5 BID</span>
+                        <span className="text-blue-400 text-[7px] xl:text-[10px] font-semibold hidden lg:inline">SUM5 BID</span>
                         <span className="text-white font-bold">{sum5Bid.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-center gap-1 xl:gap-1.5 whitespace-nowrap overflow-hidden text-ellipsis">
-                        <span className="text-red-400 text-[8px] xl:text-[10px] font-semibold hidden lg:inline">SUM5 ASK</span>
+                        <span className="text-red-400 text-[7px] xl:text-[10px] font-semibold hidden lg:inline">SUM5 ASK</span>
                         <span className="text-white font-bold">{sum5Ask.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center justify-start pl-1 sm:pl-3 font-bold text-red-400 whitespace-nowrap overflow-hidden text-ellipsis">
@@ -416,15 +440,15 @@ function ReplayPanel({ toolHint }) {
                 </div>
             </div>
 
-            <div className="px-4 py-3 bg-[#0f172a] border-t border-slate-700 shrink-0">
-                <div className="flex items-center gap-4">
+            <div className="px-3 sm:px-4 py-2 sm:py-3 bg-[#0f172a] border-t border-slate-700 shrink-0">
+                <div className="flex items-center gap-3 sm:gap-4">
                     <input type="range" min="0" max="100" value={sliderValue} onChange={(e) => setSliderValue(e.target.value)} className="flex-1 h-1 bg-slate-600 rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-yellow-400 [&::-webkit-slider-thumb]:rounded-full cursor-pointer" />
                     <button onClick={() => setIsPlaying(!isPlaying)} disabled={!isSearched} className={isSearched ? "text-white hover:text-yellow-400 transition-colors" : "text-slate-600"}>
-                        {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
+                        {isPlaying ? <PauseIcon fontSize="small" /> : <PlayArrowIcon fontSize="small" />}
                     </button>
                 </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 border-t border-slate-700 bg-[#0f172a] shrink-0">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4 p-2 sm:p-4 border-t border-slate-700 bg-[#0f172a] shrink-0">
                 <StatSection title="In Range" />
                 <StatSection title="Actual" />
             </div>
@@ -436,15 +460,14 @@ function OrderRow({ bidVol, bid, ask, askVol }) {
     const bidWidth = (parseInt(bidVol.replace(/,/g, "")) / 600000) * 100;
     const askWidth = (parseInt(askVol.replace(/,/g, "")) / 600000) * 100;
     return (
-        // 🟢 ลด min-h-[32px] ให้เหลือ min-h-[24px] เพื่อให้ทั้ง 20 แถวบีบอัดพอดีกับกรอบ
-        <div className="grid grid-cols-4 items-center text-[10px] sm:text-xs flex-1 min-h-[24px] border-b border-slate-800 relative">
-            <div className="relative text-right pr-3 text-slate-300 overflow-hidden h-full flex items-center justify-end">
+        <div className="grid grid-cols-4 items-center text-[9px] sm:text-[10px] md:text-xs flex-1 min-h-[20px] sm:min-h-[24px] border-b border-slate-800 relative">
+            <div className="relative text-right pr-2 sm:pr-3 text-slate-300 overflow-hidden h-full flex items-center justify-end">
                 <div className="absolute right-0 top-0 h-full bg-blue-900/40" style={{ width: `${bidWidth}%` }} />
                 <span className="relative z-10">{bidVol === "0" ? "-" : bidVol}</span>
             </div>
             <div className="text-center text-green-400 font-bold">{bid}</div>
             <div className="text-center text-red-400 font-bold">{ask}</div>
-            <div className="relative text-left pl-3 text-slate-300 overflow-hidden h-full flex items-center justify-start">
+            <div className="relative text-left pl-2 sm:pl-3 text-slate-300 overflow-hidden h-full flex items-center justify-start">
                 <div className="absolute left-0 top-0 h-full bg-red-900/40" style={{ width: `${askWidth}%` }} />
                 <span className="relative z-10">{askVol === "0" ? "-" : askVol}</span>
             </div>
@@ -455,8 +478,8 @@ function OrderRow({ bidVol, bid, ask, askVol }) {
 function StatSection({ title }) {
     return (
         <div className="bg-[#111827] border border-slate-700 rounded overflow-hidden">
-            <div className="px-3 py-1.5 text-[10px] text-slate-400 border-b border-slate-700 bg-[#1e293b]">{title}</div>
-            <div className="grid grid-cols-4 px-3 py-2 text-[10px] sm:text-xs font-bold text-white">
+            <div className="px-2 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-[10px] text-slate-400 border-b border-slate-700 bg-[#1e293b]">{title}</div>
+            <div className="grid grid-cols-4 px-2 sm:px-3 py-1.5 sm:py-2 text-[9px] sm:text-[10px] md:text-xs font-bold text-white">
                 <span>71.00</span><span className="text-center">73.50</span><span className="text-center">70.75</span><span className="text-right">72.25</span>
             </div>
         </div>
@@ -500,7 +523,6 @@ const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DatePicker = memo(({ dates, selected, onChange, label, disabled }) => {
     const [open, setOpen] = useState(false);
     const [view, setView] = useState("day");
-    const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
     const ref = useRef(null);
 
     const FULL_MONTH = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -509,7 +531,7 @@ const DatePicker = memo(({ dates, selected, onChange, label, disabled }) => {
     const initView = useMemo(() => {
         if (selected) { const p = parseKey(selected); return { month: p.month, year: p.year }; }
         return { month: 1, year: 2025 };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
     const [viewMonth, setViewMonth] = useState(initView.month);
     const [viewYear, setViewYear] = useState(initView.year);
@@ -602,31 +624,26 @@ const DatePicker = memo(({ dates, selected, onChange, label, disabled }) => {
 
     return (
         <div ref={ref} style={{ flexShrink: 0, position: "relative", opacity: disabled ? 0.8 : 1 }}>
-            {label && <label className="absolute left-2 -top-2 text-[10px] px-1 bg-[#0f172a] text-slate-300 z-10 pointer-events-none">{label}</label>}
+            {label && <label className="absolute left-2 -top-2 text-[9px] sm:text-[10px] px-1 bg-[#0f172a] text-slate-300 z-10 pointer-events-none">{label}</label>}
             <button onClick={() => {
                 if (disabled) return;
                 if (!open && selected) { const p = parseKey(selected); setViewMonth(p.month); setViewYear(p.year); }
                 setOpen(o => !o); setView("day");
-            }} style={{
-                display: "flex", alignItems: "center", gap: 7, padding: "0 12px", height: 38,
-                // 🟢 ลบพื้นหลังสีฟ้าออก ใช้สีทึบเดียวกันหมด
+            }} className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 h-[34px] sm:h-[38px] w-full justify-between" style={{
                 background: "#111827",
                 border: disabled ? "1px solid #334155" : (open ? "1px solid #06b6d4" : "1px solid #475569"),
                 borderRadius: 6, cursor: disabled ? "default" : "pointer", 
-                // 🟢 ใช้สีอักษรขาวเทาเหมือนกล่องอื่น
                 color: disabled ? "#94a3b8" : "#f8fafc", 
-                fontSize: 12, fontWeight: 500, fontFamily: "monospace", transition: "all .15s", width: "100%", justifyContent: "space-between"
+                fontSize: 10, fontWeight: 500, fontFamily: "monospace", transition: "all .15s"
             }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    {/* 🟢 เปลี่ยนสีไอคอน SVG ให้เป็นเทาๆ (slate-400) ไม่ให้เด่นสีฟ้า */}
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={disabled ? "#64748b" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="none" stroke={disabled ? "#64748b" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="3" y="4" width="18" height="18" rx="2" />
                         <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
                         <line x1="3" y1="10" x2="21" y2="10" />
                     </svg>
-                    {formatDisplay(selected)}
+                    <span className="text-[10px] sm:text-xs">{formatDisplay(selected)}</span>
                 </div>
-                {/* 🟢 เปลี่ยนสีลูกศรให้เข้าตีมเทา */}
                 <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke={disabled ? "#64748b" : "#94a3b8"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                     style={{ opacity: .8, transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }}>
                     <polyline points="6 9 12 15 18 9" />
