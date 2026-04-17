@@ -3,8 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 
-// 🟢 1. อิมพอร์ต useAuth เข้ามาใช้ตรวจสอบสิทธิ์จากศูนย์กลาง
-import { useAuth } from "@/context/AuthContext"; // ⚠️ เช็ค Path ให้ตรงด้วยนะครับ
+import { useAuth } from "@/context/AuthContext";
 
 import drIcon from "@/assets/icons/dr.svg";
 import ToolHint from "@/components/ToolHint.jsx";
@@ -197,14 +196,14 @@ function TVChart({ data, themeColor = "#3b82f6" }) {
         vertLines: { visible: false },
         horzLines: { color: 'rgba(51, 65, 85, 0.1)' },
       },
-      rightPriceScale: { 
+      rightPriceScale: {
         borderVisible: false,
         autoScale: true,
         scaleMargins: { top: 0.1, bottom: 0.1 },
-        entireTextOnly: true, 
+        entireTextOnly: true,
       },
-      timeScale: { 
-        visible: false, 
+      timeScale: {
+        visible: false,
         borderVisible: false,
       },
       crosshair: {
@@ -232,8 +231,8 @@ function TVChart({ data, themeColor = "#3b82f6" }) {
   return (
     <div className="relative w-full h-full tv-chart-container">
       <style>{`
-        .tv-chart-container a { 
-          display: none !important; 
+        .tv-chart-container a {
+          display: none !important;
           opacity: 0 !important;
           visibility: hidden !important;
           pointer-events: none !important;
@@ -331,6 +330,203 @@ function SearchBar({ value, onChange }) {
           </svg>
         </button>
       )}
+    </div>
+  );
+}
+
+/* ===============================
+    CUSTOM SELECT DROPDOWN
+    Uses createPortal + fixed positioning to prevent
+    dropdown from bleeding into sibling cards.
+    Flips upward when not enough space below.
+================================ */
+function CustomSelect({ value, onChange, disabled = false, options, placeholder = "Select a symbol..." }) {
+  const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState("");
+  const [dropdownStyle, setDropdownStyle] = useState({});
+
+  const triggerRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const selected = options.find(o => o.dr === value);
+
+  // ── Helper: calculate dropdown position with flip logic ──────
+  const calcDropdownStyle = () => {
+    if (!triggerRef.current) return {};
+    const rect = triggerRef.current.getBoundingClientRect();
+    const DROPDOWN_HEIGHT = 400;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+
+    // Flip upward if not enough space below AND more space above
+    const openUpward = spaceBelow < DROPDOWN_HEIGHT && spaceAbove > spaceBelow;
+
+    return {
+      position: "fixed",
+      left: rect.left,
+      width: rect.width,
+      maxHeight: `${Math.min(DROPDOWN_HEIGHT, openUpward ? spaceAbove - 8 : spaceBelow - 8)}px`,
+      zIndex: 99999,
+      ...(openUpward
+        ? { bottom: window.innerHeight - rect.top + 4, top: "auto" }
+        : { top: rect.bottom + 4, bottom: "auto" }
+      ),
+    };
+  };
+
+  // ── Close on outside click ──────────────────────────────────
+  useEffect(() => {
+    const handler = (e) => {
+      const clickedTrigger = triggerRef.current?.contains(e.target);
+      const clickedDropdown = dropdownRef.current?.contains(e.target);
+      if (!clickedTrigger && !clickedDropdown) {
+        setOpen(false);
+        setFilter("");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // ── Focus search input when dropdown opens ──────────────────
+  useEffect(() => {
+    if (open && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    } else {
+      setFilter("");
+    }
+  }, [open]);
+
+  // ── Recalculate position on scroll / resize ─────────────────
+  useEffect(() => {
+    if (!open) return;
+    const recalc = () => setDropdownStyle(calcDropdownStyle());
+    window.addEventListener("scroll", recalc, true);
+    window.addEventListener("resize", recalc);
+    return () => {
+      window.removeEventListener("scroll", recalc, true);
+      window.removeEventListener("resize", recalc);
+    };
+  }, [open]);
+
+  // ── Open handler ────────────────────────────────────────────
+  const handleOpen = () => {
+    if (disabled) return;
+    setDropdownStyle(calcDropdownStyle());
+    setOpen((o) => !o);
+  };
+
+  const handleSelect = (val) => {
+    onChange(val);
+    setOpen(false);
+    setFilter("");
+  };
+
+  const filteredOptions = filter.trim()
+    ? options.filter(
+        (o) =>
+          o.dr.toLowerCase().includes(filter.toLowerCase()) ||
+          o.name.toLowerCase().includes(filter.toLowerCase())
+      )
+    : options;
+
+  return (
+    <div className="relative flex-1 mr-3 min-w-0">
+      {/* ── Trigger button ── */}
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        onClick={handleOpen}
+        className={`w-full text-left bg-[#0f151e] border border-slate-700/50 rounded px-2 py-1.5 text-xs text-slate-300 flex items-center justify-between gap-2 focus:outline-none focus:border-cyan-500 transition-colors ${
+          disabled
+            ? "opacity-50 cursor-not-allowed"
+            : "hover:border-slate-500 cursor-pointer"
+        } ${open ? "border-cyan-500/60" : ""}`}
+      >
+        <span className="truncate">
+          {selected ? `${selected.dr} – ${selected.name}` : placeholder}
+        </span>
+        <svg
+          className={`w-3 h-3 text-slate-400 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* ── Dropdown portal ── */}
+      {open &&
+        createPortal(
+          <div
+            ref={dropdownRef}
+            className="bg-[#1a2235] border border-slate-700 rounded-lg shadow-2xl flex flex-col overflow-hidden"
+            style={dropdownStyle}
+          >
+            {/* Search inside dropdown */}
+            <div className="px-2 pt-2 pb-1 shrink-0 border-b border-slate-700/60">
+              <div className="flex items-center gap-1.5 bg-[#0f151e] border border-slate-700/50 rounded px-2 py-1">
+                <svg
+                  className="w-3 h-3 text-slate-500 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  placeholder="Search..."
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  className="bg-transparent text-xs text-slate-300 focus:outline-none placeholder-slate-600 w-full"
+                />
+              </div>
+            </div>
+
+            {/* Options list */}
+            <div
+              className="overflow-y-auto flex-1"
+              style={{ scrollbarWidth: "thin", scrollbarColor: "#475569 #1e293b" }}
+            >
+              {/* Clear option */}
+              <div
+                onClick={() => handleSelect("")}
+                className="px-3 py-2 text-xs text-slate-500 hover:bg-slate-700/50 cursor-pointer transition-colors"
+              >
+                {placeholder}
+              </div>
+
+              {filteredOptions.length === 0 ? (
+                <div className="px-3 py-3 text-xs text-slate-600 text-center">
+                  No results
+                </div>
+              ) : (
+                filteredOptions.map((s) => (
+                  <div
+                    key={s.dr}
+                    onClick={() => handleSelect(s.dr)}
+                    className={`px-3 py-2 text-xs cursor-pointer flex items-center justify-between gap-2 transition-colors ${
+                      value === s.dr
+                        ? "bg-cyan-500/20 text-cyan-400"
+                        : "text-slate-300 hover:bg-slate-700/50"
+                    }`}
+                  >
+                    <span className="font-semibold shrink-0 tracking-wide">{s.dr}</span>
+                    <span className="text-slate-500 truncate text-right text-[10px]">
+                      {s.name}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
@@ -475,37 +671,24 @@ function ChartCard({ chartKey, chartSelections, setChartSelections, chartData, t
   const data = chartData[chartKey];
 
   return (
-    <div className={`bg-[#1a1f2b] border border-slate-700/60 rounded-xl overflow-hidden flex flex-col ${containerClass}`}>
-      {/* ส่วนหัวของกราฟ (Dropdown) */}
-      <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-800 bg-[#1e2433] shrink-0 z-10">
-        <select
+    <div className={`bg-[#1a1f2b] border border-slate-700/60 rounded-xl overflow-visible flex flex-col ${containerClass}`}>
+      {/* Header with Custom Dropdown */}
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-800 bg-[#1e2433] shrink-0 z-10 rounded-t-xl relative">
+        <CustomSelect
           value={stockName}
-          onChange={(e) => {
-            onStockSelect(e.target.value);
-            setChartSelections(prev => ({ ...prev, [chartKey]: e.target.value }));
+          onChange={(val) => {
+            onStockSelect(val);
+            setChartSelections(prev => ({ ...prev, [chartKey]: val }));
           }}
-          className="flex-1 mr-3 bg-[#0f151e] text-slate-300 border border-slate-700/50 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'right 8px center',
-            paddingRight: '28px'
-          }}
-        >
-          <option value="" className="bg-[#1f2937] text-slate-300">Select a symbol...</option>
-          {allStockOptions.map(s => (
-            <option key={s.dr} value={s.dr} className="bg-[#1f2937] text-slate-300">
-              {s.dr} - {s.name}
-            </option>
-          ))}
-        </select>
+          options={allStockOptions}
+        />
         <div className="flex items-center gap-3 text-slate-600">
           <button onClick={() => onFullscreen(chartKey)} className="hover:text-cyan-400 transition text-slate-400" title="Fullscreen">⛶</button>
         </div>
       </div>
 
-      {/* พื้นที่ของกราฟ */}
-      <div className={`relative bg-[#0B1221] w-full ${customHeightClass}`}>
+      {/* Chart area */}
+      <div className={`relative bg-[#0B1221] w-full ${customHeightClass} rounded-b-xl overflow-hidden`}>
         {!stockName && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
             <span className="text-slate-600 text-xs">Select a symbol to display chart</span>
@@ -520,16 +703,16 @@ function ChartCard({ chartKey, chartSelections, setChartSelections, chartData, t
 }
 
 /* ===============================
-    MOBILE: Nested Country Section (เมนูย่อยกดพับได้)
+    MOBILE: Nested Country Section
 ================================ */
 function NestedCountrySection({ region, selectedSymbol, onStockClick, globalFilter }) {
-  const [open, setOpen] = useState(false); // ตั้งค่าเริ่มต้นเป็น false (ย่อปิดไว้)
-  
+  const [open, setOpen] = useState(false);
+
   const filtered = region.stocks.filter(s =>
     s.dr.toLowerCase().includes(globalFilter.toLowerCase()) ||
     s.name.toLowerCase().includes(globalFilter.toLowerCase())
   );
-  
+
   const hasFilterMatch = globalFilter.length > 0 && filtered.length > 0;
 
   if (filtered.length === 0) return null;
@@ -587,7 +770,7 @@ function NestedCountrySection({ region, selectedSymbol, onStockClick, globalFilt
 ================================ */
 function AsiaMobileSection({ selectedSymbol, onStockClick, globalFilter, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
-  
+
   const regions = [
     { title: "Japan", stocks: japanStocks, icon: "🇯🇵" },
     { title: "China", stocks: chinaStocks, icon: "🇨🇳" },
@@ -597,8 +780,8 @@ function AsiaMobileSection({ selectedSymbol, onStockClick, globalFilter, default
   ];
 
   const allAsiaStocks = regions.flatMap(r => r.stocks);
-  const filteredAsiaStocks = allAsiaStocks.filter(s => 
-    s.dr.toLowerCase().includes(globalFilter.toLowerCase()) || 
+  const filteredAsiaStocks = allAsiaStocks.filter(s =>
+    s.dr.toLowerCase().includes(globalFilter.toLowerCase()) ||
     s.name.toLowerCase().includes(globalFilter.toLowerCase())
   );
   const hasFilterMatch = globalFilter.length > 0 && filteredAsiaStocks.length > 0;
@@ -638,6 +821,7 @@ function AsiaMobileSection({ selectedSymbol, onStockClick, globalFilter, default
     </div>
   );
 }
+
 /* ===============================
     MOBILE DASHBOARD COMPONENT
 ================================ */
@@ -678,10 +862,10 @@ function MobileDashboard({
       <div className="bg-[#0d1118]">
         <CountrySection title="USA" stocks={usaStocks} selectedSymbol={selectedSymbol} onStockClick={onStockClick} globalFilter={globalFilter} />
         <CountrySection title="Europe" stocks={europeStocks} selectedSymbol={selectedSymbol} onStockClick={onStockClick} globalFilter={globalFilter} />
-        <AsiaMobileSection 
-          selectedSymbol={selectedSymbol} 
-          onStockClick={onStockClick} 
-          globalFilter={globalFilter} 
+        <AsiaMobileSection
+          selectedSymbol={selectedSymbol}
+          onStockClick={onStockClick}
+          globalFilter={globalFilter}
         />
         <CountrySection title="ETC" stocks={etcStocks} selectedSymbol={selectedSymbol} onStockClick={onStockClick} globalFilter={globalFilter} />
       </div>
@@ -702,15 +886,13 @@ function MobileDashboard({
         </div>
       </div>
 
-{/* Vertical Charts */}
+      {/* Vertical Charts */}
       <div className="flex flex-col gap-3 px-3 pb-6">
         {isLoadingCharts ? (
           ['chart1', 'chart2', 'chart3'].map((chartKey, index) => (
             <div key={chartKey} className="bg-[#1a1f2b] border border-slate-700/60 rounded-xl overflow-hidden flex flex-col">
               <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-800 bg-[#1e2433] shrink-0">
-                <select disabled className="flex-1 mr-3 bg-[#0f151e] text-slate-300 border border-slate-700/50 rounded px-2 py-1.5 text-xs opacity-50 cursor-not-allowed">
-                  <option>Select a symbol...</option>
-                </select>
+                <div className="flex-1 mr-3 bg-[#0f151e] border border-slate-700/50 rounded px-2 py-1.5 opacity-50 h-7" />
                 <div className="flex items-center gap-3 text-slate-600 opacity-50">
                   <span className="text-sm">⛶</span>
                 </div>
@@ -758,18 +940,15 @@ export default function DRInsight() {
   const [chartSelections, setChartSelections] = useState({ chart1: "", chart2: "", chart3: "" });
   const [selectedSymbol, setSelectedSymbol] = useState("");
   const [isLoadingCharts, setIsLoadingCharts] = useState(false);
-
-  // Detect screen size for adaptive layouts
   const [screenSize, setScreenSize] = useState("mobile");
 
-  // 🟢 2. ดึงข้อมูลผู้ใช้จาก AuthContext
   const { userData, currentUser, loading } = useAuth();
 
   useEffect(() => {
     const updateSize = () => {
       const w = window.innerWidth;
-      if (w < 950)       setScreenSize("mobile"); 
-      else if (w < 1180) setScreenSize("tablet"); 
+      if (w < 950)       setScreenSize("mobile");
+      else if (w < 1180) setScreenSize("tablet");
       else if (w < 1440) setScreenSize("laptop");
       else               setScreenSize("desktop");
     };
@@ -778,26 +957,21 @@ export default function DRInsight() {
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  /* =============================== MEMBER CHECK ================================ */
-  // 🟢 3. ตรวจสอบสิทธิ์จาก userData.subscriptions ใน AuthContext
   useEffect(() => {
-    if (loading) return; 
-
+    if (loading) return;
     const toolId = "dr";
-
     if (userData && userData.subscriptions && userData.subscriptions[toolId]) {
       const expireTimestamp = userData.subscriptions[toolId];
       let expireDate;
-      try { 
-        expireDate = typeof expireTimestamp.toDate === "function" 
-          ? expireTimestamp.toDate() 
-          : new Date(expireTimestamp); 
-      } catch (e) { 
-        expireDate = new Date(0); 
+      try {
+        expireDate = typeof expireTimestamp.toDate === "function"
+          ? expireTimestamp.toDate()
+          : new Date(expireTimestamp);
+      } catch (e) {
+        expireDate = new Date(0);
       }
       setIsMember(expireDate.getTime() > new Date().getTime());
-    } else { 
-      // Fallback
+    } else {
       const saved = localStorage.getItem("userProfile");
       if (saved) {
         try {
@@ -991,9 +1165,7 @@ export default function DRInsight() {
   return (
     <div className="w-full bg-[#0B1221] text-white font-sans">
 
-      {/* -----------------------------------------------
-          MOBILE (<640px)
-      ----------------------------------------------- */}
+      {/* MOBILE (<950px) */}
       {isMobile && (
         <MobileDashboard
           globalFilter={globalFilter}
@@ -1009,13 +1181,9 @@ export default function DRInsight() {
         />
       )}
 
-      {/* -----------------------------------------------
-          TABLET (640–1023px หรือ 950–1180px) — The Split View 
-      ----------------------------------------------- */}
+      {/* TABLET (950–1180px) */}
       {isTablet && (
         <div className="flex flex-col h-screen overflow-hidden bg-[#0B1221] p-3 gap-3 animate-fade-in">
-          
-          {/* Top Bar: กล่องค้นหา และ Legend */}
           <div className="flex items-center gap-4 shrink-0 bg-[#111827] border border-slate-800/80 rounded-xl p-2.5 shadow-sm">
             <div className="w-[260px] shrink-0">
               <SearchBar value={globalFilter} onChange={setGlobalFilter} />
@@ -1025,10 +1193,7 @@ export default function DRInsight() {
             </div>
           </div>
 
-          {/* Main Area: แบ่งซ้าย-ขวา */}
           <div className="flex flex-1 gap-3 min-h-0">
-            
-            {/* ซ้าย: Sidebar รวมลิสต์หุ้นทั้งหมด (Scroll ได้อิสระ) */}
             <div className="w-[260px] shrink-0 bg-[#111827] border border-slate-800/80 rounded-xl flex flex-col overflow-hidden shadow-lg">
               <div className="px-4 py-3.5 border-b border-slate-800/60 bg-[#141b2a] shrink-0 flex items-center justify-between">
                 <span className="font-bold text-[13px] text-white">Symbol List</span>
@@ -1042,15 +1207,12 @@ export default function DRInsight() {
               </div>
             </div>
 
-            {/* ขวา: Charts Grid (กราฟ 1-2 อยู่บน, กราฟ 3 ขยายยาวอยู่ล่าง) */}
             <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-3 min-w-0">
               {isLoadingCharts ? (
                 ['chart1', 'chart2', 'chart3'].map((key, i) => (
                   <div key={key} className={`bg-[#1a1f2b] border border-slate-700/60 rounded-xl flex flex-col overflow-hidden ${i === 2 ? 'col-span-2' : 'col-span-1'}`}>
                     <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-800 bg-[#1e2433] shrink-0">
-                      <select disabled className="flex-1 mr-3 bg-[#0f151e] text-slate-300 border border-slate-700/50 rounded px-2 py-1.5 text-xs opacity-50 cursor-not-allowed">
-                        <option>Select a symbol...</option>
-                      </select>
+                      <div className="flex-1 mr-3 bg-[#0f151e] border border-slate-700/50 rounded px-2 py-1.5 opacity-50 h-7" />
                       <div className="flex gap-3 text-slate-600 opacity-50">
                         <span className="text-sm">⛶</span>
                       </div>
@@ -1071,22 +1233,26 @@ export default function DRInsight() {
                     themeColor={themeColors[index]}
                     onFullscreen={setFullscreenChart}
                     onStockSelect={handleStockClick}
-                    // 👇 ทำให้กราฟจัด Grid อัตโนมัติ (ตัวที่ 3 กินพื้นที่ 2 คอลัมน์) 👇
                     containerClass={index === 2 ? "col-span-2 h-full" : "col-span-1 h-full"}
-                    customHeightClass="flex-1 min-h-0" 
+                    customHeightClass="flex-1 min-h-0"
                   />
                 ))
               )}
             </div>
-
           </div>
         </div>
       )}
-      {/* -----------------------------------------------
-          LAPTOP / DESKTOP (≥1024px)
-      ----------------------------------------------- */}
+
+      {/* LAPTOP / DESKTOP (≥1180px) */}
       {(!isMobile && !isTablet) && (
         <div className={`flex flex-col h-screen overflow-hidden animate-fade-in ${isDesktop ? 'p-4 gap-4' : 'p-3 gap-3'}`}>
+          <style>{`
+            .custom-scrollbar::-webkit-scrollbar { width: 7px; height: 7px; }
+            .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+            .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+          `}</style>
+
           <div className="flex items-center justify-center gap-6 shrink-0">
             <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
               Map every Thai DR to its global parent stock, track arbitrage opportunities, monitor real-time valuations, and analyze multi-market trends
@@ -1096,6 +1262,7 @@ export default function DRInsight() {
           </div>
 
           <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
+
             {/* Left panel */}
             <div className="col-span-3 flex flex-col gap-4 h-full overflow-hidden">
               {[
@@ -1114,20 +1281,25 @@ export default function DRInsight() {
                 const lineColor = themeColors[index];
                 const data = chartData[chartKey];
                 return (
-                  <div key={chartKey} className="bg-[#111827] border border-slate-700 rounded-xl flex flex-col flex-1 overflow-hidden min-h-0 relative">
-                    <div className="flex justify-between items-center px-4 py-2 border-b border-slate-800 bg-[#1e2433] shrink-0 z-40 relative">
-                      <select
+                  <div key={chartKey} className="bg-[#111827] border border-slate-700 rounded-xl flex flex-col flex-1 overflow-visible min-h-0 relative">
+                    <div className="flex justify-between items-center px-4 py-2 border-b border-slate-800 bg-[#1e2433] shrink-0 z-40 relative rounded-t-xl">
+                      <CustomSelect
                         value={stockName}
                         disabled={isLoadingCharts}
-                        onChange={(e) => { handleStockClick(e.target.value); setChartSelections(prev => ({ ...prev, [chartKey]: e.target.value })); }}
-                        className={`flex-1 mr-3 px-3 py-1.5 bg-[#1a2235] border border-slate-700/50 rounded text-sm text-slate-300 focus:outline-none focus:border-cyan-500 appearance-none cursor-pointer ${isLoadingCharts ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', paddingRight: '28px' }}
-                      >
-                        <option value="" className="bg-[#1f2937] text-slate-300">Select a symbol...</option>
-                        {allStockOptions.map(s => <option key={s.dr} value={s.dr} className="bg-[#1f2937] text-slate-300">{s.dr} - {s.name}</option>)}
-                      </select>
+                        onChange={(val) => {
+                          handleStockClick(val);
+                          setChartSelections(prev => ({ ...prev, [chartKey]: val }));
+                        }}
+                        options={allStockOptions}
+                      />
                       <div className={`flex gap-3 text-white ${isLoadingCharts ? 'opacity-50' : ''}`}>
-                        <button onClick={() => setFullscreenChart(chartKey)} disabled={isLoadingCharts} className="hover:text-cyan-400 transition disabled:cursor-not-allowed">⛶</button>
+                        <button
+                          onClick={() => setFullscreenChart(chartKey)}
+                          disabled={isLoadingCharts}
+                          className="hover:text-cyan-400 transition disabled:cursor-not-allowed"
+                        >
+                          ⛶
+                        </button>
                       </div>
                     </div>
                     <div className="flex-1 min-h-0 bg-[#0B1221] border border-slate-800/40 rounded-b-xl relative overflow-hidden">
@@ -1135,7 +1307,11 @@ export default function DRInsight() {
                         <WaveSkeleton delay={index * 0.2} height="100%" />
                       ) : (
                         <>
-                          {!stockName && <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"><span className="text-slate-500 text-sm">Select a symbol to display chart</span></div>}
+                          {!stockName && (
+                            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                              <span className="text-slate-500 text-sm">Select a symbol to display chart</span>
+                            </div>
+                          )}
                           {stockName && data?.length > 0 && <TVChart data={data} themeColor={lineColor} />}
                         </>
                       )}
@@ -1172,11 +1348,12 @@ export default function DRInsight() {
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       )}
 
-      {/* FULLSCREEN MODAL (Shared across all screen sizes) */}
+      {/* FULLSCREEN MODAL */}
       <FullscreenModal
         fullscreenChart={fullscreenChart}
         onClose={() => setFullscreenChart(null)}
@@ -1189,7 +1366,6 @@ export default function DRInsight() {
           setTimeout(() => setIsLoadingCharts(false), 700);
         }}
       />
-
     </div>
   );
 }
@@ -1228,7 +1404,7 @@ function FullscreenModal({ fullscreenChart, onClose, chartSelections, chartData,
           className="w-10 h-10 bg-[#0f172a] border border-slate-700 rounded-lg flex items-center justify-center hover:border-cyan-500 transition-all flex-shrink-0 group"
           title="รีเฟรชข้อมูล"
         >
-<RefreshIcon
+          <RefreshIcon
             sx={{ fontSize: 16, color: isSyncing ? "#3b82f6" : "#ffffff" }}
             className={isSyncing ? "animate-spin" : "group-hover:text-cyan-400"}
           />
