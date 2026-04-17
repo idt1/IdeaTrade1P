@@ -568,7 +568,6 @@ function SectorMultiSelect({ options, selected, onChange, max = 10 }) {
     );
 }
 
-// ─── FULLSCREEN EXPANDED CHART ─────────────────────────────────────────────────
 function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast, onSectorChange }) {
     const canvasRef = useRef(null);
     const scrollRef = useRef(null);
@@ -585,50 +584,45 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
         return [...SET_SECTORS, ...MAI_SECTORS].map(s => s.id);
     }, []);
 
-    const chartData = useMemo(() => {
-        return genSectorData(sector.id, 160);
-    }, [sector.id]);
+    const chartData = useMemo(() => genSectorData(sector.id, 160), [sector.id]);
 
     const hasFlow = useMemo(() => sector.stocks.some(s => s.hasFlow), [sector]);
 
+    // หา stock ที่มี Flow และ chg มากสุด (สำหรับ badge บน toolbar)
+    const topFlowStock = useMemo(() => {
+        const flowStocks = sector.stocks.filter(s => s.hasFlow);
+        if (!flowStocks.length) return null;
+        return flowStocks.sort((a, b) => Math.abs(b.chg) - Math.abs(a.chg))[0];
+    }, [sector]);
+
     const updateFlowBadgePosition = useCallback(() => {
         if (!scrollRef.current || !flowBadgeRef.current || !chartData.length) return;
-
         const scrollDiv = scrollRef.current;
         const frameW = scrollDiv.clientWidth;
         const currentScroll = scrollDiv.scrollLeft;
         const rightEdgeX = currentScroll + frameW;
-
         const padL = 40, padR = 60, padT = 50, padB = 40;
         const W = Math.max(window.innerWidth * 2, 1200);
         const chartW = W - padL - padR;
-
         let fractionalIndex = ((rightEdgeX - padL) / chartW) * (chartData.length - 1);
         fractionalIndex = Math.max(0, Math.min(chartData.length - 1, fractionalIndex));
-
         const idx1 = Math.floor(fractionalIndex);
         const idx2 = Math.ceil(fractionalIndex);
         const weight = fractionalIndex - idx1;
-
-        const val1 = chartData[idx1];
-        const val2 = chartData[idx2];
-        const currentVal = val1 + (val2 - val1) * weight;
-
+        const currentVal = chartData[idx1] + (chartData[idx2] - chartData[idx1]) * weight;
         const mn = Math.min(...chartData);
         const mx = Math.max(...chartData);
         const range = mx - mn || 1;
         const perc = (mx - currentVal) / range;
-
         flowBadgeRef.current.style.top = `calc(${padT}px + ${perc} * (100% - ${padT + padB}px))`;
     }, [chartData]);
 
     const handleFirst = () => {
-        if (scrollRef.current) scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        if (scrollRef.current) scrollRef.current.scrollTo({ left: 0, behavior: "smooth" });
         if (onFirst) onFirst();
     };
-
     const handleLast = () => {
-        if (scrollRef.current) scrollRef.current.scrollTo({ left: scrollRef.current.scrollWidth, behavior: 'smooth' });
+        if (scrollRef.current) scrollRef.current.scrollTo({ left: scrollRef.current.scrollWidth, behavior: "smooth" });
         if (onLast) onLast();
     };
 
@@ -637,37 +631,23 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
         isDragging.current = true;
         startX.current = e.pageX - scrollRef.current.offsetLeft;
         scrollLeft.current = scrollRef.current.scrollLeft;
-        scrollRef.current.style.cursor = 'grabbing';
+        scrollRef.current.style.cursor = "grabbing";
     };
-
-    const onMouseLeave = () => {
-        if (!scrollRef.current) return;
-        isDragging.current = false;
-        scrollRef.current.style.cursor = 'grab';
-    };
-
-    const onMouseUp = () => {
-        if (!scrollRef.current) return;
-        isDragging.current = false;
-        scrollRef.current.style.cursor = 'grab';
-    };
-
+    const onMouseLeave = () => { isDragging.current = false; if (scrollRef.current) scrollRef.current.style.cursor = "grab"; };
+    const onMouseUp = () => { isDragging.current = false; if (scrollRef.current) scrollRef.current.style.cursor = "grab"; };
     const onMouseMove = (e) => {
         if (!isDragging.current || !scrollRef.current) return;
         e.preventDefault();
         const x = e.pageX - scrollRef.current.offsetLeft;
-        const walk = (x - startX.current) * 1.5;
-        scrollRef.current.scrollLeft = scrollLeft.current - walk;
+        scrollRef.current.scrollLeft = scrollLeft.current - (x - startX.current) * 1.5;
     };
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas || chartData.length === 0) return;
         const dpr = window.devicePixelRatio || 1;
-
         const W = Math.max(window.innerWidth * 2, 1200);
         const H = canvas.parentElement.offsetHeight;
-
         canvas.width = W * dpr;
         canvas.height = H * dpr;
         canvas.style.width = `${W}px`;
@@ -677,12 +657,10 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
         const padL = 40, padR = 60, padT = 50, padB = 40;
         const chartW = W - padL - padR;
         const chartH = H - padT - padB;
-
         ctx.clearRect(0, 0, W, H);
 
         const mn = Math.min(...chartData), mx = Math.max(...chartData);
-        let range = mx - mn;
-        if (range === 0) range = 1;
+        const range = mx - mn || 1;
 
         ctx.strokeStyle = "rgba(51,65,85,0.3)";
         ctx.lineWidth = 1;
@@ -693,10 +671,8 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
         }
 
         const isUp = chartData[chartData.length - 1] >= chartData[0];
-        const lineColor = isUp ? "#22c55e" : "#facc15";
-
         ctx.beginPath();
-        ctx.strokeStyle = lineColor;
+        ctx.strokeStyle = isUp ? "#22c55e" : "#facc15";
         ctx.lineWidth = 2.5;
         ctx.lineJoin = "round";
         chartData.forEach((v, i) => {
@@ -706,276 +682,280 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
         });
         ctx.stroke();
 
-        const totalPoints = chartData.length; // 160
         const startDate = new Date("2019-01-02");
         const endDate = new Date();
-
         ctx.fillStyle = "#64748b";
         ctx.font = "11px ui-sans-serif,system-ui,sans-serif";
-
         for (let i = 0; i <= cols; i++) {
             const x = padL + (i / cols) * chartW;
-            
-            // หาว่า x นี้ตรงกับ index ที่เท่าไหร่
-            const dataIdx = Math.round((i / cols) * (totalPoints - 1));
-            
-            // interpolate วันที่
-            const t = dataIdx / (totalPoints - 1);
+            const dataIdx = Math.round((i / cols) * (chartData.length - 1));
+            const t = dataIdx / (chartData.length - 1);
             const ts = startDate.getTime() + t * (endDate.getTime() - startDate.getTime());
             const d = new Date(ts);
-            
             const dd = String(d.getDate()).padStart(2, "0");
             const mm = String(d.getMonth() + 1).padStart(2, "0");
             const yyyy = d.getFullYear();
-            const label = `${dd}/${mm}/${yyyy}`;
-            
-            // สลับ textAlign ขอบซ้าย-ขวาไม่ให้ถูก clip
             if (i === 0) ctx.textAlign = "left";
             else if (i === cols) ctx.textAlign = "right";
             else ctx.textAlign = "center";
-            
-            ctx.fillText(label, x, H - padB + 18);
+            ctx.fillText(`${dd}/${mm}/${yyyy}`, x, H - padB + 18);
         }
 
         if (scrollRef.current) scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
         setTimeout(updateFlowBadgePosition, 10);
+    }, [chartData, updateFlowBadgePosition]);
 
-    }, [chartData, hasFlow, updateFlowBadgePosition]);
+    const isChartUp = chartData.length > 0 && chartData[chartData.length - 1] >= chartData[0];
+
+    const btnBase = {
+        background: "transparent",
+        border: "1px solid rgba(6,182,212,0.4)",
+        borderRadius: 6, padding: "0 14px", height: 30,
+        fontSize: 11, fontWeight: 600, cursor: "pointer",
+        color: "#06b6d4", letterSpacing: ".04em", transition: "all .15s",
+        fontFamily: "inherit",
+    };
 
     return (
         <div style={{
             position: "fixed", inset: 0, zIndex: 9999,
-            background: "rgb(21, 26, 34)",
-            display: "flex", padding: 20, gap: 16
+            background: "rgb(13, 18, 27)",
+            display: "flex", flexDirection: "column",
         }}>
+            {/* ── Toolbar ── */}
             <div style={{
-                flex: 1, position: "relative",
-                background: "#0f172a",
-                border: "1px solid #1e293b",
-                borderRadius: 8, display: "flex", flexDirection: "column",
-                overflow: "hidden"
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "0 16px", height: 52,
+                background: "#0b1121", borderBottom: "1px solid #1e293b",
+                flexShrink: 0, zIndex: 20, gap: 12,
             }}>
-                {/* Top Toolbar */}
-                <div style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "10px 16px", background: "#0b1121", borderBottom: "1px solid #1e293b",
-                    zIndex: 20, flexShrink: 0
-                }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20, flexWrap: "wrap", rowGap: 8 }}>
-                              <ToolHint onViewDetails={() => { window.scrollTo({ top: 0 }); }}>
-                                Sectorrotation
-                              </ToolHint>
+                {/* LEFT */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+                    <ToolHint onViewDetails={() => { window.scrollTo({ top: 0 }); }}>
+                        Sectorrotation
+                    </ToolHint>
 
-                        <button onClick={onClose} style={{
-                                display: "flex", alignItems: "center", gap: 5,
-                                background: "transparent", border: "1px solid rgba(255,255,255,0.12)",
-                                borderRadius: 6, padding: "5px 12px",
-                                color: "#94a3b8", cursor: "pointer", fontSize: 13, fontFamily: "inherit",
+                    <button onClick={onClose} style={{
+                        display: "flex", alignItems: "center", gap: 5,
+                        background: "transparent", border: "1px solid rgba(255,255,255,0.12)",
+                        borderRadius: 6, padding: "5px 12px", height: 32,
+                        color: "#94a3b8", cursor: "pointer", fontSize: 13, fontFamily: "inherit",
+                        transition: "all .15s",
+                    }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = "#64748b"; e.currentTarget.style.color = "#e2e8f0"; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "#94a3b8"; }}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10 3L5 8l5 5" />
+                        </svg>
+                        back
+                    </button>
+
+                    {/* Sector Search Dropdown */}
+                    <div style={{ position: "relative" }}>
+                        <div
+                            onClick={() => setShowDropdown(true)}
+                            style={{
+                                display: "flex", alignItems: "center", gap: 8,
+                                background: "#1e293b", padding: "0 12px",
+                                height: 32, borderRadius: 6, minWidth: 160, cursor: "text",
+                                border: "1px solid #2d3f55",
                             }}
-                                onMouseEnter={e => { e.currentTarget.style.borderColor = "#64748b"; e.currentTarget.style.color = "#e2e8f0"; }}
-                                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "#94a3b8"; }}
-                            >
-                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M10 3L5 8l5 5"/>
-                                </svg>
-                                back
-                            </button>
-
-                            <button onClick={handleLast} style={{
-                                width: 30, height: 30, borderRadius: 6,
-                                border: "1px solid rgba(255,255,255,0.12)",
-                                background: "transparent", cursor: "pointer",
-                                display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b",
-                            }} title="Reset"
-                                onMouseEnter={e => { e.currentTarget.style.borderColor = "#64748b"; e.currentTarget.style.color = "#e2e8f0"; }}
-                                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "#64748b"; }}
-                            >
-                                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M13.5 6A6 6 0 1 0 14 10"/><path d="M14 4v3h-3"/>
-                                </svg>
-                            </button>
-
-                        {/* 🟢 Dropdown พร้อมปุ่มกากบาท (Clear) และสามเหลี่ยม (Caret) */}
-                        <div style={{ position: "relative" }}>
-                            <div
-                                onClick={() => { setShowDropdown(true); }}
-                                style={{
-                                    display: "flex", alignItems: "center", gap: 8, background: "#1e293b", padding: "0 12px",
-                                    height: 32, borderRadius: 6, minWidth: 200, cursor: "text"
-                                }}
-                            >
-                                <IconSearch />
-                                {showDropdown ? (
-                                    <input
-                                        autoFocus
-                                        type="text"
-                                        placeholder="Search sub-sector (id)..."
-                                        value={searchTerm}
-                                        onChange={e => setSearchTerm(e.target.value)}
-                                        onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                                        style={{ background: "transparent", border: "none", color: "#fff", outline: "none", width: "100%", flex: 1, fontSize: 13 }}
-                                    />
-                                ) : (
-                                    <span style={{ color: "#fff", fontWeight: "bold", fontSize: 13, flex: 1, letterSpacing: "0.5px" }}>{sector.id}</span>
-                                )}
-
-                                {/* 🟢 จัดการกากบาท (Clear) และสามเหลี่ยม (Caret) */}
-                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                    {showDropdown && searchTerm && (
-                                        <div
-                                            onMouseDown={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                setSearchTerm("");
-                                            }}
-                                            style={{ cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center" }}
-                                        >
-                                            <IconX />
-                                        </div>
-                                    )}
-                                    <div style={{ transform: showDropdown ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "flex", alignItems: "center" }}>
-                                        <IconCaret />
+                        >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" />
+                            </svg>
+                            {showDropdown ? (
+                                <input
+                                    autoFocus
+                                    type="text"
+                                    placeholder="Search sector..."
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                    onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                                    style={{ background: "transparent", border: "none", color: "#fff", outline: "none", width: "100%", fontSize: 13 }}
+                                />
+                            ) : (
+                                <span style={{ color: "#fff", fontWeight: "bold", fontSize: 13, flex: 1 }}>{sector.id}</span>
+                            )}
+                            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                {showDropdown && searchTerm && (
+                                    <div onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setSearchTerm(""); }}
+                                        style={{ cursor: "pointer", color: "#94a3b8", display: "flex" }}>
+                                        <IconX />
                                     </div>
+                                )}
+                                <div style={{ transform: showDropdown ? "rotate(180deg)" : "none", transition: "transform .2s", display: "flex" }}>
+                                    <IconCaret />
                                 </div>
                             </div>
-
-                            {/* Dropdown Menu */}
-                            {showDropdown && (
-                                <div className="custom-scrollbar" style={{
-                                    position: "absolute", top: "100%", left: 0, marginTop: 4,
-                                    background: "#0f172a", border: "1px solid #1e293b",
-                                    borderRadius: 8, width: "100%", zIndex: 150,
-                                    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.8)",
-                                    display: "flex", flexDirection: "column",
-                                    maxHeight: 280, overflowY: "auto"
-                                }}>
-                                    {allSectors.filter(id => id.toLowerCase().includes(searchTerm.toLowerCase())).map(id => (
-                                        <div
-                                            key={id}
-                                            onMouseDown={(e) => {
-                                                e.preventDefault();
-                                                if (onSectorChange) onSectorChange(id);
-                                                setShowDropdown(false);
-                                                setSearchTerm("");
-                                            }}
-                                            style={{
-                                                padding: "8px 14px", color: sector.id === id ? "#06b6d4" : "#cbd5e1",
-                                                fontWeight: sector.id === id ? "bold" : "normal", cursor: "pointer",
-                                                fontSize: 13,
-                                                background: sector.id === id ? "rgba(6,182,212,0.1)" : "transparent"
-                                            }}
-                                            onMouseEnter={e => { if (sector.id !== id) e.currentTarget.style.background = "rgba(51,65,85,0.4)"; }}
-                                            onMouseLeave={e => { if (sector.id !== id) e.currentTarget.style.background = "transparent"; }}
-                                        >
-                                            {id}
-                                        </div>
-                                    ))}
-
-                                    {allSectors.filter(id => id.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
-                                        <div style={{ padding: "10px 14px", color: "#64748b", fontSize: 13, textAlign: "center" }}>No sectors found</div>
-                                    )}
-                                </div>
-                            )}
                         </div>
-                    </div>
 
-                    <div style={{ fontSize: 15, fontWeight: "bold", color: "#fff", letterSpacing: "1px", marginLeft: 40 }}>
-                        {sector.id}
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <button onClick={handleFirst} style={{
-                            background: "transparent", color: "#06b6d4", border: "1px solid rgba(6,182,212,0.4)",
-                            padding: "0 12px", height: 30, borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: "bold"
-                        }}>FIRST DATA</button>
-                        <button onClick={handleLast} style={{
-                            background: "transparent", color: "#06b6d4", border: "1px solid rgba(6,182,212,0.4)",
-                            padding: "0 12px", height: 30, borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: "bold"
-                        }}>LAST DATA</button>
+                        {showDropdown && (
+                            <div className="custom-scrollbar" style={{
+                                position: "absolute", top: "100%", left: 0, marginTop: 4,
+                                background: "#0f172a", border: "1px solid #1e293b",
+                                borderRadius: 8, width: "100%", zIndex: 150,
+                                boxShadow: "0 10px 25px -5px rgba(0,0,0,0.8)",
+                                maxHeight: 260, overflowY: "auto",
+                            }}>
+                                {allSectors.filter(id => id.toLowerCase().includes(searchTerm.toLowerCase())).map(id => (
+                                    <div key={id}
+                                        onMouseDown={e => { e.preventDefault(); if (onSectorChange) onSectorChange(id); setShowDropdown(false); setSearchTerm(""); }}
+                                        style={{
+                                            padding: "8px 14px", cursor: "pointer", fontSize: 13,
+                                            color: sector.id === id ? "#06b6d4" : "#cbd5e1",
+                                            fontWeight: sector.id === id ? "bold" : "normal",
+                                            background: sector.id === id ? "rgba(6,182,212,0.1)" : "transparent",
+                                        }}
+                                        onMouseEnter={e => { if (sector.id !== id) e.currentTarget.style.background = "rgba(51,65,85,0.4)"; }}
+                                        onMouseLeave={e => { if (sector.id !== id) e.currentTarget.style.background = "transparent"; }}
+                                    >{id}</div>
+                                ))}
+                                {!allSectors.filter(id => id.toLowerCase().includes(searchTerm.toLowerCase())).length && (
+                                    <div style={{ padding: "10px 14px", color: "#64748b", fontSize: 13, textAlign: "center" }}>No sectors found</div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                <div
-                    ref={scrollRef}
-                    onScroll={updateFlowBadgePosition}
-                    onMouseDown={onMouseDown}
-                    onMouseLeave={onMouseLeave}
-                    onMouseUp={onMouseUp}
-                    onMouseMove={onMouseMove}
-                    style={{
-                        flex: 1, position: "relative",
-                        overflowX: "hidden", overflowY: "hidden",
-                        display: "flex",
-                        cursor: "grab"
+                {/* CENTER — Sector Title */}
+                <div style={{ fontSize: 15, fontWeight: "bold", color: "#fff", letterSpacing: "1px", flexShrink: 0 }}>
+                    {sector.id}
+                </div>
+
+                {/* RIGHT */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, justifyContent: "flex-end" }}>
+                    {/* Top Flow Stock Badge */}
+                    {topFlowStock && (
+                        <span style={{
+                            display: "inline-flex", alignItems: "center", gap: 5,
+                            background: topFlowStock.chg >= 0 ? "rgba(34,197,94,0.2)" : "rgba(245,158,11,0.2)",
+                            border: `1px solid ${topFlowStock.chg >= 0 ? "rgba(34,197,94,0.5)" : "rgba(245,158,11,0.5)"}`,
+                            color: topFlowStock.chg >= 0 ? "#4ade80" : "#fbbf24",
+                            fontSize: 12, fontWeight: 700,
+                            padding: "3px 10px", borderRadius: 99,
+                        }}>
+                            {topFlowStock.sym}
+                            <span style={{ fontSize: 10 }}>{topFlowStock.chg >= 0 ? "▲" : "▼"}</span>
+                        </span>
+                    )}
+
+                    <button onClick={handleFirst} style={btnBase}
+                        onMouseEnter={e => e.currentTarget.style.background = "rgba(6,182,212,0.1)"}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                        FIRST DATA
+                    </button>
+                    <button onClick={handleLast} style={btnBase}
+                        onMouseEnter={e => e.currentTarget.style.background = "rgba(6,182,212,0.1)"}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                        LAST DATA
+                    </button>
+                    <button onClick={handleLast} style={{
+                        width: 30, height: 30, borderRadius: 6,
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        background: "transparent", cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b",
+                        transition: "all .15s",
                     }}
-                >
-                    <div style={{ minWidth: "200%", height: "100%", position: "relative" }}>
-                        <canvas ref={canvasRef} style={{ height: "100%", display: "block" }} />
-                    </div>
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = "#64748b"; e.currentTarget.style.color = "#e2e8f0"; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "#64748b"; }}
+                    >
+                        <IconRefresh />
+                    </button>
                 </div>
-
-                {hasFlow && (() => {
-                    const isUp = chartData[chartData.length - 1] >= chartData[0];
-                    const badgeBg = isUp ? "#22c55e" : "#f59e0b";
-
-                    return (
-                        <div
-                            ref={flowBadgeRef}
-                            style={{
-                                position: "absolute",
-                                right: 4,
-                                top: "50%",
-                                transform: "translateY(-50%)",
-                                background: badgeBg,
-                                color: "#fff",
-                                fontSize: 10,
-                                fontWeight: "bold",
-                                padding: "3px 7px",
-                                borderRadius: 4,
-                                pointerEvents: "none",
-                                zIndex: 30,
-                                boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
-                                transition: "top 0.05s ease-out"
-                            }}
-                        >
-                            Flow
-                        </div>
-                    );
-                })()}
             </div>
 
-            <div style={{
-                width: 140, display: "flex", flexDirection: "column", gap: 12, flexShrink: 0
-            }}>
+            {/* ── Content ── */}
+            <div style={{ flex: 1, display: "flex", overflow: "hidden", padding: 16, gap: 16 }}>
+                {/* Chart Panel */}
                 <div style={{
-                    color: "#facc15", fontSize: 13, fontWeight: "700",
-                    textAlign: "center", letterSpacing: "0.2px"
+                    flex: 1, position: "relative",
+                    background: "#0f172a",
+                    border: "1px solid #1e293b",
+                    borderRadius: 8, overflow: "hidden",
                 }}>
-                    Symbol In Sector
-                </div>
-                <div className="custom-scrollbar" style={{
-                    display: "flex", flexDirection: "column", gap: 6,
-                    overflowY: "auto", paddingRight: 4, paddingBottom: 10
-                }}>
-                    {sector.stocks.map(st => (
-                        <div
-                            key={st.sym}
-                            style={{
-                                background: "rgba(30,41,59,0.7)",
-                                color: "#cbd5e1",
-                                padding: "10px 0",
-                                border: "1px solid #1e293b",
-                                borderRadius: 8,
-                                fontSize: 13,
-                                fontWeight: "600",
-                                textAlign: "center",
-                                width: "100%",
-                                userSelect: "none"
-                            }}
-                        >
-                            {st.sym}
+                    <div
+                        ref={scrollRef}
+                        onScroll={updateFlowBadgePosition}
+                        onMouseDown={onMouseDown}
+                        onMouseLeave={onMouseLeave}
+                        onMouseUp={onMouseUp}
+                        onMouseMove={onMouseMove}
+                        style={{
+                            width: "100%", height: "100%",
+                            overflowX: "hidden", overflowY: "hidden",
+                            cursor: "grab",
+                        }}
+                    >
+                        <div style={{ minWidth: "200%", height: "100%", position: "relative" }}>
+                            <canvas ref={canvasRef} style={{ height: "100%", display: "block" }} />
                         </div>
-                    ))}
+                    </div>
+
+                    {/* Flow badge on chart edge */}
+                    {hasFlow && (
+                        <div ref={flowBadgeRef} style={{
+                            position: "absolute", right: 4, top: "50%",
+                            transform: "translateY(-50%)",
+                            background: isChartUp ? "#22c55e" : "#f59e0b",
+                            color: "#fff", fontSize: 10, fontWeight: "bold",
+                            padding: "3px 7px", borderRadius: 4,
+                            pointerEvents: "none", zIndex: 30,
+                            boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
+                            transition: "top 0.05s ease-out",
+                        }}>
+                            Flow
+                        </div>
+                    )}
+                </div>
+
+                {/* Right: Stock List */}
+                <div style={{ width: 140, display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
+                    <div style={{
+                        color: "#facc15", fontSize: 12, fontWeight: 700,
+                        textAlign: "center", letterSpacing: "0.5px",
+                        paddingBottom: 4, borderBottom: "1px solid rgba(51,65,85,0.4)",
+                    }}>
+                        Symbol In Sector
+                    </div>
+
+                    <div className="custom-scrollbar" style={{
+                        display: "flex", flexDirection: "column", gap: 4,
+                        overflowY: "auto", flex: 1, paddingRight: 2,
+                    }}>
+                        {sector.stocks.map(st => (
+                            <div key={st.sym} style={{
+                                display: "flex", alignItems: "center", justifyContent: "space-between",
+                                background: "rgba(30,41,59,0.7)",
+                                border: "1px solid #1e293b",
+                                borderRadius: 7, padding: "8px 10px",
+                                gap: 6,
+                            }}>
+                                {/* Flow badge keft-aligned */}
+                                {st.hasFlow ? (
+                                    <span style={{
+                                        fontSize: 9, fontWeight: 700,
+                                        padding: "2px 6px", borderRadius: 4,
+                                        background: st.chg >= 0 ? "#22c55e" : "#f59e0b",
+                                        color: "#fff", lineHeight: 1, flexShrink: 0,
+                                    }}>
+                                        Flow
+                                    </span>
+                                ) : (
+                                    <span style={{ width: 28, flexShrink: 0 }} />
+                                )}
+                                <span style={{
+                                    fontSize: 12, fontWeight: 600,
+                                    color: st.hasFlow ? "#e2e8f0" : "#94a3b8",
+                                    textAlign: "right", flex: 1,
+                                }}>
+                                    {st.sym}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
