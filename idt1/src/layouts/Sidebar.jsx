@@ -597,7 +597,7 @@ const SidebarContent = ({
           >
             <img
               src={getIcon("sectorrotation", activePage === "sectorrotation")}
-              className="w-7"
+              className="w-5 scale-[1.4]"
               alt="Sector Rotation"
               style={
                 activePage === "sectorrotation"
