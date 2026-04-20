@@ -488,48 +488,71 @@ function SymbolDropdown({ symbol, onSelect, disabled }) {
   const [open, setOpen] = useDropdown(ref);
 
   return (
-    <div ref={ref} className="relative min-w-[150px] flex-1 max-w-[230px]">
+    <div ref={ref} className="relative w-full sm:w-[220px] shrink-0">
       <button
         type="button"
         disabled={disabled}
-        className="w-full bg-[#111827] border border-slate-700 px-3 py-2.5 rounded-md text-sm text-white flex justify-between items-center hover:border-slate-500 transition disabled:opacity-50"
+        className="w-full h-[44px] bg-[#111827] border border-slate-700 rounded-md px-3 text-sm text-white flex items-center justify-between hover:border-slate-500 transition disabled:opacity-50"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className={`truncate pr-2 ${symbol ? "text-white" : "text-slate-400"}`}>{symbol || "Select symbol..."}</span>
-        <div className="flex items-center gap-2 shrink-0">
+        <span className={`min-w-0 flex-1 truncate text-left ${symbol ? "text-white" : "text-slate-400"}`}>
+          {symbol || "Select symbol..."}
+        </span>
+
+        <div className="ml-2 flex items-center gap-2 shrink-0">
           {symbol && (
             <span
               role="button"
               tabIndex={0}
-              onClick={(e) => { e.stopPropagation(); onSelect(""); }}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onSelect(""); } }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.stopPropagation();
+                  onSelect("");
+                }
+              }}
               className="text-slate-400 hover:text-white text-xs cursor-pointer"
               aria-label="Clear symbol"
-            >✕</span>
+            >
+              ✕
+            </span>
           )}
-          <span className={`text-slate-400 text-xs transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▾</span>
+
+          <span
+            className={`text-slate-400 text-xs transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          >
+            ▾
+          </span>
         </div>
       </button>
 
       {open && (
         <ul
           role="listbox"
-          className="absolute mt-2 w-full bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl max-h-[300px] overflow-y-auto z-50 p-2"
+          className="absolute top-full left-0 mt-2 w-full bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl max-h-[300px] overflow-y-auto z-50 p-2"
         >
           {SYMBOL_LIST.map((item) => {
             const isSelected = symbol === item;
+
             return (
               <li
                 key={item}
                 role="option"
                 aria-selected={isSelected}
-                onClick={() => { onSelect(item); setOpen(false); }}
+                onClick={() => {
+                  onSelect(item);
+                  setOpen(false);
+                }}
                 className={`px-3 py-2.5 rounded-lg text-sm flex items-center justify-between cursor-pointer transition-colors mb-1
                   ${isSelected ? "bg-[#1e293b] text-white" : "text-slate-400 hover:bg-[#162032] hover:text-slate-200"}`}
               >
-                <span>{item}</span>
+                <span className="truncate">{item}</span>
+
                 {isSelected && (
                   <div className="w-4 h-4 rounded-full bg-cyan-500 flex items-center justify-center shrink-0">
                     <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -550,32 +573,42 @@ function SymbolDropdown({ symbol, onSelect, disabled }) {
 function OilTypeDropdown({ selectedOilTypes, onToggle, disabled }) {
   const ref = useRef(null);
   const [open, setOpen] = useDropdown(ref);
-  const label = selectedOilTypes.length > 0
-    ? `${selectedOilTypes.length} Selected (${selectedOilTypes[0]}${selectedOilTypes.length > 1 ? ", ..." : ""})`
-    : "Select Oil Types...";
+
+  const label =
+    selectedOilTypes.length > 0
+      ? `${selectedOilTypes.length} Selected (${selectedOilTypes[0]}${selectedOilTypes.length > 1 ? ", ..." : ""})`
+      : "Select Oil Types...";
 
   return (
-    <div ref={ref} className="relative min-w-[170px] flex-1 max-w-[250px]">
+    <div ref={ref} className="relative w-full sm:w-[220px] shrink-0">
       <button
         type="button"
         disabled={disabled}
-        className="w-full bg-[#111827] border border-slate-700 px-3 py-2.5 rounded-md text-sm text-white flex justify-between items-center hover:border-slate-500 transition disabled:opacity-50"
+        className="w-full h-[44px] bg-[#111827] border border-slate-700 rounded-md px-3 text-sm text-white flex items-center justify-between hover:border-slate-500 transition disabled:opacity-50"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className="truncate pr-2 text-slate-300">{label}</span>
-        <span className={`text-slate-400 text-xs shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▾</span>
+        <span className="min-w-0 flex-1 truncate text-left text-slate-300">
+          {label}
+        </span>
+
+        <span
+          className={`ml-2 text-slate-400 text-xs shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        >
+          ▾
+        </span>
       </button>
 
       {open && (
         <ul
           role="listbox"
           aria-multiselectable="true"
-          className="absolute mt-2 w-full bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl max-h-[300px] overflow-y-auto z-50 p-2"
+          className="absolute top-full left-0 mt-2 w-full bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl max-h-[300px] overflow-y-auto z-50 p-2"
         >
           {OIL_TYPES_LIST.map((ot) => {
             const isSelected = selectedOilTypes.includes(ot);
+
             return (
               <li
                 key={ot}
@@ -585,16 +618,24 @@ function OilTypeDropdown({ selectedOilTypes, onToggle, disabled }) {
                 className={`px-3 py-2.5 rounded-lg text-sm flex items-center gap-3 cursor-pointer transition-colors mb-1
                   ${isSelected ? "bg-[#1e293b] text-white" : "text-slate-400 hover:bg-[#162032] hover:text-slate-200"}`}
               >
-                <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${isSelected ? "border-cyan-500 bg-cyan-500" : "border-slate-500"}`}>
+                <div
+                  className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                    isSelected ? "border-cyan-500 bg-cyan-500" : "border-slate-500"
+                  }`}
+                >
                   {isSelected && (
                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
                     </svg>
                   )}
                 </div>
+
                 <div className="flex items-center gap-2 min-w-0">
                   {isSelected && (
-                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[OIL_TYPES_LIST.indexOf(ot) % COLORS.length] }} />
+                    <div
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: COLORS[OIL_TYPES_LIST.indexOf(ot) % COLORS.length] }}
+                    />
                   )}
                   <span className="truncate">{ot}</span>
                 </div>
@@ -606,7 +647,6 @@ function OilTypeDropdown({ selectedOilTypes, onToggle, disabled }) {
     </div>
   );
 }
-
 // ── MAIN EXPORT ───────────────────────────────────────────────────────────────
 export default function PetroleumInsights() {
   const navigate = useNavigate();
@@ -873,7 +913,7 @@ export default function PetroleumInsights() {
 
           {/* ── Toolbar ─────────────────────────────────────────────────── */}
           <div className="flex flex-col gap-3 mb-5 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between flex-shrink-0">
-            <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 min-w-0 w-full lg:w-auto">
               <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
                 Multi-asset oil price tracking, monitor fuel type variations, analyze exchange refinery rates, track market margins, and display historical price data
               </ToolHint>
