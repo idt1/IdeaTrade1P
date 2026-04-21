@@ -14,6 +14,7 @@ import {
   LineStyle,
 } from "lightweight-charts";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import SearchIcon from "@mui/icons-material/Search";
 import ToolHint from "@/components/ToolHint.jsx";
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
@@ -207,8 +208,8 @@ function SymbolInput({ value, onChange }) {
 
   return (
     <div ref={ref} className="relative flex items-center gap-1.5 min-w-[70px]">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" className="flex-shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input value={query} onChange={e => { setQuery(e.target.value.toUpperCase()); setOpen(true); setHiIdx(-1); }} onFocus={() => setOpen(true)} onKeyDown={handleKey} placeholder="Symbol..." className="w-full max-w-[80px] sm:w-[80px] bg-transparent text-xs sm:text-sm font-bold text-white outline-none placeholder-slate-600 tracking-wider cursor-text"/>
+      <SearchIcon className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fontSize="small" />
+      <input value={query} onChange={e => { setQuery(e.target.value.toUpperCase()); setOpen(true); setHiIdx(-1); }} onFocus={() => setOpen(true)} onKeyDown={handleKey} placeholder="Symbol..." className="w-full max-w-[80px] sm:w-[80px] bg-transparent text-xs sm:text-sm font-bold text-white outline-none placeholder-slate-600 tracking-wider cursor-text pl-6"/>
       <button onMouseDown={e => { e.preventDefault(); setOpen(v => !v); }} className="text-slate-600 hover:text-slate-300 transition-colors flex-shrink-0 p-1">
         <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor"><path d={open ? "M4 0L8 5H0Z" : "M4 5L0 0H8Z"}/></svg>
       </button>
@@ -326,9 +327,9 @@ function FullscreenSymbolInput({ value, onChange }) {
 
   return (
     <div ref={ref} className="relative flex items-center w-full max-w-[160px] sm:max-w-none sm:w-auto">
-      <div className={`flex items-center gap-2 bg-[#1a2235] border rounded-lg px-2 sm:px-3 py-1.5 transition-all w-full sm:w-56 ${open ? "border-cyan-500/60" : "border-slate-700 hover:border-slate-500"}`}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" className="flex-shrink-0 hidden sm:block"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input value={query} onChange={e => { setQuery(e.target.value.toUpperCase()); setOpen(true); setHiIdx(-1); }} onFocus={() => setOpen(true)} onKeyDown={handleKey} placeholder="พิมพ์ชื่อหุ้น..." className={`flex-1 min-w-0 bg-transparent text-xs sm:text-sm outline-none placeholder-slate-600 pr-4 sm:pr-6 ${value && !open ? "font-bold text-white" : "text-white"}`}/>
+      <div className={`relative flex items-center bg-[#1a2235] border rounded-lg px-2 sm:px-3 py-1.5 transition-all w-full sm:w-56 ${open ? "border-cyan-500/60" : "border-slate-700 hover:border-slate-500"}`}>
+        <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none hidden sm:block" fontSize="small" />
+        <input value={query} onChange={e => { setQuery(e.target.value.toUpperCase()); setOpen(true); setHiIdx(-1); }} onFocus={() => setOpen(true)} onKeyDown={handleKey} placeholder="พิมพ์ชื่อหุ้น..." className={`flex-1 min-w-0 bg-transparent text-xs sm:text-sm outline-none placeholder-slate-600 sm:pl-7 pr-4 sm:pr-6 ${value && !open ? "font-bold text-white" : "text-white"}`}/>
         {query && <button onMouseDown={() => commit("")} className="absolute right-2 sm:right-3 text-slate-600 hover:text-slate-300 text-xs sm:text-sm transition-colors">✕</button>}
       </div>
       {open && (

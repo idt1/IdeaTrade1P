@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import PetroleumDashboard from "./components/PetroleumDashboard";
 import ToolHint from "@/components/ToolHint";
+import SearchIcon from "@mui/icons-material/Search";
 
 const scrollbarHideStyle = { msOverflowStyle: "none", scrollbarWidth: "none" };
 
@@ -492,19 +493,15 @@ function SymbolDropdown({ symbol, onSelect, disabled }) {
       <button
         type="button"
         disabled={disabled}
-        className="w-full h-[44px] bg-[#111827] border border-slate-700 rounded-md px-3 text-sm text-white flex items-center justify-between hover:border-slate-500 transition disabled:opacity-50"
+        className="relative w-full h-[44px] bg-[#111827] border border-slate-700 rounded-md pl-9 pr-3 text-sm text-white flex items-center justify-between hover:border-slate-500 transition disabled:opacity-50"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="flex-shrink-0 text-slate-500">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <span className={`min-w-0 flex-1 truncate text-left ${symbol ? "text-white" : "text-slate-400"}`}>
-            {symbol || "Select symbol..."}
-          </span>
-        </div>
+        <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fontSize="small" />
+        <span className={`min-w-0 flex-1 truncate text-left ${symbol ? "text-white" : "text-slate-400"}`}>
+          {symbol || "Select symbol..."}
+        </span>
 
         <div className="ml-2 flex items-center gap-2 shrink-0">
           {symbol && (
