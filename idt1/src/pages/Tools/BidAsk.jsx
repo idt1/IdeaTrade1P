@@ -134,7 +134,7 @@ export default function BidAsk() {
         </div>
     );
 
-    const dashboardPreviewJSX = (
+const dashboardPreviewJSX = ( 
         <div className="relative group w-full max-w-5xl mb-12 md:mb-16">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700" />
             <div className="relative bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
@@ -145,8 +145,8 @@ export default function BidAsk() {
                         <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-500/80" />
                     </div>
                 </div>
-                {/* 🟢 แก้ไข 1: เปลี่ยนเป็น aspect-video (16:9) เพื่อให้กรอบเตี้ยลงและกระชับในหน้าจอมือถือ */}
-                <div className="aspect-video md:aspect-[17/10] w-full bg-[#0B1221] relative overflow-hidden group">
+                
+                <div className="aspect-video md:aspect-[19/10] w-full bg-[#0B1221] relative overflow-hidden group">
                     <div className="absolute inset-0 opacity-90 group-hover:opacity-100 group-hover:scale-[1.01] transition duration-500 ease-out">
                         <BidAskDashboard />
                     </div>
