@@ -1709,7 +1709,7 @@ export default function StockFortuneTeller() {
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700" />
             <div className="relative bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
               {windowChrome}
-              <ScaledDashboardPreview dashboardWidth={1280} dashboardHeight={800} />
+              <ScaledDashboardPreview dashboardWidth={1280} dashboardHeight={770} />
             </div>
           </div>
           {featuresSection}
@@ -1765,7 +1765,7 @@ export default function StockFortuneTeller() {
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700" />
             <div className="relative bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
               {windowChrome}
-              <ScaledDashboardPreview dashboardWidth={1280} dashboardHeight={800} />
+              <ScaledDashboardPreview dashboardWidth={1280} dashboardHeight={770} />
             </div>
           </div>
           {featuresSection}
