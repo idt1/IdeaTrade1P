@@ -207,6 +207,7 @@ function SymbolInput({ value, onChange }) {
 
   return (
     <div ref={ref} className="relative flex items-center gap-1.5 min-w-[70px]">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" className="flex-shrink-0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input value={query} onChange={e => { setQuery(e.target.value.toUpperCase()); setOpen(true); setHiIdx(-1); }} onFocus={() => setOpen(true)} onKeyDown={handleKey} placeholder="Symbol..." className="w-full max-w-[80px] sm:w-[80px] bg-transparent text-xs sm:text-sm font-bold text-white outline-none placeholder-slate-600 tracking-wider cursor-text"/>
       <button onMouseDown={e => { e.preventDefault(); setOpen(v => !v); }} className="text-slate-600 hover:text-slate-300 transition-colors flex-shrink-0 p-1">
         <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor"><path d={open ? "M4 0L8 5H0Z" : "M4 5L0 0H8Z"}/></svg>

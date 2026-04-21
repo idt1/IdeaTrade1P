@@ -942,6 +942,9 @@ export default function RubberThai() {
             {/* Symbol Search */}
             <div className="relative w-full sm:w-64 flex-1 sm:flex-none">
               <div className="relative bg-[#111827] border border-slate-700 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 flex items-center shadow-inner">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="flex-shrink-0 text-slate-500 mr-2">
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
                 <input
                   value={symbolQuery}
                   onChange={(e) => {

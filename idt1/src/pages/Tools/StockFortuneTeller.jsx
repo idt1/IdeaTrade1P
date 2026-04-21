@@ -1822,7 +1822,7 @@ export default function StockFortuneTeller() {
               onFocus={() => setShowDropdown(true)}
               onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
               placeholder="Type a Symbol..."
-              className="w-full bg-[#0f172a] border border-slate-600 rounded-full pl-10 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+              className="w-full bg-[#0f172a] border border-slate-600 rounded-lg pl-10 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
             />
             {symbol && (
               <button

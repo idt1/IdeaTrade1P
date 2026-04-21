@@ -497,9 +497,14 @@ function SymbolDropdown({ symbol, onSelect, disabled }) {
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className={`min-w-0 flex-1 truncate text-left ${symbol ? "text-white" : "text-slate-400"}`}>
-          {symbol || "Select symbol..."}
-        </span>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="flex-shrink-0 text-slate-500">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <span className={`min-w-0 flex-1 truncate text-left ${symbol ? "text-white" : "text-slate-400"}`}>
+            {symbol || "Select symbol..."}
+          </span>
+        </div>
 
         <div className="ml-2 flex items-center gap-2 shrink-0">
           {symbol && (
