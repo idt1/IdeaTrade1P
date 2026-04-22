@@ -148,6 +148,17 @@ const ChartFlipIconSVG = ({ active }) => {
   );
 };
 
+const S50ShortIconSVG = ({ active }) => {
+  const color = active ? "#ffffff" : "#9ca3af";
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3 6L9 12L13 8L21 16" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <polyline points="17 16 21 16 21 12" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <line x1="3" y1="20" x2="21" y2="20" stroke={color} strokeWidth="1" strokeOpacity="0.4"/>
+    </svg>
+  );
+};
+
 /* ================= FLOATING TOOLTIP ================= */
 const FloatingTooltip = ({ visible, top, text }) => {
   if (!visible) return null;
@@ -609,6 +620,23 @@ const SidebarContent = ({
           </div>
         </button>
 
+        {/* ── S50 Outstanding Short Button ── */}
+        <button
+          onClick={() => { navigate("/s50outstandingshort"); setActivePage("s50outstandingshort"); onMobileClose?.(); }}
+          onMouseEnter={(e) => handleMouseEnter(e, "S50 Outstanding Short")}
+          onMouseLeave={handleMouseLeave}
+          className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
+          ${activePage === "s50outstandingshort" ? "bg-slate-800" : "hover:bg-white/5"}
+          ${isCollapsed ? "w-10 h-10 justify-center" : "w-full h-11 px-4 justify-between"}`}
+        >
+          <div className={`flex items-center gap-3 font-medium transition-colors pointer-events-none
+            ${activePage === "s50outstandingshort" ? "text-white" : "text-gray-400"}
+            ${isCollapsed ? "justify-center w-full" : ""}`}
+          >
+            <S50ShortIconSVG active={activePage === "s50outstandingshort"} />
+            {!isCollapsed && <span>S50 Outstanding Short</span>}
+          </div>
+        </button>
 
         {/* ACCOUNT SECTION */}
         {isCollapsed ? <div className="w-8 h-[1px] bg-white/10 my-1 shrink-0" /> : <div className="mt-6 mb-2 px-2 text-[11px] uppercase text-gray-500 shrink-0">Account</div>}

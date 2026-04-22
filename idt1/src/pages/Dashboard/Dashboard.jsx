@@ -32,6 +32,7 @@ import DWViewCharts from "@/pages/Hidden/DW";
 import IdeaTradePoint from "@/pages/Hidden/ideatradepoint";
 import HisIdeaTradePoint from "@/pages/Hidden/hisideatradepoint";
 import SectorRotation from "@/pages/Hidden/Sectorrotation";
+import S50OutstandingShort from "@/pages/Hidden/S50OutstandingShort";
 
 /* ================= CONSTANTS ================= */
 const CHART_IMAGE_URL = "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1964&auto=format&fit=crop";
@@ -80,6 +81,7 @@ const TOOL_CONFIG = {
   "hisideatradepoint":         { component: HisIdeaTradePoint,   id: "hisideatradepoint",             name: "Historical Idea Trade Point",             isPremium: false },
 
   "sectorrotation":         { component: SectorRotation,   id: "sectorrotation",             name: "Sector Rotation",             isPremium: false },
+  "s50outstandingshort": { component: S50OutstandingShort, id: "s50outstandingshort", name: "S50 Outstanding Short", isPremium: false },
 
 };
 
@@ -168,6 +170,7 @@ export default function Dashboard({ initialPage }) {
       else if (path === "ideatradepoint") setActivePage("ideatradepoint");
       else if (path === "hisideatradepoint") setActivePage("hisideatradepoint");
       else if (path === "sectorrotation") setActivePage("sectorrotation");
+      else if (path === "s50outstandingshort") setActivePage("s50outstandingshort");
 
       else setActivePage("preview-projects"); 
     }
