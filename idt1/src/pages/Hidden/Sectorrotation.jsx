@@ -769,12 +769,12 @@ function SectorRotation() {
                 onExpand={()=>setExpandedSectorId(SET_SUMMARY.id)}
                 onReset={handleGoToLast}/>
             )}
-            <StockDetailCard/>
             {(subMarketFilter==="MAI"||subMarketFilter==="SET&MAI")&&(
               <SectorCard key={MAI_SUMMARY.id} sector={MAI_SUMMARY} dateVal={dateVal} scrollTarget={scrollTarget}
                 onExpand={()=>setExpandedSectorId(MAI_SUMMARY.id)}
                 onReset={handleGoToLast}/>
             )}
+            <StockDetailCard/>
           </div>
         ):(
           visibleData.map(sec=>(
