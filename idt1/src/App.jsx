@@ -39,7 +39,9 @@ function MainLayout() {
     "/dw",
     "/ideatradepoint",       
     "/hisideatradepoint",
-    "/sectorrotation"
+    "/sectorrotation",
+    "/S5OutstandingShort",
+    "/stock-data-table",
   ];
   
   // เช็คว่า path ปัจจุบันอยู่ในรายการที่ต้องซ่อน Sidebar หรือไม่
