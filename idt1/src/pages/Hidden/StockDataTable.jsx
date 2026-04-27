@@ -97,7 +97,6 @@ function DatePicker({ value, onChange, minDate, maxDate }) {
         @keyframes dpFade { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
       `}</style>
 
-      {/* ── Trigger ── */}
       <div
         onClick={() => { setOpen(o => !o); setShowMonthPicker(false); }}
         style={{
@@ -113,7 +112,6 @@ function DatePicker({ value, onChange, minDate, maxDate }) {
         <span style={{ color: "#3a506a", fontSize: 10 }}>{open ? "▲" : "▼"}</span>
       </div>
 
-      {/* ── Popup ── */}
       {open && (
         <div style={{
           position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 999,
@@ -122,8 +120,6 @@ function DatePicker({ value, onChange, minDate, maxDate }) {
           boxShadow: "0 12px 40px rgba(0,0,0,.7)",
           width: 290, animation: "dpFade .15s ease",
         }}>
-
-          {/* Header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
             <button onClick={prevMonth} style={{ background: "none", border: "none", color: "#60a5fa", cursor: "pointer", fontSize: 20, lineHeight: 1, padding: "0 6px" }}>‹</button>
             <div
@@ -138,7 +134,6 @@ function DatePicker({ value, onChange, minDate, maxDate }) {
             <button onClick={nextMonth} style={{ background: "none", border: "none", color: "#60a5fa", cursor: "pointer", fontSize: 20, lineHeight: 1, padding: "0 6px" }}>›</button>
           </div>
 
-          {/* Month/Year Picker */}
           {showMonthPicker && (
             <div style={{ marginBottom: 14, background: "#0b1422", borderRadius: 8, padding: "10px 8px" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 10 }}>
@@ -166,14 +161,12 @@ function DatePicker({ value, onChange, minDate, maxDate }) {
             </div>
           )}
 
-          {/* Day labels */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 6 }}>
             {DAYS_LABEL.map(d => (
               <div key={d} style={{ textAlign: "center", fontSize: 11, color: "#4a6080", fontWeight: 600, padding: "2px 0", fontFamily: "inherit" }}>{d}</div>
             ))}
           </div>
 
-          {/* Day cells */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
             {cells.map((day, i) => {
               if (!day) return <div key={i} />;
@@ -207,7 +200,6 @@ function DatePicker({ value, onChange, minDate, maxDate }) {
             })}
           </div>
 
-          {/* Footer */}
           {value && (
             <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid #1e2d45", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontSize: 11, color: "#5a7090" }}>{formatDisplay(value)}</span>
@@ -217,6 +209,93 @@ function DatePicker({ value, onChange, minDate, maxDate }) {
               >ล้าง</button>
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SymbolSelect({ symbols, value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const checked = !!value;
+
+  return (
+    <div ref={ref} style={{ position: "relative", display: "inline-block" }}>
+      <div
+        onMouseDown={e => {
+          e.preventDefault();
+          if (e.target.closest("[data-cb]")) {
+            if (value) onChange("");
+            else setOpen(o => !o);
+            return;
+          }
+          setOpen(o => !o);
+        }}
+        style={{
+          display: "flex", alignItems: "center", gap: 9,
+          background: "#111d30", border: "1px solid #1e2d45",
+          borderRadius: 8, padding: "0 32px 0 10px", height: 32, minWidth: 160,
+          cursor: "pointer", fontSize: 12, userSelect: "none", position: "relative",
+        }}
+      >
+        <div
+          data-cb="1"
+          style={{
+            width: 14, height: 14, borderRadius: 3, flexShrink: 0,
+            border: "1px solid #3a506a",
+            background: checked ? "#2563eb" : "#0b1422",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          {checked && (
+            <svg width="9" height="6" viewBox="0 0 9 6" fill="none">
+              <path d="M1 3L3.5 5.5L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          )}
+        </div>
+        <span style={{ flex: 1, color: value ? "#c9d4e8" : "#3a506a" }}>
+          {value || "Type a Symbol"}
+        </span>
+        <span style={{
+          position: "absolute", right: 10, top: "50%",
+          transform: `translateY(-50%) rotate(${open ? 180 : 0}deg)`,
+          color: "#3a506a", fontSize: 10, pointerEvents: "none", transition: "transform .15s",
+        }}>▾</span>
+      </div>
+
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+          background: "#0f1c2e", border: "1px solid #1e2d45", borderRadius: 10,
+          zIndex: 999, boxShadow: "0 8px 32px rgba(0,0,0,.5)",
+          maxHeight: 220, overflowY: "auto",
+        }}>
+          {symbols.map(s => (
+            <div
+              key={s}
+              onMouseDown={e => { e.preventDefault(); onChange(s); setOpen(false); }}
+              style={{
+                padding: "8px 14px", fontSize: 12, cursor: "pointer",
+                color: value === s ? "#60a5fa" : "#c9d4e8",
+                fontWeight: value === s ? 700 : 400,
+                background: "transparent",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "#1e3a5f"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              {s}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -264,38 +343,36 @@ function SortArrow({ col, sortCol, sortDir }) {
 }
 
 export default function Form59Dashboard() {
+  const [dateMode, setDateMode] = useState("range");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("2026-04-03");
+  const [singleDate, setSingleDate] = useState("2026-04-03");
+
   const [symbolFilter, setSymbolFilter] = useState("");
   const [minValue, setMinValue] = useState("");
   const [sortCol, setSortCol] = useState("date");
   const [sortDir, setSortDir] = useState(-1);
   const [page, setPage] = useState(1);
-  
-  // ✅ 1. เริ่มต้นหน้าด้วย 15 แต่เราจะอัปเดตมันทันทีที่คำนวณเสร็จ
   const [pageSize, setPageSize] = useState(15);
+  
+  const hasChangedDate = useRef(false);
+  const hasChangedMinVal = useRef(false);
+
   const tableWrapRef = useRef(null);
 
-  // ✅ 2. ใช้ ResizeObserver ดักจับความสูงแบบ Real-time
   useEffect(() => {
     if (!tableWrapRef.current) return;
-
     const observer = new ResizeObserver((entries) => {
       for (let entry of entries) {
         const wrapHeight = entry.contentRect.height;
-        const headerHeight = 76; // ความสูงของ Thead
-        const rowHeight = 36.5; // ความสูงต่อ 1 แถว (px)
-        
+        const headerHeight = 76;
+        const rowHeight = 36.5;
         let calculated = Math.floor((wrapHeight - headerHeight) / rowHeight);
-        
-        if (calculated < 5) calculated = 5; 
-        
+        if (calculated < 5) calculated = 5;
         setPageSize(calculated);
       }
     });
-
     observer.observe(tableWrapRef.current);
-    
     return () => observer.disconnect();
   }, []);
 
@@ -304,20 +381,68 @@ export default function Form59Dashboard() {
     []
   );
 
-  const filtered = useMemo(() => {
+  const filteredNoSymbol = useMemo(() => {
     let d = [...RAW_RECORDS];
-    if (startDate) d = d.filter((r) => r.date >= startDate);
-    if (endDate) d = d.filter((r) => r.date <= endDate);
-    if (symbolFilter) d = d.filter((r) => r.symbol === symbolFilter);
+
+    if (dateMode === "single") {
+      d = d.filter((r) => r.date === singleDate);
+    } else {
+      if (startDate) d = d.filter((r) => r.date >= startDate);
+      if (endDate) d = d.filter((r) => r.date <= endDate);
+    }
+
     const processed = processData(d);
     const minV = parseFloat(minValue) || 0;
-    const result = minV > 0 ? processed.filter(r => (r.buy + r.sell) >= minV) : processed;
+    return minV > 0 ? processed.filter(r => (r.buy + r.sell) >= minV) : processed;
+  }, [dateMode, singleDate, startDate, endDate, minValue]);
+
+  // ระบบ Auto-select เมื่อเลือกครบทั้งคู่ จะดึงชื่อหุ้นท็อปไปใส่ช่องด้านบนให้ (พร้อมติ๊กถูก)
+  useEffect(() => {
+    if (!hasChangedDate.current || !hasChangedMinVal.current) {
+      return; 
+    }
+
+    if (filteredNoSymbol.length === 0) {
+      setSymbolFilter(""); 
+      return; 
+    }
+    
+    // หาตัวท็อป
+    const top = filteredNoSymbol.reduce((best, r) =>
+      (r.buy + r.sell) > (best.buy + best.sell) ? r : best
+    , filteredNoSymbol[0]);
+    
+    // ใส่ชื่อเข้าช่องค้นหา (มันจะติ๊กถูกและโชว์ชื่ออัตโนมัติ)
+    setSymbolFilter(top.symbol);
+    setSortCol("totalValue");
+    setSortDir(-1);
+    setPage(1);
+  }, [filteredNoSymbol]);
+
+  const filtered = useMemo(() => {
+    let result = [...filteredNoSymbol];
+
     return result.sort((a, b) => {
-      let va = a[sortCol] ?? 0, vb = b[sortCol] ?? 0;
+      // 1. ถ้ามีชื่อในช่อง Symbol ให้ดันหุ้นตัวนั้นขึ้นมาเป็นอันดับ 1 เสมอ
+      if (symbolFilter) {
+        if (a.symbol === symbolFilter && b.symbol !== symbolFilter) return -1;
+        if (b.symbol === symbolFilter && a.symbol !== symbolFilter) return 1;
+      }
+
+      // 2. ตัวอื่นๆ เรียงตามปกติ
+      let va, vb;
+      if (sortCol === "totalValue") {
+        va = a.buy + a.sell;
+        vb = b.buy + b.sell;
+      } else {
+        va = a[sortCol] ?? 0;
+        vb = b[sortCol] ?? 0;
+      }
+
       if (typeof va === "string") return va.localeCompare(vb) * sortDir;
       return (va - vb) * sortDir;
     });
-  }, [startDate, endDate, symbolFilter, minValue, sortCol, sortDir]);
+  }, [filteredNoSymbol, symbolFilter, sortCol, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -330,57 +455,70 @@ export default function Form59Dashboard() {
   }
 
   function reset() {
-    setStartDate(""); setEndDate("2026-04-03"); setSymbolFilter(""); setMinValue("");
+    setDateMode("range");
+    setStartDate(""); setEndDate("2026-04-03");
+    setSingleDate("2026-04-03");
+    setSymbolFilter(""); setMinValue("");
     setSortCol("date"); setSortDir(-1); setPage(1);
+    
+    hasChangedDate.current = false;
+    hasChangedMinVal.current = false;
+  }
+
+  function toggleDateMode() {
+    setDateMode(m => m === "range" ? "single" : "range");
+    setPage(1);
+    hasChangedDate.current = true;
   }
 
   const S = {
-    wrap: { 
-      background: "#0b1120", 
-      // ✅ 3. ล็อคความสูงและกางให้เต็มกรอบ Dashboard พอดี
+    wrap: {
+      background: "#0b1120",
       position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-      display: "flex", 
-      flexDirection: "column", 
-      fontFamily: "'DM Sans', sans-serif", 
-      fontSize: 13, 
+      display: "flex",
+      flexDirection: "column",
+      fontFamily: "'DM Sans', sans-serif",
+      fontSize: 13,
       color: "#c9d4e8",
-      overflow: "hidden" // กันหน้าจอเลื่อน
+      overflow: "hidden"
     },
     topBar: {
       display: "flex", alignItems: "center", gap: 10,
       padding: "10px 16px", background: "#0d1526",
       borderBottom: "1px solid #1e2d45", flexWrap: "wrap",
-      flexShrink: 0 
+      flexShrink: 0
     },
     divider: { width: 1, height: 24, background: "#1e2d45", flexShrink: 0 },
     fieldGroup: { display: "flex", flexDirection: "column", gap: 4 },
     label: { fontSize: 10, color: "#5a7090", letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600 },
     select: { background: "#111d30", border: "1px solid #1e2d45", borderRadius: 6, padding: "0 8px", height: 32, color: "#c9d4e8", fontSize: 12, outline: "none", cursor: "pointer", minWidth: 140, fontFamily: "inherit" },
     resetBtn: { background: "transparent", border: "1px solid #1e2d45", borderRadius: 6, height: 32, padding: "0 14px", color: "#7a90b0", fontSize: 18, cursor: "pointer", lineHeight: 1, flexShrink: 0 },
-    
-    tableWrap: { 
-      // ✅ 4. ดันให้กล่องนี้กินพื้นที่ตรงกลางทั้งหมด (เพื่อเอาไปใช้วัดขนาดแถวที่แสดงได้)
-      flex: 1, 
-      minHeight: 0, // สำคัญ! ป้องกันไม่ให้ตารางแหกกรอบ
-      overflowX: "auto", 
-      overflowY: "auto", 
+    tableWrap: {
+      flex: 1,
+      minHeight: 0,
+      overflowX: "auto",
+      overflowY: "auto",
       background: "#0b1120"
     },
     table: { width: "100%", borderCollapse: "collapse", fontSize: 12 },
+    // เพิ่ม borderRight เพื่อสร้างเส้นแบ่งคอลัมน์
     th: (align = "left") => ({
       padding: "10px 14px", textAlign: align, color: "#5a7090", fontWeight: 600,
-      fontSize: 11, borderBottom: "1px solid #1e2d45", background: "#0d1526",
+      fontSize: 11, borderBottom: "1px solid #1e2d45", borderRight: "1px solid #1e2d45", background: "#0d1526",
       whiteSpace: "nowrap", cursor: "pointer", userSelect: "none",
       verticalAlign: "middle",
-      position: "sticky", top: 0, zIndex: 10 
+      position: "sticky", top: 0, zIndex: 10
     }),
-    td: (align = "left") => ({ padding: "9px 14px", borderBottom: "1px solid #131f33", whiteSpace: "nowrap", color: "#c9d4e8", textAlign: align }),
-    
-    pagination: { 
-      display: "flex", alignItems: "center", justifyContent: "space-between", 
-      padding: "10px 16px", background: "#0d1526", borderTop: "1px solid #1e2d45", 
+    // เพิ่ม borderRight เพื่อสร้างเส้นแบ่งคอลัมน์
+    td: (align = "left") => ({ 
+      padding: "9px 14px", borderBottom: "1px solid #1e2d45", borderRight: "1px solid #1e2d45", 
+      whiteSpace: "nowrap", color: "#c9d4e8", textAlign: align 
+    }),
+    pagination: {
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      padding: "10px 16px", background: "#0d1526", borderTop: "1px solid #1e2d45",
       fontSize: 11, color: "#5a7090", flexWrap: "wrap", gap: 8,
-      flexShrink: 0 
+      flexShrink: 0
     },
     pageBtn: (active, disabled) => ({ background: active ? "rgba(37,99,235,0.15)" : "transparent", border: `1px solid ${active ? "#2563eb" : "#1e2d45"}`, borderRadius: 5, padding: "3px 9px", color: disabled ? "#253040" : active ? "#60a5fa" : "#7a90b0", fontSize: 11, cursor: disabled ? "default" : "pointer", fontFamily: "inherit" }),
   };
@@ -393,33 +531,92 @@ export default function Form59Dashboard() {
       {/* ── TOP BAR ── */}
       <div style={S.topBar}>
         <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
-          Ideatradepoint
+          Stockdatatable 
         </ToolHint>
 
         <button style={S.resetBtn} onClick={reset} title="Reset filters">↺</button>
         <div style={S.divider} />
 
+        {/* ── Date Mode Toggle ── */}
         <div style={S.fieldGroup}>
-          <span style={S.label}>Start Date</span>
-          <DatePicker value={startDate} onChange={v => { setStartDate(v); setPage(1); }} maxDate={endDate || STATS.date_max} />
+          <span style={S.label}>Mode</span>
+          <button
+            onClick={toggleDateMode}
+            title={dateMode === "range" ? "Switch to single day" : "Switch to date range"}
+            style={{
+              background: "transparent",
+              border: `1px solid ${dateMode === "single" ? "#2563eb" : "#1e2d45"}`,
+              borderRadius: 6,
+              height: 32,
+              padding: "0 12px",
+              color: dateMode === "single" ? "#60a5fa" : "#7a90b0",
+              fontSize: 11,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              transition: "border-color .15s, color .15s",
+            }}
+          >
+            <span style={{ fontSize: 13 }}>{dateMode === "single" ? "◈" : "⇔"}</span>
+            {dateMode === "single" ? "Day" : "Range"}
+          </button>
         </div>
 
-        <div style={S.fieldGroup}>
-          <span style={S.label}>End Date</span>
-          <DatePicker value={endDate} onChange={v => { setEndDate(v); setPage(1); }} minDate={startDate || STATS.date_min} maxDate={STATS.date_max} />
-        </div>
+        <div style={S.divider} />
+
+        {/* ── Date Inputs ── */}
+        {dateMode === "range" ? (
+          <>
+            <div style={S.fieldGroup}>
+              <span style={S.label}>Start Date</span>
+              <DatePicker 
+                value={startDate} 
+                onChange={v => { setStartDate(v); setPage(1); hasChangedDate.current = true; }} 
+                maxDate={endDate || STATS.date_max} 
+              />
+            </div>
+            <div style={S.fieldGroup}>
+              <span style={S.label}>End Date</span>
+              <DatePicker 
+                value={endDate} 
+                onChange={v => { setEndDate(v); setPage(1); hasChangedDate.current = true; }} 
+                minDate={startDate || STATS.date_min} 
+                maxDate={STATS.date_max} 
+              />
+            </div>
+          </>
+        ) : (
+          <div style={S.fieldGroup}>
+            <span style={S.label}>Date</span>
+            <DatePicker
+              value={singleDate}
+              onChange={v => { if (v) { setSingleDate(v); setPage(1); hasChangedDate.current = true; } }}
+              minDate={STATS.date_min}
+              maxDate={STATS.date_max}
+            />
+          </div>
+        )}
 
         <div style={S.fieldGroup}>
-          <span style={S.label}>Symbol</span>
-          <select style={S.select} value={symbolFilter} onChange={(e) => { setSymbolFilter(e.target.value); setPage(1); }}>
-            <option value="">All Symbols</option>
-            {allSymbols.map((s) => (<option key={s} value={s}>{s}</option>))}
-          </select>
+          <span style={S.label}>Sum Value</span>
+          <SymbolSelect
+            symbols={allSymbols}
+            value={symbolFilter}
+            onChange={(v) => { setSymbolFilter(v); setPage(1); }}
+          />
         </div>
 
         <div style={S.fieldGroup}>
           <span style={S.label}>&nbsp;</span>
-          <select style={S.select} value={minValue} onChange={(e) => { setMinValue(e.target.value); setPage(1); }}>
+          <select 
+            style={S.select} 
+            value={minValue} 
+            onChange={(e) => { setMinValue(e.target.value); setPage(1); hasChangedMinVal.current = true; }}
+          >
             <option value="">Min Value</option>
             <option value="100">100 THB</option>
             <option value="1000">1,000 THB</option>
@@ -440,30 +637,32 @@ export default function Form59Dashboard() {
         <table style={S.table}>
           <thead>
             <tr>
-              <th rowSpan={2} style={{ ...S.th(), verticalAlign: "middle" }} onClick={() => handleSort("date")}>
+              <th rowSpan={2} style={{ ...S.th("center"), verticalAlign: "middle" }} onClick={() => handleSort("date")}>
                 Date <SortArrow col="date" sortCol={sortCol} sortDir={sortDir} />
               </th>
-              <th rowSpan={2} style={{ ...S.th(), verticalAlign: "middle" }} onClick={() => handleSort("symbol")}>
+              <th rowSpan={2} style={{ ...S.th("center"), verticalAlign: "middle" }} onClick={() => handleSort("symbol")}>
                 Symbol <SortArrow col="symbol" sortCol={sortCol} sortDir={sortDir} />
               </th>
-              <th rowSpan={2} style={{ ...S.th(), verticalAlign: "middle" }} onClick={() => handleSort("name")}>
+              <th rowSpan={2} style={{ ...S.th("center"), verticalAlign: "middle" }} onClick={() => handleSort("name")}>
                 Name <SortArrow col="name" sortCol={sortCol} sortDir={sortDir} />
               </th>
-              <th colSpan={2} style={{ ...S.th("center"), borderLeft: "1px solid #1e2d45", borderRight: "1px solid #1e2d45", borderBottom: "none", verticalAlign: "middle" }}>
+              {/* ลบ border ซ้ำซ้อนออกเพราะถูกจัดการโดย S.th แล้ว */}
+              <th colSpan={2} style={{ ...S.th("center"), borderBottom: "none", verticalAlign: "middle" }}>
                 Value
               </th>
-              <th rowSpan={2} style={{ ...S.th("right"), verticalAlign: "middle" }} onClick={() => handleSort("closePrice")}>
+              <th rowSpan={2} style={{ ...S.th("center"), verticalAlign: "middle" }} onClick={() => handleSort("closePrice")}>
                 Close Price <SortArrow col="closePrice" sortCol={sortCol} sortDir={sortDir} />
               </th>
-              <th rowSpan={2} style={{ ...S.th("right"), verticalAlign: "middle" }} onClick={() => handleSort("price")}>
+              <th rowSpan={2} style={{ ...S.th("center"), verticalAlign: "middle" }} onClick={() => handleSort("price")}>
                 Last Price <SortArrow col="price" sortCol={sortCol} sortDir={sortDir} />
               </th>
             </tr>
             <tr>
-              <th style={{ ...S.th("right"), borderTop: "1px solid #1e2d45", borderLeft: "1px solid #1e2d45" }} onClick={() => handleSort("buy")}>
+              {/* ลบ border ซ้ำซ้อนออก */}
+              <th style={{ ...S.th("center"), borderTop: "1px solid #1e2d45" }} onClick={() => handleSort("buy")}>
                 Buy <SortArrow col="buy" sortCol={sortCol} sortDir={sortDir} />
               </th>
-              <th style={{ ...S.th("right"), borderTop: "1px solid #1e2d45", borderRight: "1px solid #1e2d45" }} onClick={() => handleSort("sell")}>
+              <th style={{ ...S.th("center"), borderTop: "1px solid #1e2d45" }} onClick={() => handleSort("sell")}>
                 Sell <SortArrow col="sell" sortCol={sortCol} sortDir={sortDir} />
               </th>
             </tr>
@@ -471,17 +670,26 @@ export default function Form59Dashboard() {
           <tbody>
             {pageData.length === 0 ? (
               <tr><td colSpan={7} style={{ padding: "60px", textAlign: "center", color: "#3a506a", fontSize: 14 }}>ไม่พบข้อมูล</td></tr>
-            ) : pageData.map((r, i) => (
-              <tr key={i} onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(30,100,200,0.06)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                <td style={{ ...S.td(), color: "#5a7090", fontFamily: "monospace" }}>{r.date}</td>
-                <td style={{ ...S.td(), color: "#60a5fa", fontWeight: 700, letterSpacing: "0.05em", fontFamily: "monospace" }}>{r.symbol}</td>
-                <td style={{ ...S.td(), maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</td>
-                <td style={{ ...S.td("right"), color: "#22c55e", fontWeight: 600, fontFamily: "monospace", borderLeft: "1px solid #131f33" }}>{r.buy ? fmtVal(r.buy) : "–"}</td>
-                <td style={{ ...S.td("right"), color: "#ef4444", fontWeight: 600, fontFamily: "monospace", borderRight: "1px solid #131f33" }}>{r.sell ? fmtVal(r.sell) : "–"}</td>
-                <td style={{ ...S.td("right"), fontFamily: "monospace" }}>{r.closePrice > 0 ? r.closePrice.toFixed(2) : "–"}</td>
-                <td style={{ ...S.td("right"), fontFamily: "monospace" }}>{r.price > 0 ? r.price.toFixed(2) : "–"}</td>
+            ) : pageData.map((r, i) => {
+              const isSelected = r.symbol === symbolFilter;
+              
+              return (
+              <tr
+                key={i}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(30,100,200,0.06)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = isSelected ? "rgba(37,99,235,0.06)" : "transparent")}
+                style={{ background: isSelected ? "rgba(37,99,235,0.06)" : "transparent" }}
+              >
+                <td style={{ ...S.td("center"), color: "#5a7090", fontFamily: "monospace" }}>{r.date}</td>
+                <td style={{ ...S.td("center"), color: "#60a5fa", fontWeight: 700, letterSpacing: "0.05em", fontFamily: "monospace" }}>{r.symbol}</td>
+                <td style={{ ...S.td("center"), maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</td>
+                {/* ลบเส้นขอบ inline ออก ให้ใช้ของ S.td แทน */}
+                <td style={{ ...S.td("center"), color: "#22c55e", fontWeight: 600, fontFamily: "monospace" }}>{r.buy ? fmtVal(r.buy) : "–"}</td>
+                <td style={{ ...S.td("center"), color: "#ef4444", fontWeight: 600, fontFamily: "monospace" }}>{r.sell ? fmtVal(r.sell) : "–"}</td>
+                <td style={{ ...S.td("center"), fontFamily: "monospace" }}>{r.closePrice > 0 ? r.closePrice.toFixed(2) : "–"}</td>
+                <td style={{ ...S.td("center"), fontFamily: "monospace" }}>{r.price > 0 ? r.price.toFixed(2) : "–"}</td>
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
       </div>
