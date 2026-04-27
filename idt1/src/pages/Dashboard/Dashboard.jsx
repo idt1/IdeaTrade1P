@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react"; // ✅ เพิ่ม useRef
+import React, { useState, useEffect, useRef } from "react"; 
 import { useNavigate, useLocation } from "react-router-dom";
 
 /* ================= COMPONENT IMPORTS ================= */
@@ -33,7 +33,8 @@ import IdeaTradePoint from "@/pages/Hidden/ideatradepoint";
 import HisIdeaTradePoint from "@/pages/Hidden/hisideatradepoint";
 import SectorRotation from "@/pages/Hidden/Sectorrotation";
 import S50OutstandingShort from "@/pages/Hidden/S50OutstandingShort";
-import StockDataTable from "@/pages/Hidden/StockDataTable";
+// ✅ นำเข้าไฟล์ StockDataTable ของเรา
+import StockDataTable from "@/pages/Hidden/StockDataTable"; 
 
 /* ================= CONSTANTS ================= */
 const CHART_IMAGE_URL = "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1964&auto=format&fit=crop";
@@ -69,7 +70,6 @@ const TOOL_CONFIG = {
   dr: { component: DRInsight, id: "dr", name: "DR Insight", isPremium: true },
   "DRInsight": { component: DRInsight, id: "dr", name: "DR Insight", isPremium: true },
 
-  // ✅ แก้ key จาก "chartflipid" → "chart-flip-id" ให้ตรงกับ Sidebar และ AppRoutes
   "chart-flip-id": { component: ChartFlipId, id: "chart-flip-id", name: "Chart Flip ID", isPremium: false },
 
   "real-flow": { component: RealFlow, id: "real-flow", name: "Real Flow", isPremium: false },
@@ -84,16 +84,19 @@ const TOOL_CONFIG = {
   "sectorrotation":         { component: SectorRotation,   id: "sectorrotation",             name: "Sector Rotation",             isPremium: false },
   "s50outstandingshort": { component: S50OutstandingShort, id: "s50outstandingshort", name: "S50 Outstanding Short", isPremium: false },
 
+  // ✅ เพิ่มคอนฟิกของ Stock Data Table
   "stock-data-table": { component: StockDataTable, id: "stock-data-table", name: "Stock Data Table", isPremium: false },
 };
 
 const FULL_WIDTH_PAGES = []; 
 const FULL_WIDTH_PATHS = [];
 
+// ✅ เพิ่ม "stock-data-table" เข้าไปในนี้ด้วย เพื่อให้ตารางกินพื้นที่เต็มจอ ไม่มีขอบมาเบียด
 const NO_PADDING_PAGES = [
   "profile", 
   "subscription", 
   "mit", 
+  "stock-data-table", 
   ...Object.keys(TOOL_CONFIG) 
 ]; 
 
@@ -109,22 +112,17 @@ export default function Dashboard({ initialPage }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isDataReady, setIsDataReady] = useState(false);
 
-  // ✅ 1. เพิ่มตัวแปร Ref เพื่อใช้อ้างอิงถึงกล่อง <main>
   const scrollRef = useRef(null);
 
   /* --- Effects --- */
-
-  // ✅ 2. เพิ่ม useEffect เพื่อสั่งเลื่อนจอเมื่อเปลี่ยนหน้า
   useEffect(() => {
-    // ใช้ setTimeout ช่วยให้ React วาดหน้าใหม่เสร็จก่อนแล้วค่อยเลื่อน
     const timeoutId = setTimeout(() => {
       if (scrollRef.current) {
         scrollRef.current.scrollTo(0, 0);
       }
     }, 50);
-
     return () => clearTimeout(timeoutId);
-  }, [location.pathname, activePage]); // เลื่อนเมื่อ URL หรือ activePage เปลี่ยน
+  }, [location.pathname, activePage]); 
 
 
   useEffect(() => {
@@ -139,7 +137,6 @@ export default function Dashboard({ initialPage }) {
         setIsDataReady(true); 
       }
     };
-
     fetchUserData();
   }, [location.pathname]);
 
@@ -171,8 +168,10 @@ export default function Dashboard({ initialPage }) {
       else if (path === "dw") setActivePage("dw"); 
       else if (path === "ideatradepoint") setActivePage("ideatradepoint");
       else if (path === "hisideatradepoint") setActivePage("hisideatradepoint");
-      else if (path === "sectorrotation") setActivePage("sectorrotation");
+      else if (path === "sectorrotation" || path === "sector-rotation") setActivePage("sectorrotation"); // <--- แก้เป็นแบบนี้
       else if (path === "s50outstandingshort") setActivePage("s50outstandingshort");
+      
+      // ✅ เช็คให้แน่ใจว่าถ้า URL เป็น /stock-data-table ก็จะเปลี่ยนหน้า
       else if (path === "stock-data-table") setActivePage("stock-data-table");
 
       else setActivePage("preview-projects"); 
@@ -201,7 +200,6 @@ export default function Dashboard({ initialPage }) {
     
     if (activePage === "preview-projects" || activePage === "whatsnew") return <PreviewProjects />;
     if (activePage === "premiumtools") return <PremiumTools />;
-
     if (activePage === "real-flow") return <RealFlow />;
 
     const normalizedPage = activePage.toLowerCase(); 
@@ -217,7 +215,6 @@ export default function Dashboard({ initialPage }) {
           </ToolAccessGuard>
         );
       }
-      
       return <ToolComponent />;
     }
 
@@ -285,12 +282,10 @@ export default function Dashboard({ initialPage }) {
       />
 
       {/* Main Content Area */}
-      {/* ✅ 3. ผูก scrollRef ไว้ที่แท็ก <main> ตรงนี้ */}
       <main 
         ref={scrollRef} 
         className="flex-1 w-full relative overflow-y-auto transition-all duration-300"
       >
-        {/* Spacer สำหรับ mobile topbar */}
         <div className="md:hidden h-14 shrink-0" />
         <div className={isFullWidthPage() || isNoPaddingPage() ? "p-0" : "p-8 pb-20"}>
           {renderContent()}

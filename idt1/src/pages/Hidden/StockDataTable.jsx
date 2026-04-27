@@ -308,28 +308,51 @@ export default function Form59Dashboard() {
     setSortCol("date"); setSortDir(-1); setPage(1);
   }
 
-  const S = {
-    wrap: { background: "#0b1120", minHeight: "100vh", fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#c9d4e8" },
+const S = {
+    wrap: { 
+      background: "#0b1120", 
+      height: "100vh", 
+      display: "flex", 
+      flexDirection: "column", 
+      fontFamily: "'DM Sans', sans-serif", 
+      fontSize: 13, 
+      color: "#c9d4e8",
+      overflow: "hidden" 
+    },
     topBar: {
       display: "flex", alignItems: "center", gap: 10,
       padding: "10px 16px", background: "#0d1526",
       borderBottom: "1px solid #1e2d45", flexWrap: "wrap",
+      flexShrink: 0 // ✅ ป้องกันไม่ให้แถบด้านบนโดนบีบ
     },
     divider: { width: 1, height: 24, background: "#1e2d45", flexShrink: 0 },
     fieldGroup: { display: "flex", flexDirection: "column", gap: 4 },
     label: { fontSize: 10, color: "#5a7090", letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600 },
     select: { background: "#111d30", border: "1px solid #1e2d45", borderRadius: 6, padding: "0 8px", height: 32, color: "#c9d4e8", fontSize: 12, outline: "none", cursor: "pointer", minWidth: 140, fontFamily: "inherit" },
     resetBtn: { background: "transparent", border: "1px solid #1e2d45", borderRadius: 6, height: 32, padding: "0 14px", color: "#7a90b0", fontSize: 18, cursor: "pointer", lineHeight: 1, flexShrink: 0 },
-    tableWrap: { overflowX: "auto" },
+    
+    tableWrap: { 
+      flex: 1, 
+      overflowX: "auto", 
+      overflowY: "auto", // ✅ Scroll บาร์แนวตั้งจะเกิดแค่ตรงนี้
+      background: "#0b1120"
+    },
     table: { width: "100%", borderCollapse: "collapse", fontSize: 12 },
     th: (align = "left") => ({
       padding: "10px 14px", textAlign: align, color: "#5a7090", fontWeight: 600,
       fontSize: 11, borderBottom: "1px solid #1e2d45", background: "#0d1526",
       whiteSpace: "nowrap", cursor: "pointer", userSelect: "none",
       verticalAlign: "middle",
+      position: "sticky", top: 0, zIndex: 10 // ✅ ล็อค Header ตารางให้ติดหนึบเวลาเลื่อนลง
     }),
     td: (align = "left") => ({ padding: "9px 14px", borderBottom: "1px solid #131f33", whiteSpace: "nowrap", color: "#c9d4e8", textAlign: align }),
-    pagination: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", background: "#0d1526", borderTop: "1px solid #1e2d45", fontSize: 11, color: "#5a7090", flexWrap: "wrap", gap: 8 },
+    
+    pagination: { 
+      display: "flex", alignItems: "center", justifyContent: "space-between", 
+      padding: "10px 16px", background: "#0d1526", borderTop: "1px solid #1e2d45", 
+      fontSize: 11, color: "#5a7090", flexWrap: "wrap", gap: 8,
+      flexShrink: 0 // ✅ ป้องกันแถบเปลี่ยนหน้าโดนบีบ
+    },
     pageBtn: (active, disabled) => ({ background: active ? "rgba(37,99,235,0.15)" : "transparent", border: `1px solid ${active ? "#2563eb" : "#1e2d45"}`, borderRadius: 5, padding: "3px 9px", color: disabled ? "#253040" : active ? "#60a5fa" : "#7a90b0", fontSize: 11, cursor: disabled ? "default" : "pointer", fontFamily: "inherit" }),
   };
 

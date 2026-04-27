@@ -159,6 +159,18 @@ const S50ShortIconSVG = ({ active }) => {
   );
 };
 
+/* ✅ Icon สำหรับ Stock Data Table */
+const Form59IconSVG = ({ active }) => {
+  const color = active ? "#ffffff" : "#9ca3af";
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="3" width="18" height="18" rx="2" stroke={color} strokeWidth="1.5"/>
+      <path d="M3 9H21" stroke={color} strokeWidth="1.5"/>
+      <path d="M9 21V9" stroke={color} strokeWidth="1.5"/>
+    </svg>
+  );
+};
+
 /* ================= FLOATING TOOLTIP ================= */
 const FloatingTooltip = ({ visible, top, text }) => {
   if (!visible) return null;
@@ -246,6 +258,7 @@ const SidebarContent = ({
     }
   };
 
+  /* ✅ ใช้ตัวนี้เป็นตัวจัดการการนำทางทั้งหมด เพื่อป้องกัน Navigation ซ้ำซ้อนที่ทำให้ Sidebar รีเซ็ตความสูง */
   const handleNavigation = (id, projectItem = null) => {
     let targetId = id;
     
@@ -260,18 +273,6 @@ const SidebarContent = ({
     }
     
     onMobileClose?.(); 
-  };
-
-  const handleDWNavigation = () => {
-    navigate("/dw");
-    setActivePage("dw");
-    onMobileClose?.();
-  };
-
-  const handleChartFlipNavigation = () => {
-    navigate("/chart-flip-id");
-    setActivePage("chart-flip-id");
-    onMobileClose?.();
   };
 
   const handleMouseEnter = (e, text) => {
@@ -483,7 +484,6 @@ const SidebarContent = ({
                   />
                   {!isCollapsed && <span>{p.name}</span>}
                 </div>
-                {/* ✅ เปลี่ยนสีมงกุฎกลับมาเป็นสีทอง (#facc15) เสมอ ไม่ว่าปลดล็อกหรือไม่ */}
                 {!isCollapsed && <CrownIcon color="#facc15" />}
               </button>
             );
@@ -532,7 +532,7 @@ const SidebarContent = ({
 
         {/* ── Chart Flip ID Button ── */}
         <button
-          onClick={handleChartFlipNavigation}
+          onClick={() => handleNavigation("chart-flip-id")}
           onMouseEnter={(e) => handleMouseEnter(e, "Chart Flip ID")}
           onMouseLeave={handleMouseLeave}
           className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
@@ -550,7 +550,7 @@ const SidebarContent = ({
 
         {/* ── DW Button ── */}
         <button
-          onClick={handleDWNavigation}
+          onClick={() => handleNavigation("dw")}
           onMouseEnter={(e) => handleMouseEnter(e, "DW View")}
           onMouseLeave={handleMouseLeave}
           className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
@@ -568,7 +568,7 @@ const SidebarContent = ({
 
         {/* ── Idea Trade Point Button ── */}
         <button
-          onClick={() => { navigate("/ideatradepoint"); setActivePage("ideatradepoint"); onMobileClose?.(); }}
+          onClick={() => handleNavigation("ideatradepoint")}
           onMouseEnter={(e) => handleMouseEnter(e, "Idea Trade Point")}
           onMouseLeave={handleMouseLeave}
           className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
@@ -595,7 +595,7 @@ const SidebarContent = ({
 
         {/* ── Sector Rotation Button ── */}
         <button
-          onClick={() => { navigate("/sector-rotation"); setActivePage("sectorrotation"); onMobileClose?.(); }}
+          onClick={() => handleNavigation("sector-rotation")}
           onMouseEnter={(e) => handleMouseEnter(e, "Sector Rotation")}
           onMouseLeave={handleMouseLeave}
           className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
@@ -622,7 +622,7 @@ const SidebarContent = ({
 
         {/* ── S50 Outstanding Short Button ── */}
         <button
-          onClick={() => { navigate("/s50outstandingshort"); setActivePage("s50outstandingshort"); onMobileClose?.(); }}
+          onClick={() => handleNavigation("s50outstandingshort")}
           onMouseEnter={(e) => handleMouseEnter(e, "S50 Outstanding Short")}
           onMouseLeave={handleMouseLeave}
           className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
@@ -635,6 +635,24 @@ const SidebarContent = ({
           >
             <S50ShortIconSVG active={activePage === "s50outstandingshort"} />
             {!isCollapsed && <span>S50 Outstanding Short</span>}
+          </div>
+        </button>
+
+        {/* ✅ ── Stock Data Table Button ── */}
+        <button
+          onClick={() => handleNavigation("stock-data-table")}
+          onMouseEnter={(e) => handleMouseEnter(e, "Stock Data Table")}
+          onMouseLeave={handleMouseLeave}
+          className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
+          ${activePage === "stock-data-table" ? "bg-slate-800" : "hover:bg-white/5"}
+          ${isCollapsed ? "w-10 h-10 justify-center" : "w-full h-11 px-4 justify-between"}`}
+        >
+          <div className={`flex items-center gap-3 font-medium transition-colors pointer-events-none
+            ${activePage === "stock-data-table" ? "text-white" : "text-gray-400"}
+            ${isCollapsed ? "justify-center w-full" : ""}`}
+          >
+            <Form59IconSVG active={activePage === "stock-data-table"} />
+            {!isCollapsed && <span>Stock Data Table</span>}
           </div>
         </button>
 
@@ -655,11 +673,7 @@ const SidebarContent = ({
 
         {isLoggedIn && (
           <button
-            onClick={() => {
-              navigate("/manage-subscription"); 
-              setActivePage("subscription"); 
-              onMobileClose?.();
-            }}
+            onClick={() => handleNavigation("subscription")}
             onMouseEnter={(e) => handleMouseEnter(e, "Manage Subscription")}
             onMouseLeave={handleMouseLeave}
             className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
@@ -716,10 +730,7 @@ const SidebarContent = ({
       {/* FOOTER */}
       <div className="px-2 pb-2 w-full flex justify-center shrink-0">
         <button
-          onClick={() => { 
-            navigate("/premium-tools"); 
-            onMobileClose?.(); 
-          }}
+          onClick={() => handleNavigation("premiumtools")}
           onMouseEnter={(e) => handleMouseEnter(e, "Join Membership")}
           onMouseLeave={handleMouseLeave}
           className={`flex items-center justify-center transition-all shadow-lg overflow-hidden shrink-0 cursor-pointer relative group
