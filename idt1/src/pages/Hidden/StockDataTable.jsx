@@ -7,7 +7,6 @@ const STATS = {"total":88577,"buy":58402,"sell":26690,"symbols":915,"date_min":"
 
 const BUY = "ซื้อ";
 const SELL = "ขาย";
-const PAGE_SIZE = 15;
 
 const MONTHS_TH = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
 const MONTHS_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -272,6 +271,33 @@ export default function Form59Dashboard() {
   const [sortCol, setSortCol] = useState("date");
   const [sortDir, setSortDir] = useState(-1);
   const [page, setPage] = useState(1);
+  
+  // ✅ 1. เริ่มต้นหน้าด้วย 15 แต่เราจะอัปเดตมันทันทีที่คำนวณเสร็จ
+  const [pageSize, setPageSize] = useState(15);
+  const tableWrapRef = useRef(null);
+
+  // ✅ 2. ใช้ ResizeObserver ดักจับความสูงแบบ Real-time
+  useEffect(() => {
+    if (!tableWrapRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        const wrapHeight = entry.contentRect.height;
+        const headerHeight = 76; // ความสูงของ Thead
+        const rowHeight = 36.5; // ความสูงต่อ 1 แถว (px)
+        
+        let calculated = Math.floor((wrapHeight - headerHeight) / rowHeight);
+        
+        if (calculated < 5) calculated = 5; 
+        
+        setPageSize(calculated);
+      }
+    });
+
+    observer.observe(tableWrapRef.current);
+    
+    return () => observer.disconnect();
+  }, []);
 
   const allSymbols = useMemo(
     () => [...new Set(RAW_RECORDS.map((r) => r.symbol))].sort(),
@@ -293,9 +319,9 @@ export default function Form59Dashboard() {
     });
   }, [startDate, endDate, symbolFilter, minValue, sortCol, sortDir]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages);
-  const pageData = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const pageData = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   function handleSort(col) {
     if (sortCol === col) setSortDir((d) => d * -1);
@@ -308,22 +334,23 @@ export default function Form59Dashboard() {
     setSortCol("date"); setSortDir(-1); setPage(1);
   }
 
-const S = {
+  const S = {
     wrap: { 
       background: "#0b1120", 
-      height: "100vh", 
+      // ✅ 3. ล็อคความสูงและกางให้เต็มกรอบ Dashboard พอดี
+      position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
       display: "flex", 
       flexDirection: "column", 
       fontFamily: "'DM Sans', sans-serif", 
       fontSize: 13, 
       color: "#c9d4e8",
-      overflow: "hidden" 
+      overflow: "hidden" // กันหน้าจอเลื่อน
     },
     topBar: {
       display: "flex", alignItems: "center", gap: 10,
       padding: "10px 16px", background: "#0d1526",
       borderBottom: "1px solid #1e2d45", flexWrap: "wrap",
-      flexShrink: 0 // ✅ ป้องกันไม่ให้แถบด้านบนโดนบีบ
+      flexShrink: 0 
     },
     divider: { width: 1, height: 24, background: "#1e2d45", flexShrink: 0 },
     fieldGroup: { display: "flex", flexDirection: "column", gap: 4 },
@@ -332,9 +359,11 @@ const S = {
     resetBtn: { background: "transparent", border: "1px solid #1e2d45", borderRadius: 6, height: 32, padding: "0 14px", color: "#7a90b0", fontSize: 18, cursor: "pointer", lineHeight: 1, flexShrink: 0 },
     
     tableWrap: { 
+      // ✅ 4. ดันให้กล่องนี้กินพื้นที่ตรงกลางทั้งหมด (เพื่อเอาไปใช้วัดขนาดแถวที่แสดงได้)
       flex: 1, 
+      minHeight: 0, // สำคัญ! ป้องกันไม่ให้ตารางแหกกรอบ
       overflowX: "auto", 
-      overflowY: "auto", // ✅ Scroll บาร์แนวตั้งจะเกิดแค่ตรงนี้
+      overflowY: "auto", 
       background: "#0b1120"
     },
     table: { width: "100%", borderCollapse: "collapse", fontSize: 12 },
@@ -343,7 +372,7 @@ const S = {
       fontSize: 11, borderBottom: "1px solid #1e2d45", background: "#0d1526",
       whiteSpace: "nowrap", cursor: "pointer", userSelect: "none",
       verticalAlign: "middle",
-      position: "sticky", top: 0, zIndex: 10 // ✅ ล็อค Header ตารางให้ติดหนึบเวลาเลื่อนลง
+      position: "sticky", top: 0, zIndex: 10 
     }),
     td: (align = "left") => ({ padding: "9px 14px", borderBottom: "1px solid #131f33", whiteSpace: "nowrap", color: "#c9d4e8", textAlign: align }),
     
@@ -351,7 +380,7 @@ const S = {
       display: "flex", alignItems: "center", justifyContent: "space-between", 
       padding: "10px 16px", background: "#0d1526", borderTop: "1px solid #1e2d45", 
       fontSize: 11, color: "#5a7090", flexWrap: "wrap", gap: 8,
-      flexShrink: 0 // ✅ ป้องกันแถบเปลี่ยนหน้าโดนบีบ
+      flexShrink: 0 
     },
     pageBtn: (active, disabled) => ({ background: active ? "rgba(37,99,235,0.15)" : "transparent", border: `1px solid ${active ? "#2563eb" : "#1e2d45"}`, borderRadius: 5, padding: "3px 9px", color: disabled ? "#253040" : active ? "#60a5fa" : "#7a90b0", fontSize: 11, cursor: disabled ? "default" : "pointer", fontFamily: "inherit" }),
   };
@@ -407,7 +436,7 @@ const S = {
       </div>
 
       {/* ── TABLE ── */}
-      <div style={S.tableWrap}>
+      <div style={S.tableWrap} ref={tableWrapRef}>
         <table style={S.table}>
           <thead>
             <tr>
@@ -460,7 +489,7 @@ const S = {
       {/* ── PAGINATION ── */}
       {totalPages > 1 && (
         <div style={S.pagination}>
-          <span>แสดง {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} จาก {filtered.length.toLocaleString()} รายการ</span>
+          <span>แสดง {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, filtered.length)} จาก {filtered.length.toLocaleString()} รายการ</span>
           <div style={{ display: "flex", gap: 4 }}>
             <button style={S.pageBtn(false, safePage === 1)} disabled={safePage === 1} onClick={() => setPage((p) => p - 1)}>←</button>
             {pageNums.map((p) => (<button key={p} style={S.pageBtn(p === safePage, false)} onClick={() => setPage(p)}>{p}</button>))}
