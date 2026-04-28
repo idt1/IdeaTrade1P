@@ -215,93 +215,6 @@ function DatePicker({ value, onChange, minDate, maxDate }) {
   );
 }
 
-function SymbolSelect({ symbols, value, onChange }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    function handleClick(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
-  const checked = !!value;
-
-  return (
-    <div ref={ref} style={{ position: "relative", display: "inline-block" }}>
-      <div
-        onMouseDown={e => {
-          e.preventDefault();
-          if (e.target.closest("[data-cb]")) {
-            if (value) onChange("");
-            else setOpen(o => !o);
-            return;
-          }
-          setOpen(o => !o);
-        }}
-        style={{
-          display: "flex", alignItems: "center", gap: 9,
-          background: "#111d30", border: "1px solid #1e2d45",
-          borderRadius: 8, padding: "0 32px 0 10px", height: 32, minWidth: 160,
-          cursor: "pointer", fontSize: 12, userSelect: "none", position: "relative",
-        }}
-      >
-        <div
-          data-cb="1"
-          style={{
-            width: 14, height: 14, borderRadius: 3, flexShrink: 0,
-            border: "1px solid #3a506a",
-            background: checked ? "#2563eb" : "#0b1422",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
-          {checked && (
-            <svg width="9" height="6" viewBox="0 0 9 6" fill="none">
-              <path d="M1 3L3.5 5.5L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-          )}
-        </div>
-        <span style={{ flex: 1, color: value ? "#c9d4e8" : "#3a506a" }}>
-          {value || "Type a Symbol"}
-        </span>
-        <span style={{
-          position: "absolute", right: 10, top: "50%",
-          transform: `translateY(-50%) rotate(${open ? 180 : 0}deg)`,
-          color: "#3a506a", fontSize: 10, pointerEvents: "none", transition: "transform .15s",
-        }}>▾</span>
-      </div>
-
-      {open && (
-        <div style={{
-          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-          background: "#0f1c2e", border: "1px solid #1e2d45", borderRadius: 10,
-          zIndex: 999, boxShadow: "0 8px 32px rgba(0,0,0,.5)",
-          maxHeight: 220, overflowY: "auto",
-        }}>
-          {symbols.map(s => (
-            <div
-              key={s}
-              onMouseDown={e => { e.preventDefault(); onChange(s); setOpen(false); }}
-              style={{
-                padding: "8px 14px", fontSize: 12, cursor: "pointer",
-                color: value === s ? "#60a5fa" : "#c9d4e8",
-                fontWeight: value === s ? 700 : 400,
-                background: "transparent",
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = "#1e3a5f"}
-              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-            >
-              {s}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function fmtVal(n) {
   if (!n || n === 0) return "–";
   if (n >= 1e9) return (n / 1e9).toFixed(2) + "B";
@@ -333,6 +246,101 @@ function processData(records) {
   return Object.values(groups).map(g => ({ ...g, methods: [...g.methods].join("/") }));
 }
 
+function SymbolSelect({ symbols, value, onChange, onCheckboxClick, isAllChecked, hasData }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  // checkbox checked = isAllChecked OR มี symbol เลือกอยู่
+  const checked = isAllChecked || !!value;
+  // label: ถ้า All → "All", ถ้าเลือก symbol → ชื่อ symbol, ไม่มี → "Type a Symbol"
+  const label = isAllChecked ? "All" : (value || "Type a Symbol");
+  const labelColor = isAllChecked ? "#c9d4e8" : (value ? "#60a5fa" : "#3a506a");
+
+  return (
+    <div ref={ref} style={{ position: "relative", display: "inline-block" }}>
+      <div
+        onMouseDown={e => {
+          e.preventDefault();
+          if (e.target.closest("[data-cb]")) {
+            onCheckboxClick && onCheckboxClick();
+            return;
+          }
+          // เปิด dropdown ได้ก็ต่อเมื่อมีข้อมูลแล้ว (หลังกด Check)
+          if (hasData) setOpen(o => !o);
+        }}
+        style={{
+          display: "flex", alignItems: "center", gap: 9,
+          background: "#111d30", border: "1px solid #1e2d45",
+          borderRadius: 8, padding: "0 32px 0 10px", height: 32, minWidth: 160,
+          cursor: hasData ? "pointer" : "default",
+          fontSize: 12, userSelect: "none", position: "relative",
+        }}
+      >
+        <div
+          data-cb="1"
+          style={{
+            width: 14, height: 14, borderRadius: 3, flexShrink: 0,
+            border: "1px solid #3a506a",
+            background: checked ? "#2563eb" : "#0b1422",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer",
+          }}
+        >
+          {checked && (
+            <svg width="9" height="6" viewBox="0 0 9 6" fill="none">
+              <path d="M1 3L3.5 5.5L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          )}
+        </div>
+        <span style={{ flex: 1, color: labelColor, fontWeight: value && !isAllChecked ? 700 : 400 }}>
+          {label}
+        </span>
+        {hasData && (
+          <span style={{
+            position: "absolute", right: 10, top: "50%",
+            transform: `translateY(-50%) rotate(${open ? 180 : 0}deg)`,
+            color: "#3a506a", fontSize: 10, pointerEvents: "none", transition: "transform .15s",
+          }}>▾</span>
+        )}
+      </div>
+
+      {open && hasData && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+          background: "#0f1c2e", border: "1px solid #1e2d45", borderRadius: 10,
+          zIndex: 999, boxShadow: "0 8px 32px rgba(0,0,0,.5)",
+          maxHeight: 220, overflowY: "auto",
+        }}>
+          {symbols.map(s => (
+            <div
+              key={s}
+              onMouseDown={e => { e.preventDefault(); onChange(s); setOpen(false); }}
+              style={{
+                padding: "8px 14px", fontSize: 12, cursor: "pointer",
+                color: value === s ? "#60a5fa" : "#c9d4e8",
+                fontWeight: value === s ? 700 : 400,
+                background: "transparent",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "#1e3a5f"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              {s}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SortArrow({ col, sortCol, sortDir }) {
   const active = sortCol === col;
   return (
@@ -343,20 +351,19 @@ function SortArrow({ col, sortCol, sortDir }) {
 }
 
 export default function Form59Dashboard() {
-  const [dateMode, setDateMode] = useState("range");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("2026-04-03");
-  const [singleDate, setSingleDate] = useState("2026-04-03");
 
-  const [symbolFilter, setSymbolFilter] = useState("");
+  const [symbolFilter, setSymbolFilter] = useState("");  // "" = All, "DMT" = filter specific
+  const [isAllChecked, setIsAllChecked] = useState(false); // checkbox state
   const [minValue, setMinValue] = useState("");
   const [sortCol, setSortCol] = useState("date");
   const [sortDir, setSortDir] = useState(-1);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
-  
-  const hasChangedDate = useRef(false);
-  const hasChangedMinVal = useRef(false);
+
+  // sumValueSymbols: จะมีค่าก็ต่อเมื่อกด Check แล้วเท่านั้น
+  const [sumValueSymbols, setSumValueSymbols] = useState([]); // [] = ยังไม่กด Check
 
   const tableWrapRef = useRef(null);
 
@@ -381,55 +388,77 @@ export default function Form59Dashboard() {
     []
   );
 
+  // rangeData: ข้อมูลทั้ง range → ใช้สำหรับ dropdown symbols
+  const rangeData = useMemo(() => {
+    let d = [...RAW_RECORDS];
+    if (startDate) d = d.filter(r => r.date >= startDate);
+    if (endDate) d = d.filter(r => r.date <= endDate);
+    const processed = processData(d);
+    const minV = parseFloat(minValue) || 0;
+    return minV > 0 ? processed.filter(r => (r.buy + r.sell) >= minV) : processed;
+  }, [startDate, endDate, minValue]);
+
+  // filteredNoSymbol: ข้อมูลตาราง
+  // - start+end → ชี้ end date เท่านั้น (sum value ของวันสุดท้าย)
+  // - start หรือ end อย่างเดียว → ตามปกติ
   const filteredNoSymbol = useMemo(() => {
     let d = [...RAW_RECORDS];
 
-    if (dateMode === "single") {
-      d = d.filter((r) => r.date === singleDate);
-    } else {
-      if (startDate) d = d.filter((r) => r.date >= startDate);
-      if (endDate) d = d.filter((r) => r.date <= endDate);
+    if (startDate && endDate) {
+      d = d.filter((r) => r.date === endDate);
+    } else if (startDate) {
+      d = d.filter((r) => r.date >= startDate);
+    } else if (endDate) {
+      d = d.filter((r) => r.date === endDate);
     }
 
     const processed = processData(d);
     const minV = parseFloat(minValue) || 0;
     return minV > 0 ? processed.filter(r => (r.buy + r.sell) >= minV) : processed;
-  }, [dateMode, singleDate, startDate, endDate, minValue]);
+  }, [startDate, endDate, minValue]);
 
-  // ระบบ Auto-select เมื่อเลือกครบทั้งคู่ จะดึงชื่อหุ้นท็อปไปใส่ช่องด้านบนให้ (พร้อมติ๊กถูก)
-  useEffect(() => {
-    if (!hasChangedDate.current || !hasChangedMinVal.current) {
-      return; 
-    }
+  // กด Check → dropdown = top symbol ของแต่ละวันใน range
+  function handleCheck() {
+    // group by date → หา top symbol ของแต่ละวัน
+    const byDate = {};
+    rangeData.filter(r => (r.buy + r.sell) > 0).forEach(r => {
+      if (!byDate[r.date] || (r.buy + r.sell) > (byDate[r.date].buy + byDate[r.date].sell)) {
+        byDate[r.date] = r;
+      }
+    });
+    // เอา symbol ของแต่ละวัน (unique, sort)
+    const symbols = [...new Set(Object.values(byDate).map(r => r.symbol))].sort();
+    setSumValueSymbols(symbols);
 
-    if (filteredNoSymbol.length === 0) {
-      setSymbolFilter(""); 
-      return; 
+    // auto-select top symbol จากข้อมูล end date
+    const source = filteredNoSymbol.filter(r => (r.buy + r.sell) > 0);
+    if (source.length > 0) {
+      const top = source.reduce((best, r) =>
+        (r.buy + r.sell) > (best.buy + best.sell) ? r : best
+      , source[0]);
+      setSymbolFilter(top.symbol);
+      setIsAllChecked(false);
+    } else {
+      setSymbolFilter("");
+      setIsAllChecked(false);
     }
-    
-    // หาตัวท็อป
-    const top = filteredNoSymbol.reduce((best, r) =>
-      (r.buy + r.sell) > (best.buy + best.sell) ? r : best
-    , filteredNoSymbol[0]);
-    
-    // ใส่ชื่อเข้าช่องค้นหา (มันจะติ๊กถูกและโชว์ชื่ออัตโนมัติ)
-    setSymbolFilter(top.symbol);
-    setSortCol("totalValue");
-    setSortDir(-1);
     setPage(1);
-  }, [filteredNoSymbol]);
+  }
 
   const filtered = useMemo(() => {
     let result = [...filteredNoSymbol];
 
-    return result.sort((a, b) => {
-      // 1. ถ้ามีชื่อในช่อง Symbol ให้ดันหุ้นตัวนั้นขึ้นมาเป็นอันดับ 1 เสมอ
-      if (symbolFilter) {
-        if (a.symbol === symbolFilter && b.symbol !== symbolFilter) return -1;
-        if (b.symbol === symbolFilter && a.symbol !== symbolFilter) return 1;
-      }
+    if (isAllChecked) {
+      // All → แสดงทั้งหมด
+    } else if (symbolFilter) {
+      // เลือก symbol เฉพาะ → filter เฉพาะตัวนั้น
+      result = result.filter(r => r.symbol === symbolFilter);
+    } else if (sumValueSymbols.length > 0) {
+      // หลังกด Check แต่ยังไม่ได้ติ๊ก All → แสดงเฉพาะ sumValueSymbols
+      result = result.filter(r => sumValueSymbols.includes(r.symbol));
+    }
 
-      // 2. ตัวอื่นๆ เรียงตามปกติ
+    return result.sort((a, b) => {
       let va, vb;
       if (sortCol === "totalValue") {
         va = a.buy + a.sell;
@@ -438,11 +467,10 @@ export default function Form59Dashboard() {
         va = a[sortCol] ?? 0;
         vb = b[sortCol] ?? 0;
       }
-
       if (typeof va === "string") return va.localeCompare(vb) * sortDir;
       return (va - vb) * sortDir;
     });
-  }, [filteredNoSymbol, symbolFilter, sortCol, sortDir]);
+  }, [filteredNoSymbol, symbolFilter, isAllChecked, sumValueSymbols, sortCol, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -455,20 +483,15 @@ export default function Form59Dashboard() {
   }
 
   function reset() {
-    setDateMode("range");
-    setStartDate(""); setEndDate("2026-04-03");
-    setSingleDate("2026-04-03");
-    setSymbolFilter(""); setMinValue("");
-    setSortCol("date"); setSortDir(-1); setPage(1);
-    
-    hasChangedDate.current = false;
-    hasChangedMinVal.current = false;
-  }
-
-  function toggleDateMode() {
-    setDateMode(m => m === "range" ? "single" : "range");
+    setStartDate("");
+    setEndDate("2026-04-03");
+    setSymbolFilter("");
+    setIsAllChecked(false);
+    setSumValueSymbols([]);
+    setMinValue("");
+    setSortCol("date");
+    setSortDir(-1);
     setPage(1);
-    hasChangedDate.current = true;
   }
 
   const S = {
@@ -491,36 +514,54 @@ export default function Form59Dashboard() {
     divider: { width: 1, height: 24, background: "#1e2d45", flexShrink: 0 },
     fieldGroup: { display: "flex", flexDirection: "column", gap: 4 },
     label: { fontSize: 10, color: "#5a7090", letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600 },
-    select: { background: "#111d30", border: "1px solid #1e2d45", borderRadius: 6, padding: "0 8px", height: 32, color: "#c9d4e8", fontSize: 12, outline: "none", cursor: "pointer", minWidth: 140, fontFamily: "inherit" },
-    resetBtn: { background: "transparent", border: "1px solid #1e2d45", borderRadius: 6, height: 32, padding: "0 14px", color: "#7a90b0", fontSize: 18, cursor: "pointer", lineHeight: 1, flexShrink: 0 },
+    select: {
+      background: "#111d30", border: "1px solid #1e2d45",
+      borderRadius: 6, padding: "0 8px", height: 32,
+      color: "#c9d4e8", fontSize: 12, outline: "none",
+      cursor: "pointer", minWidth: 140, fontFamily: "inherit"
+    },
+    resetBtn: {
+      background: "transparent", border: "1px solid #1e2d45",
+      borderRadius: 6, height: 32, padding: "0 14px",
+      color: "#7a90b0", fontSize: 18, cursor: "pointer",
+      lineHeight: 1, flexShrink: 0
+    },
+    checkBtn: {
+      height: 32, padding: "0 16px",
+      background: "#2563eb", border: "none",
+      borderRadius: 6, color: "#fff",
+      fontSize: 12, fontWeight: 600,
+      cursor: "pointer", fontFamily: "inherit",
+      flexShrink: 0, transition: "background .15s",
+    },
     tableWrap: {
-      flex: 1,
-      minHeight: 0,
-      overflowX: "auto",
-      overflowY: "auto",
+      flex: 1, minHeight: 0,
+      overflowX: "auto", overflowY: "auto",
       background: "#0b1120"
     },
     table: { width: "100%", borderCollapse: "collapse", fontSize: 12 },
-    // เพิ่ม borderRight เพื่อสร้างเส้นแบ่งคอลัมน์
     th: (align = "left") => ({
       padding: "10px 14px", textAlign: align, color: "#5a7090", fontWeight: 600,
-      fontSize: 11, borderBottom: "1px solid #1e2d45", borderRight: "1px solid #1e2d45", background: "#0d1526",
-      whiteSpace: "nowrap", cursor: "pointer", userSelect: "none",
-      verticalAlign: "middle",
-      position: "sticky", top: 0, zIndex: 10
+      fontSize: 11, borderBottom: "1px solid #1e2d45", borderRight: "1px solid #1e2d45",
+      background: "#0d1526", whiteSpace: "nowrap", cursor: "pointer", userSelect: "none",
+      verticalAlign: "middle", position: "sticky", top: 0, zIndex: 10
     }),
-    // เพิ่ม borderRight เพื่อสร้างเส้นแบ่งคอลัมน์
-    td: (align = "left") => ({ 
-      padding: "9px 14px", borderBottom: "1px solid #1e2d45", borderRight: "1px solid #1e2d45", 
-      whiteSpace: "nowrap", color: "#c9d4e8", textAlign: align 
+    td: (align = "left") => ({
+      padding: "9px 14px", borderBottom: "1px solid #1e2d45", borderRight: "1px solid #1e2d45",
+      whiteSpace: "nowrap", color: "#c9d4e8", textAlign: align
     }),
     pagination: {
       display: "flex", alignItems: "center", justifyContent: "space-between",
       padding: "10px 16px", background: "#0d1526", borderTop: "1px solid #1e2d45",
-      fontSize: 11, color: "#5a7090", flexWrap: "wrap", gap: 8,
-      flexShrink: 0
+      fontSize: 11, color: "#5a7090", flexWrap: "wrap", gap: 8, flexShrink: 0
     },
-    pageBtn: (active, disabled) => ({ background: active ? "rgba(37,99,235,0.15)" : "transparent", border: `1px solid ${active ? "#2563eb" : "#1e2d45"}`, borderRadius: 5, padding: "3px 9px", color: disabled ? "#253040" : active ? "#60a5fa" : "#7a90b0", fontSize: 11, cursor: disabled ? "default" : "pointer", fontFamily: "inherit" }),
+    pageBtn: (active, disabled) => ({
+      background: active ? "rgba(37,99,235,0.15)" : "transparent",
+      border: `1px solid ${active ? "#2563eb" : "#1e2d45"}`,
+      borderRadius: 5, padding: "3px 9px",
+      color: disabled ? "#253040" : active ? "#60a5fa" : "#7a90b0",
+      fontSize: 11, cursor: disabled ? "default" : "pointer", fontFamily: "inherit"
+    }),
   };
 
   const pageStart = Math.max(1, Math.min(totalPages - 4, safePage - 2));
@@ -531,104 +572,94 @@ export default function Form59Dashboard() {
       {/* ── TOP BAR ── */}
       <div style={S.topBar}>
         <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
-          Stockdatatable 
+          Stockdatatable - Sum Value จะแสดงเฉพาะ symbol ที่มีมูลค่าซื้อ+ขายสูงสุดของแต่ละวันในช่วงที่เลือก (ถ้าเลือกทั้ง start+end จะดูแค่วันที่ end) และสามารถเลือกดูเฉพาะ symbol นั้นๆ หรือทั้งหมดได้ด้วย checkbox
         </ToolHint>
 
         <button style={S.resetBtn} onClick={reset} title="Reset filters">↺</button>
         <div style={S.divider} />
 
-        {/* ── Date Mode Toggle ── */}
+        {/* Start Date */}
         <div style={S.fieldGroup}>
-          <span style={S.label}>Mode</span>
-          <button
-            onClick={toggleDateMode}
-            title={dateMode === "range" ? "Switch to single day" : "Switch to date range"}
-            style={{
-              background: "transparent",
-              border: `1px solid ${dateMode === "single" ? "#2563eb" : "#1e2d45"}`,
-              borderRadius: 6,
-              height: 32,
-              padding: "0 12px",
-              color: dateMode === "single" ? "#60a5fa" : "#7a90b0",
-              fontSize: 11,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              transition: "border-color .15s, color .15s",
-            }}
-          >
-            <span style={{ fontSize: 13 }}>{dateMode === "single" ? "◈" : "⇔"}</span>
-            {dateMode === "single" ? "Day" : "Range"}
-          </button>
+          <span style={S.label}>Start Date</span>
+          <DatePicker
+            value={startDate}
+            onChange={v => { setStartDate(v); setPage(1); }}
+            maxDate={endDate || STATS.date_max}
+          />
+        </div>
+
+        {/* End Date */}
+        <div style={S.fieldGroup}>
+          <span style={S.label}>End Date</span>
+          <DatePicker
+            value={endDate}
+            onChange={v => { setEndDate(v); setPage(1); }}
+            minDate={startDate || STATS.date_min}
+            maxDate={STATS.date_max}
+          />
         </div>
 
         <div style={S.divider} />
 
-        {/* ── Date Inputs ── */}
-        {dateMode === "range" ? (
-          <>
-            <div style={S.fieldGroup}>
-              <span style={S.label}>Start Date</span>
-              <DatePicker 
-                value={startDate} 
-                onChange={v => { setStartDate(v); setPage(1); hasChangedDate.current = true; }} 
-                maxDate={endDate || STATS.date_max} 
-              />
-            </div>
-            <div style={S.fieldGroup}>
-              <span style={S.label}>End Date</span>
-              <DatePicker 
-                value={endDate} 
-                onChange={v => { setEndDate(v); setPage(1); hasChangedDate.current = true; }} 
-                minDate={startDate || STATS.date_min} 
-                maxDate={STATS.date_max} 
-              />
-            </div>
-          </>
-        ) : (
-          <div style={S.fieldGroup}>
-            <span style={S.label}>Date</span>
-            <DatePicker
-              value={singleDate}
-              onChange={v => { if (v) { setSingleDate(v); setPage(1); hasChangedDate.current = true; } }}
-              minDate={STATS.date_min}
-              maxDate={STATS.date_max}
-            />
-          </div>
-        )}
-
+        {/* Sum Value */}
         <div style={S.fieldGroup}>
           <span style={S.label}>Sum Value</span>
           <SymbolSelect
-            symbols={allSymbols}
-            value={symbolFilter}
-            onChange={(v) => { setSymbolFilter(v); setPage(1); }}
+            symbols={sumValueSymbols}
+            value={isAllChecked ? "" : symbolFilter}
+            onChange={(v) => {
+              setSymbolFilter(v);
+              setIsAllChecked(false);
+              setPage(1);
+            }}
+            onCheckboxClick={() => {
+              // กดติ๊ก checkbox → toggle All
+              if (!isAllChecked) {
+                setIsAllChecked(true);
+                setSymbolFilter("");
+              } else {
+                setIsAllChecked(false);
+              }
+              setPage(1);
+            }}
+            isAllChecked={isAllChecked}
+            hasData={sumValueSymbols.length > 0}
           />
         </div>
 
+        <div style={S.divider} />
+
+        {/* Min Value + Check button */}
         <div style={S.fieldGroup}>
           <span style={S.label}>&nbsp;</span>
-          <select 
-            style={S.select} 
-            value={minValue} 
-            onChange={(e) => { setMinValue(e.target.value); setPage(1); hasChangedMinVal.current = true; }}
-          >
-            <option value="">Min Value</option>
-            <option value="100">100 THB</option>
-            <option value="1000">1,000 THB</option>
-            <option value="10000">10,000 THB</option>
-            <option value="100000">100,000 THB</option>
-            <option value="500000">500,000 THB</option>
-            <option value="1000000">1,000,000 THB</option>
-            <option value="5000000">5,000,000 THB</option>
-            <option value="10000000">10,000,000 THB</option>
-            <option value="50000000">50,000,000 THB</option>
-            <option value="100000000">100,000,000 THB</option>
-          </select>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <select
+              style={S.select}
+              value={minValue}
+              onChange={e => { setMinValue(e.target.value); setPage(1); }}
+            >
+              <option value="">Min Value</option>
+              <option value="100">100 THB</option>
+              <option value="1000">1,000 THB</option>
+              <option value="10000">10,000 THB</option>
+              <option value="100000">100,000 THB</option>
+              <option value="500000">500,000 THB</option>
+              <option value="1000000">1,000,000 THB</option>
+              <option value="5000000">5,000,000 THB</option>
+              <option value="10000000">10,000,000 THB</option>
+              <option value="50000000">50,000,000 THB</option>
+              <option value="100000000">100,000,000 THB</option>
+            </select>
+
+            <button
+              style={S.checkBtn}
+              onClick={handleCheck}
+              onMouseEnter={e => e.currentTarget.style.background = "#1d4ed8"}
+              onMouseLeave={e => e.currentTarget.style.background = "#2563eb"}
+            >
+              Check
+            </button>
+          </div>
         </div>
       </div>
 
@@ -646,7 +677,6 @@ export default function Form59Dashboard() {
               <th rowSpan={2} style={{ ...S.th("center"), verticalAlign: "middle" }} onClick={() => handleSort("name")}>
                 Name <SortArrow col="name" sortCol={sortCol} sortDir={sortDir} />
               </th>
-              {/* ลบ border ซ้ำซ้อนออกเพราะถูกจัดการโดย S.th แล้ว */}
               <th colSpan={2} style={{ ...S.th("center"), borderBottom: "none", verticalAlign: "middle" }}>
                 Value
               </th>
@@ -658,7 +688,6 @@ export default function Form59Dashboard() {
               </th>
             </tr>
             <tr>
-              {/* ลบ border ซ้ำซ้อนออก */}
               <th style={{ ...S.th("center"), borderTop: "1px solid #1e2d45" }} onClick={() => handleSort("buy")}>
                 Buy <SortArrow col="buy" sortCol={sortCol} sortDir={sortDir} />
               </th>
@@ -669,27 +698,30 @@ export default function Form59Dashboard() {
           </thead>
           <tbody>
             {pageData.length === 0 ? (
-              <tr><td colSpan={7} style={{ padding: "60px", textAlign: "center", color: "#3a506a", fontSize: 14 }}>ไม่พบข้อมูล</td></tr>
+              <tr>
+                <td colSpan={7} style={{ padding: "60px", textAlign: "center", color: "#3a506a", fontSize: 14 }}>
+                  ไม่พบข้อมูล
+                </td>
+              </tr>
             ) : pageData.map((r, i) => {
               const isSelected = r.symbol === symbolFilter;
-              
               return (
-              <tr
-                key={i}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(30,100,200,0.06)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = isSelected ? "rgba(37,99,235,0.06)" : "transparent")}
-                style={{ background: isSelected ? "rgba(37,99,235,0.06)" : "transparent" }}
-              >
-                <td style={{ ...S.td("center"), color: "#5a7090", fontFamily: "monospace" }}>{r.date}</td>
-                <td style={{ ...S.td("center"), color: "#60a5fa", fontWeight: 700, letterSpacing: "0.05em", fontFamily: "monospace" }}>{r.symbol}</td>
-                <td style={{ ...S.td("center"), maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</td>
-                {/* ลบเส้นขอบ inline ออก ให้ใช้ของ S.td แทน */}
-                <td style={{ ...S.td("center"), color: "#22c55e", fontWeight: 600, fontFamily: "monospace" }}>{r.buy ? fmtVal(r.buy) : "–"}</td>
-                <td style={{ ...S.td("center"), color: "#ef4444", fontWeight: 600, fontFamily: "monospace" }}>{r.sell ? fmtVal(r.sell) : "–"}</td>
-                <td style={{ ...S.td("center"), fontFamily: "monospace" }}>{r.closePrice > 0 ? r.closePrice.toFixed(2) : "–"}</td>
-                <td style={{ ...S.td("center"), fontFamily: "monospace" }}>{r.price > 0 ? r.price.toFixed(2) : "–"}</td>
-              </tr>
-            )})}
+                <tr
+                  key={i}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(30,100,200,0.06)"}
+                  onMouseLeave={e => e.currentTarget.style.background = isSelected ? "rgba(37,99,235,0.06)" : "transparent"}
+                  style={{ background: isSelected ? "rgba(37,99,235,0.06)" : "transparent" }}
+                >
+                  <td style={{ ...S.td("center"), color: "#5a7090", fontFamily: "monospace" }}>{r.date}</td>
+                  <td style={{ ...S.td("center"), color: "#60a5fa", fontWeight: 700, letterSpacing: "0.05em", fontFamily: "monospace" }}>{r.symbol}</td>
+                  <td style={{ ...S.td("center"), maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</td>
+                  <td style={{ ...S.td("center"), color: "#22c55e", fontWeight: 600, fontFamily: "monospace" }}>{r.buy ? fmtVal(r.buy) : "–"}</td>
+                  <td style={{ ...S.td("center"), color: "#ef4444", fontWeight: 600, fontFamily: "monospace" }}>{r.sell ? fmtVal(r.sell) : "–"}</td>
+                  <td style={{ ...S.td("center"), fontFamily: "monospace" }}>{r.closePrice > 0 ? r.closePrice.toFixed(2) : "–"}</td>
+                  <td style={{ ...S.td("center"), fontFamily: "monospace" }}>{r.price > 0 ? r.price.toFixed(2) : "–"}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -697,11 +729,15 @@ export default function Form59Dashboard() {
       {/* ── PAGINATION ── */}
       {totalPages > 1 && (
         <div style={S.pagination}>
-          <span>แสดง {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, filtered.length)} จาก {filtered.length.toLocaleString()} รายการ</span>
+          <span>
+            แสดง {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, filtered.length)} จาก {filtered.length.toLocaleString()} รายการ
+          </span>
           <div style={{ display: "flex", gap: 4 }}>
-            <button style={S.pageBtn(false, safePage === 1)} disabled={safePage === 1} onClick={() => setPage((p) => p - 1)}>←</button>
-            {pageNums.map((p) => (<button key={p} style={S.pageBtn(p === safePage, false)} onClick={() => setPage(p)}>{p}</button>))}
-            <button style={S.pageBtn(false, safePage === totalPages)} disabled={safePage === totalPages} onClick={() => setPage((p) => p + 1)}>→</button>
+            <button style={S.pageBtn(false, safePage === 1)} disabled={safePage === 1} onClick={() => setPage(p => p - 1)}>←</button>
+            {pageNums.map(p => (
+              <button key={p} style={S.pageBtn(p === safePage, false)} onClick={() => setPage(p)}>{p}</button>
+            ))}
+            <button style={S.pageBtn(false, safePage === totalPages)} disabled={safePage === totalPages} onClick={() => setPage(p => p + 1)}>→</button>
           </div>
         </div>
       )}
