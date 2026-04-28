@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createChart, CrosshairMode, LineStyle, LineSeries } from "lightweight-charts";
+import ToolHint from "@/components/ToolHint.jsx";
 
 /* ================= COLORS ================= */
 const SYMBOL_COLORS = [
@@ -294,43 +295,21 @@ export default function S50OutstandingShort() {
   return (
     <div className="flex flex-col text-white font-sans" style={{ height: "100vh", background: "#0d1117" }}>
 
-      {/* ── HINT MODAL ── */}
-      {showHint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowHint(false)}>
-          <div className="bg-[#1a2035] border border-white/10 rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-semibold text-[15px]">S50 Outstanding Short</h3>
-              <button onClick={() => setShowHint(false)} className="text-gray-500 hover:text-white transition-colors">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
-            <div className="space-y-2.5 text-[13px] text-gray-400 leading-relaxed">
-              <p>แสดงข้อมูล <span className="text-white font-medium">Outstanding Short Position</span> ของหุ้นใน SET50</p>
-              <p>• กราฟเริ่มต้นแสดงเป็น <span className="text-white">Snapshot ล่าสุด</span> ทุก Symbol</p>
-              <p>• กดเลือก Symbol ในตารางขวาเพื่อดู Outshort + Price เฉพาะตัว</p>
-              <p>• กด Show All หรือกด Symbol เดิมอีกครั้งเพื่อกลับมาดูทั้งหมด</p>
-              <p>• ปรับช่วงเวลาด้วยปุ่ม 1M / 3M / 6M / 1Y / YTD / MAX</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── TOP BAR ── */}
-      <div className="flex items-center gap-3 px-5 py-3 border-b border-white/5 shrink-0">
-        <button onClick={() => setShowHint(true)}
-          className="w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold text-gray-400 hover:text-white transition-all shrink-0"
-          style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-          ?
-        </button>
+      <div className="flex items-center gap-3 px-5 pt-6 pb-3 border-b border-white/5 shrink-0">
+        
+        {/* นำ ToolHint มาใส่แทนปุ่ม ? เดิม */}
+        <ToolHint onViewDetails={() => { window.scrollTo({ top: 0 }); }}>
+          S50 Outstanding Short
+        </ToolHint>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-4">
           <div className="relative">
             <label className="absolute -top-[9px] left-3 text-[10px] text-gray-500 bg-[#0d1117] px-1 leading-none pointer-events-none">Start Date</label>
             <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-1.5 bg-white/5 text-[13px] text-gray-300">
               <CalendarIcon />
               <input type="date" value={startDate}
+                max={new Date().toISOString().slice(0, 10)}
                 onChange={e => { setStartDate(e.target.value); setRange(""); }}
                 className="bg-transparent outline-none text-[13px] text-gray-300 cursor-pointer"
                 style={{ colorScheme: "dark" }}/>
@@ -341,7 +320,8 @@ export default function S50OutstandingShort() {
             <label className="absolute -top-[9px] left-3 text-[10px] text-gray-500 bg-[#0d1117] px-1 leading-none pointer-events-none">End Date</label>
             <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-1.5 bg-white/5 text-[13px] text-gray-300">
               <CalendarIcon />
-              <input type="date" value={endDate}
+              <input type="date" value={endDate} 
+                max={new Date().toISOString().slice(0, 10)}
                 onChange={e => { setEndDate(e.target.value); setRange(""); }}
                 className="bg-transparent outline-none text-[13px] text-gray-300 cursor-pointer"
                 style={{ colorScheme: "dark" }}/>
@@ -350,7 +330,6 @@ export default function S50OutstandingShort() {
         </div>
 
         <div className="ml-auto">
-          {/* ✅ ลบปุ่ม Reset ตัวอักษรออก เหลือแต่ Show All */}
           <button onClick={() => { setSelectedSymbol(null); setIsShowAll(true); }}
             className="h-8 px-4 text-[12px] font-semibold tracking-wider uppercase rounded-lg transition-all"
             style={{
