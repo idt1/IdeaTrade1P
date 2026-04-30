@@ -10,7 +10,7 @@ const SYMBOL_COLORS = [
 ];
 
 const MOCK_TABLE = [
-{ symbol: "KCE",    outshort: 3.90 }, { symbol: "HANA",   outshort: 2.88 },
+  { symbol: "KCE",    outshort: 3.90 }, { symbol: "HANA",   outshort: 2.88 },
   { symbol: "BH",     outshort: 2.38 }, { symbol: "MTC",    outshort: 2.15 },
   { symbol: "MINIT",  outshort: 2.14 }, { symbol: "BTS",    outshort: 1.99 },
   { symbol: "BANPU",  outshort: 1.95 }, { symbol: "AMATA",  outshort: 1.91 },
