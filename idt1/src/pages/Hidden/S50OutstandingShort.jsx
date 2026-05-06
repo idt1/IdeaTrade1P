@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { createChart, CrosshairMode, LineStyle, LineSeries } from "lightweight-charts";
 import ToolHint from "@/components/ToolHint.jsx";
 
@@ -49,6 +49,346 @@ const BAR_COLORS = [
   "#fb923c","#4ade80","#38bdf8","#c084fc","#fbbf24",
 ];
 
+/* ================= DATE PICKER (ported from HisRealFlow) ================= */
+const MONTH_NAMES_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTH_NAMES_FULL  = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAY_NAMES         = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function isoToPickerKey(iso) {
+  if (!iso) return null;
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${String(y).slice(2)}`;
+}
+function pickerKeyToIso(key) {
+  if (!key) return "";
+  const [dd, mm, yy] = key.split("/");
+  return `20${yy}-${mm}-${dd}`;
+}
+function parsePickerKey(key) {
+  const [dd, mm, yy] = key.split("/");
+  return { day: +dd, month: +mm, year: 2000 + +yy };
+}
+function toPickerKey(year, month, day) {
+  return `${String(day).padStart(2,"0")}/${String(month).padStart(2,"0")}/${String(year).slice(2)}`;
+}
+function formatPickerDisplay(key) {
+  if (!key) return "";
+  const { day, month, year } = parsePickerKey(key);
+  return `${String(day).padStart(2,"0")} ${MONTH_NAMES_SHORT[month-1]} ${year}`;
+}
+
+/* Generate all calendar days between two ISO date strings (weekdays only) */
+function getTradingDatesBetween(startIso, endIso) {
+  const keys = [];
+  const start = new Date(startIso);
+  const end   = new Date(endIso);
+  const cur   = new Date(start);
+  while (cur <= end) {
+    const dow = cur.getDay();
+    if (dow !== 0 && dow !== 6) {
+      const dd = String(cur.getDate()).padStart(2,"0");
+      const mm = String(cur.getMonth()+1).padStart(2,"0");
+      const yy = String(cur.getFullYear()).slice(2);
+      keys.push(`${dd}/${mm}/${yy}`);
+    }
+    cur.setDate(cur.getDate()+1);
+  }
+  return keys;
+}
+
+const DatePicker = memo(({ label, value, onChange, minIso, maxIso }) => {
+  const [open, setOpen]         = useState(false);
+  const [view, setView]         = useState("day");
+  const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
+  const ref = useRef(null);
+
+  const selectedKey = isoToPickerKey(value);
+  const allKeys     = useMemo(() => getTradingDatesBetween(minIso || "2019-01-02", maxIso || new Date().toISOString().slice(0,10)), [minIso, maxIso]);
+  const tradableSet = useMemo(() => new Set(allKeys), [allKeys]);
+
+  const availableYears = useMemo(() => {
+    const ys = new Set(allKeys.map(k => 2000 + +k.split("/")[2]));
+    return [...ys].sort((a,b)=>a-b);
+  }, [allKeys]);
+
+  const initView = useMemo(() => {
+    if (selectedKey) { const p = parsePickerKey(selectedKey); return { month: p.month, year: p.year }; }
+    const today = new Date(); return { month: today.getMonth()+1, year: today.getFullYear() };
+  }, []); // eslint-disable-line
+
+  const [viewMonth, setViewMonth] = useState(initView.month);
+  const [viewYear,  setViewYear]  = useState(initView.year);
+
+  const availableMonths = useMemo(() =>
+    new Set(allKeys.filter(k => 2000 + +k.split("/")[2] === viewYear).map(k => +k.split("/")[1])),
+  [allKeys, viewYear]);
+
+  const decadeStart = Math.floor(viewYear/10)*10;
+  const decadeYears = useMemo(() => Array.from({length:12},(_,i)=>decadeStart-1+i),[decadeStart]);
+
+  const calDays = useMemo(() => {
+    const firstDow = new Date(viewYear, viewMonth-1, 1).getDay();
+    const total    = new Date(viewYear, viewMonth, 0).getDate();
+    const cells = [];
+    for (let i=0; i<firstDow; i++) cells.push(null);
+    for (let d=1; d<=total; d++) cells.push(d);
+    while (cells.length%7 !== 0) cells.push(null);
+    return cells;
+  }, [viewMonth, viewYear]);
+
+  const canPrev = useCallback(() => {
+    if (!allKeys[0]) return false;
+    const p = parsePickerKey(allKeys[0]);
+    return viewYear > p.year || (viewYear===p.year && viewMonth > p.month);
+  }, [allKeys, viewYear, viewMonth]);
+
+  const canNext = useCallback(() => {
+    if (!allKeys[allKeys.length-1]) return false;
+    const p = parsePickerKey(allKeys[allKeys.length-1]);
+    return viewYear < p.year || (viewYear===p.year && viewMonth < p.month);
+  }, [allKeys, viewYear, viewMonth]);
+
+  const prevMonth = useCallback(() => {
+    if (viewMonth===1) { setViewMonth(12); setViewYear(y=>y-1); }
+    else setViewMonth(m=>m-1);
+  }, [viewMonth]);
+
+  const nextMonth = useCallback(() => {
+    if (viewMonth===12) { setViewMonth(1); setViewYear(y=>y+1); }
+    else setViewMonth(m=>m+1);
+  }, [viewMonth]);
+
+  useEffect(() => {
+    if (!open) return;
+    const fn = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", fn);
+    return () => document.removeEventListener("mousedown", fn);
+  }, [open]);
+
+  const Chev = ({ d }) => (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      {d==="left"  && <polyline points="15 18 9 12 15 6"/>}
+      {d==="right" && <polyline points="9 18 15 12 9 6"/>}
+      {d==="down"  && <polyline points="6 9 12 15 18 9"/>}
+    </svg>
+  );
+
+  const popup = {
+    position:"fixed", top:popupPos.top, left:popupPos.left, zIndex:9999,
+    width:252, background:"#0f172a",
+    border:"0.5px solid rgba(255,255,255,0.1)", borderRadius:12,
+    boxShadow:"0 16px 40px rgba(0,0,0,0.6)", fontFamily:"monospace",
+    overflow:"hidden", maxHeight:`calc(100vh - ${popupPos.top}px - 8px)`, overflowY:"auto",
+  };
+  const dpHeader = {
+    display:"flex", alignItems:"center", justifyContent:"space-between",
+    padding:"10px 14px 8px", borderBottom:"0.5px solid rgba(255,255,255,0.07)",
+  };
+  const navBtn = (active) => ({
+    width:22, height:22, borderRadius:5, border:"none", background:"transparent",
+    color: active ? "#94a3b8" : "#1e293b", cursor: active ? "pointer" : "default",
+    display:"flex", alignItems:"center", justifyContent:"center", transition:"background .1s",
+  });
+  const titleBtn = {
+    background:"transparent", border:"none", cursor:"pointer",
+    color:"#e2e8f0", fontSize:13, fontWeight:500, fontFamily:"monospace",
+    letterSpacing:"0.03em", display:"flex", alignItems:"center", gap:3,
+    padding:"2px 4px", borderRadius:5,
+  };
+  const body = { padding:"8px 12px 10px" };
+
+  return (
+    <div ref={ref} style={{flexShrink:0}} className="relative">
+      {/* ── Label ── */}
+      <div style={{fontSize:10, color:"#6b7280", marginBottom:1, paddingLeft:2, letterSpacing:"0.03em"}}>{label}</div>
+
+      {/* ── Trigger button ── */}
+      <button
+        onClick={() => {
+          if (!open && selectedKey) { const p=parsePickerKey(selectedKey); setViewMonth(p.month); setViewYear(p.year); }
+          if (!open && ref.current) {
+            const rect=ref.current.getBoundingClientRect();
+            const POPUP_W=252;
+            const clampedLeft=Math.min(rect.left, window.innerWidth-POPUP_W-8);
+            const clampedTop=Math.min(rect.bottom+8, window.innerHeight-8);
+            setPopupPos({ top:clampedTop, left:Math.max(8,clampedLeft) });
+          }
+          setOpen(o=>!o); setView("day");
+        }}
+        style={{
+          display:"flex", alignItems:"center", gap:7, padding:"0 12px", height:34,
+          background: open ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.05)",
+          border:`0.5px solid ${open ? "rgba(59,130,246,0.5)" : "rgba(255,255,255,0.1)"}`,
+          borderRadius:8, cursor:"pointer", color: open ? "#93c5fd" : "#d1d5db",
+          fontSize:12, fontWeight:500, fontFamily:"monospace", transition:"all .15s",
+          whiteSpace:"nowrap",
+        }}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={open?"#60a5fa":"#9ca3af"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        {selectedKey ? formatPickerDisplay(selectedKey) : "Select date"}
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke={open?"#60a5fa":"#9ca3af"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          style={{opacity:.6, transform:open?"rotate(180deg)":"none", transition:"transform .2s"}}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+
+      {/* ── Popup ── */}
+      {open && (
+        <div style={popup}>
+
+          {/* ── YEAR VIEW ── */}
+          {view==="year" && (<>
+            <div style={dpHeader}>
+              <button style={navBtn(decadeStart>(availableYears[0]??2025))} onClick={()=>setViewYear(decadeStart-1)}
+                onMouseEnter={e=>{if(decadeStart>(availableYears[0]??2025))e.currentTarget.style.background="rgba(255,255,255,0.06)";}}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <Chev d="left"/>
+              </button>
+              <span style={{color:"#e2e8f0",fontSize:12,fontWeight:500,fontFamily:"monospace"}}>
+                {decadeStart} – {decadeStart+9}
+              </span>
+              <button style={navBtn(decadeStart+9<(availableYears[availableYears.length-1]??2025))} onClick={()=>setViewYear(decadeStart+10)}
+                onMouseEnter={e=>{if(decadeStart+9<(availableYears[availableYears.length-1]??2025))e.currentTarget.style.background="rgba(255,255,255,0.06)";}}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <Chev d="right"/>
+              </button>
+            </div>
+            <div style={{...body,display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:3}}>
+              {decadeYears.map(yr=>{
+                const avail=availableYears.includes(yr);
+                const isCur=yr===viewYear;
+                const isOut=yr<decadeStart||yr>decadeStart+9;
+                return (
+                  <button key={yr} onClick={()=>{if(avail){setViewYear(yr);setView("month");}}}
+                    style={{
+                      height:30,borderRadius:6,border:"none",cursor:avail?"pointer":"default",
+                      fontFamily:"monospace",fontSize:12,fontWeight:isCur?600:400,
+                      background:isCur?"#3b82f6":"transparent",
+                      color:isCur?"#fff":avail?(isOut?"#475569":"#cbd5e1"):"#1e3a5f",
+                      transition:"all .1s",
+                    }}
+                    onMouseEnter={e=>{if(avail&&!isCur)e.currentTarget.style.background="rgba(255,255,255,0.06)";}}
+                    onMouseLeave={e=>{if(avail&&!isCur)e.currentTarget.style.background="transparent";}}
+                  >{yr}</button>
+                );
+              })}
+            </div>
+          </>)}
+
+          {/* ── MONTH VIEW ── */}
+          {view==="month" && (<>
+            <div style={dpHeader}>
+              <button style={navBtn(availableYears.includes(viewYear-1))} onClick={()=>setViewYear(y=>y-1)}
+                onMouseEnter={e=>{if(availableYears.includes(viewYear-1))e.currentTarget.style.background="rgba(255,255,255,0.06)";}}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <Chev d="left"/>
+              </button>
+              <button style={titleBtn} onClick={()=>setView("year")}
+                onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                {viewYear} <Chev d="down"/>
+              </button>
+              <button style={navBtn(availableYears.includes(viewYear+1))} onClick={()=>setViewYear(y=>y+1)}
+                onMouseEnter={e=>{if(availableYears.includes(viewYear+1))e.currentTarget.style.background="rgba(255,255,255,0.06)";}}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <Chev d="right"/>
+              </button>
+            </div>
+            <div style={{...body,display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:3}}>
+              {MONTH_NAMES_SHORT.map((m,idx)=>{
+                const mNum=idx+1;
+                const avail=availableMonths.has(mNum);
+                const isCur=mNum===viewMonth;
+                return (
+                  <button key={m} onClick={()=>{if(avail){setViewMonth(mNum);setView("day");}}}
+                    style={{
+                      height:32,borderRadius:6,border:"none",cursor:avail?"pointer":"default",
+                      fontFamily:"monospace",fontSize:12,fontWeight:isCur?600:400,
+                      background:isCur?"#3b82f6":"transparent",
+                      color:isCur?"#fff":avail?"#cbd5e1":"#1e3a5f",
+                      transition:"all .1s",
+                    }}
+                    onMouseEnter={e=>{if(avail&&!isCur)e.currentTarget.style.background="rgba(255,255,255,0.06)";}}
+                    onMouseLeave={e=>{if(avail&&!isCur)e.currentTarget.style.background="transparent";}}
+                  >{m}</button>
+                );
+              })}
+            </div>
+          </>)}
+
+          {/* ── DAY VIEW ── */}
+          {view==="day" && (<>
+            <div style={dpHeader}>
+              <button style={navBtn(canPrev())} onClick={prevMonth}
+                onMouseEnter={e=>{if(canPrev())e.currentTarget.style.background="rgba(255,255,255,0.06)";}}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <Chev d="left"/>
+              </button>
+              <button style={titleBtn} onClick={()=>setView("month")}
+                onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                {MONTH_NAMES_FULL[viewMonth-1]} {viewYear} <Chev d="down"/>
+              </button>
+              <button style={navBtn(canNext())} onClick={nextMonth}
+                onMouseEnter={e=>{if(canNext())e.currentTarget.style.background="rgba(255,255,255,0.06)";}}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                <Chev d="right"/>
+              </button>
+            </div>
+            <div style={body}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:4}}>
+                {DAY_NAMES.map(n=>(
+                  <div key={n} style={{
+                    textAlign:"center",fontSize:10,fontWeight:500,
+                    color:n==="Sun"||n==="Sat"?"#1e3a5f":"#475569",
+                    padding:"2px 0",letterSpacing:"0.06em",
+                  }}>{n}</div>
+                ))}
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
+                {calDays.map((day,i)=>{
+                  if (!day) return <div key={`e-${i}`}/>;
+                  const key      = toPickerKey(viewYear,viewMonth,day);
+                  const isTrade  = tradableSet.has(key);
+                  const isSel    = key===selectedKey;
+                  const isWeekend= new Date(viewYear,viewMonth-1,day).getDay()%6===0;
+                  return (
+                    <button key={key} onClick={()=>{if(isTrade){onChange(pickerKeyToIso(key));setOpen(false);}}}
+                      style={{
+                        height:28,borderRadius:6,border:"none",
+                        cursor:isTrade?"pointer":"default",fontFamily:"monospace",
+                        fontSize:11,fontWeight:isSel?600:400,
+                        background:isSel?"#3b82f6":"transparent",
+                        color:isSel?"#fff":isTrade?"#e2e8f0":isWeekend?"#1e3a5f":"#334155",
+                        transition:"all .1s",position:"relative",
+                      }}
+                      onMouseEnter={e=>{if(isTrade&&!isSel)e.currentTarget.style.background="rgba(255,255,255,0.07)";}}
+                      onMouseLeave={e=>{if(isTrade&&!isSel)e.currentTarget.style.background="transparent";}}
+                    >
+                      {day}
+                      {isTrade&&!isSel&&(
+                        <span style={{
+                          position:"absolute",bottom:2,left:"50%",transform:"translateX(-50%)",
+                          width:3,height:3,borderRadius:"50%",background:"#3b82f6",
+                        }}/>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>)}
+        </div>
+      )}
+    </div>
+  );
+});
+
+/* ================= DATA GENERATION ================= */
 const generateSeriesData = (days = 90, seed = 1, base = 20, amplitude = 4) => {
   const data = [];
   let val = base;
@@ -102,52 +442,38 @@ const RefreshIcon = ({ spinning }) => (
   </svg>
 );
 
-const CalendarIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-40">
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-    <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-  </svg>
-);
-
-const ChevronUpIcon = ({ open }) => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-    style={{ transform: open ? "rotate(0deg)" : "rotate(180deg)", transition: "transform 0.2s" }}>
-    <polyline points="18 15 12 9 6 15"/>
+const SortIcon = ({ asc }) => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {asc ? (
+      <><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></>
+    ) : (
+      <><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></>
+    )}
   </svg>
 );
 
 /* ================= STACKED LABEL CHART ================= */
 function StackedLabelChart() {
   const sorted = [...ALL_SYMBOLS].sort((a, b) => a.outshort - b.outshort);
-
   return (
     <div className="absolute top-0 bottom-0 right-0 left-0 md:left-auto flex items-stretch overflow-y-auto no-scrollbar md:overflow-visible">
-      <div style={{ display: "flex", flexDirection: "column", height: "100%", paddingBottom: 24, minWidth: "100%", alignItems: "flex-end" }}>
+      <div style={{ display:"flex", flexDirection:"column", height:"100%", paddingBottom:24, minWidth:"100%", alignItems:"flex-end" }}>
         {sorted.map((item, i) => {
           const color = BAR_COLORS[i % BAR_COLORS.length];
           return (
-            <div key={item.symbol} style={{ display: "flex", flex: 1, minHeight: "24px" }}>
+            <div key={item.symbol} style={{ display:"flex", flex:1, minHeight:"24px" }}>
               <div style={{
-                width: 64, height: "100%",
-                background: "#0d1117",
-                display: "flex", alignItems: "center",
-                justifyContent: "flex-end",
-                paddingRight: 6,
-                borderRight: `2px solid ${color}`,
+                width:64, height:"100%", background:"#0d1117",
+                display:"flex", alignItems:"center", justifyContent:"flex-end",
+                paddingRight:6, borderRight:`2px solid ${color}`,
               }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color, letterSpacing: "0.03em" }}>
-                  {item.symbol}
-                </span>
+                <span style={{ fontSize:10, fontWeight:700, color, letterSpacing:"0.03em" }}>{item.symbol}</span>
               </div>
               <div style={{
-                width: 44, height: "100%",
-                background: color,
-                display: "flex", alignItems: "center",
-                justifyContent: "center",
+                width:44, height:"100%", background:color,
+                display:"flex", alignItems:"center", justifyContent:"center",
               }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#000" }}>
-                  {item.outshort.toFixed(2)}
-                </span>
+                <span style={{ fontSize:10, fontWeight:700, color:"#000" }}>{item.outshort.toFixed(2)}</span>
               </div>
             </div>
           );
@@ -160,36 +486,36 @@ function StackedLabelChart() {
 /* ================= MAIN COMPONENT ================= */
 export default function S50OutstandingShort() {
   const chartContainerRef = useRef(null);
-  const chartRef = useRef(null);
+  const chartRef          = useRef(null);
   const outshortSeriesRef = useRef(null);
-  const priceSeriesRef = useRef(null);
+  const priceSeriesRef    = useRef(null);
+  const dropdownRef       = useRef(null);
+  const inputRef          = useRef(null);
 
-  const dropdownRef = useRef(null);
-  const inputRef = useRef(null);
+  const today    = new Date().toISOString().slice(0,10);
+  const minDate  = "2019-01-02";
 
-  const [range, setRange] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSymbol, setSelectedSymbol] = useState(null);
-  
-  const [isShowAll, setIsShowAll] = useState(false);
-
-  const [spinning, setSpinning] = useState(false);
-  const [tableOpen, setTableOpen] = useState(true);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [allSeriesData, setAllSeriesData] = useState({});
-  const [allPriceData, setAllPriceData] = useState({});
+  const [range,           setRange]           = useState("");
+  const [startDate,       setStartDate]       = useState("");
+  const [endDate,         setEndDate]         = useState(today);
+  const [searchQuery,     setSearchQuery]     = useState("");
+  const [selectedSymbol,  setSelectedSymbol]  = useState(null);
+  const [isShowAll,       setIsShowAll]       = useState(false);
+  const [spinning,        setSpinning]        = useState(false);
+  const [sortAsc,         setSortAsc]         = useState(false);
+  const [isDropdownOpen,  setIsDropdownOpen]  = useState(false);
+  const [allSeriesData,   setAllSeriesData]   = useState({});
+  const [allPriceData,    setAllPriceData]    = useState({});
 
   const loadData = useCallback(() => {
     setSpinning(true);
     setTimeout(() => {
       const days = RANGE_DAYS[range] || 90;
       const outshort = {};
-      const price = {};
+      const price    = {};
       MOCK_TABLE.forEach((row, i) => {
-        outshort[row.symbol] = generateSeriesData(days, i + 1, row.outshort * 7, row.outshort * 1.5);
-        price[row.symbol] = generatePriceData(days, i + 1);
+        outshort[row.symbol] = generateSeriesData(days, i+1, row.outshort*7, row.outshort*1.5);
+        price[row.symbol]    = generatePriceData(days, i+1);
       });
       setAllSeriesData(outshort);
       setAllPriceData(price);
@@ -199,10 +525,9 @@ export default function S50OutstandingShort() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // Click Outside to close Dropdown
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setIsDropdownOpen(false);
         setSearchQuery(selectedSymbol || "");
       }
@@ -217,56 +542,48 @@ export default function S50OutstandingShort() {
       chartRef.current.remove();
       chartRef.current = null;
       outshortSeriesRef.current = null;
-      priceSeriesRef.current = null;
+      priceSeriesRef.current    = null;
     }
     if (!selectedSymbol) return;
 
     const chart = createChart(chartContainerRef.current, {
-      layout: { background: { color: "transparent" }, textColor: "#6b7280", fontFamily: "inherit", fontSize: 11 },
-      grid: { vertLines: { color: "rgba(255,255,255,0.04)" }, horzLines: { color: "rgba(255,255,255,0.04)" } },
+      layout: { background:{ color:"transparent" }, textColor:"#6b7280", fontFamily:"inherit", fontSize:11 },
+      grid: { vertLines:{ color:"rgba(255,255,255,0.04)" }, horzLines:{ color:"rgba(255,255,255,0.04)" } },
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: { color: "rgba(255,255,255,0.15)", style: LineStyle.Dashed, labelBackgroundColor: "#1e2330" },
-        horzLine: { color: "rgba(255,255,255,0.15)", style: LineStyle.Dashed, labelBackgroundColor: "#1e2330" },
+        vertLine:{ color:"rgba(255,255,255,0.15)", style:LineStyle.Dashed, labelBackgroundColor:"#1e2330" },
+        horzLine:{ color:"rgba(255,255,255,0.15)", style:LineStyle.Dashed, labelBackgroundColor:"#1e2330" },
       },
-      rightPriceScale: { borderColor: "rgba(255,255,255,0.06)", textColor: "#6b7280", scaleMargins: { top: 0.08, bottom: 0.08 } },
-      leftPriceScale: { visible: true, borderColor: "rgba(255,255,255,0.06)", textColor: "#6b7280", scaleMargins: { top: 0.08, bottom: 0.08 } },
-      timeScale: { borderColor: "rgba(255,255,255,0.06)", timeVisible: false, fixLeftEdge: true, fixRightEdge: true },
-      handleScroll: true, handleScale: true,
+      rightPriceScale:{ borderColor:"rgba(255,255,255,0.06)", textColor:"#6b7280", scaleMargins:{ top:0.08, bottom:0.08 } },
+      leftPriceScale:{ visible:true, borderColor:"rgba(255,255,255,0.06)", textColor:"#6b7280", scaleMargins:{ top:0.08, bottom:0.08 } },
+      timeScale:{ borderColor:"rgba(255,255,255,0.06)", timeVisible:false, fixLeftEdge:true, fixRightEdge:true },
+      handleScroll:true, handleScale:true,
     });
     chartRef.current = chart;
 
-    const symIdx = MOCK_TABLE.findIndex(r => r.symbol === selectedSymbol);
-    const symColor = "#f97316";
-
     outshortSeriesRef.current = chart.addSeries(LineSeries, {
-      color: symColor, lineWidth: 2, priceScaleId: "right",
-      crosshairMarkerVisible: true, crosshairMarkerRadius: 4,
-      crosshairMarkerBackgroundColor: symColor,
-      lastValueVisible: true, priceLineVisible: false,
+      color:"#f97316", lineWidth:2, priceScaleId:"right",
+      crosshairMarkerVisible:true, crosshairMarkerRadius:4,
+      crosshairMarkerBackgroundColor:"#f97316",
+      lastValueVisible:true, priceLineVisible:false,
     });
-
     priceSeriesRef.current = chart.addSeries(LineSeries, {
-      color: "#60a5fa", lineWidth: 2, priceScaleId: "left",
-      crosshairMarkerVisible: true, crosshairMarkerRadius: 4,
-      crosshairMarkerBackgroundColor: "#60a5fa",
-      lastValueVisible: true, priceLineVisible: false,
+      color:"#60a5fa", lineWidth:2, priceScaleId:"left",
+      crosshairMarkerVisible:true, crosshairMarkerRadius:4,
+      crosshairMarkerBackgroundColor:"#60a5fa",
+      lastValueVisible:true, priceLineVisible:false,
     });
 
     const ro = new ResizeObserver(() => {
-      if (chartContainerRef.current) {
-        chart.applyOptions({ 
-          width: chartContainerRef.current.clientWidth,
-          height: chartContainerRef.current.clientHeight 
-        });
-      }
+      if (chartContainerRef.current)
+        chart.applyOptions({ width:chartContainerRef.current.clientWidth, height:chartContainerRef.current.clientHeight });
     });
     ro.observe(chartContainerRef.current);
     return () => { ro.disconnect(); chart.remove(); chartRef.current = null; };
   }, [selectedSymbol]);
 
   useEffect(() => {
-    if (!chartRef.current || !selectedSymbol || Object.keys(allSeriesData).length === 0) return;
+    if (!chartRef.current || !selectedSymbol || Object.keys(allSeriesData).length===0) return;
     if (outshortSeriesRef.current && allSeriesData[selectedSymbol])
       outshortSeriesRef.current.setData(allSeriesData[selectedSymbol]);
     if (priceSeriesRef.current && allPriceData[selectedSymbol])
@@ -276,79 +593,74 @@ export default function S50OutstandingShort() {
 
   const applyRange = (r) => {
     setRange(r);
-    const d = new Date();
+    const d    = new Date();
     const days = RANGE_DAYS[r] || 90;
-    const s = new Date(d); s.setDate(d.getDate() - days);
-    setStartDate(s.toISOString().slice(0, 10));
-    setEndDate(d.toISOString().slice(0, 10));
+    const s    = new Date(d);
+    s.setDate(d.getDate() - days);
+    setStartDate(s.toISOString().slice(0,10));
+    setEndDate(d.toISOString().slice(0,10));
   };
 
   const handleReset = () => {
     setRange("");
     setStartDate("");
-    setEndDate(new Date().toISOString().slice(0, 10));
+    setEndDate(today);
     setSearchQuery("");
     setSelectedSymbol(null);
-    setIsShowAll(false); 
-    loadData(); 
+    setIsShowAll(false);
+    setSortAsc(false);
+    loadData();
   };
 
-  const filteredTable = MOCK_TABLE.filter(r =>
-    r.symbol.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTable = MOCK_TABLE
+    .filter(r => r.symbol.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a,b) => sortAsc ? a.outshort-b.outshort : b.outshort-a.outshort);
 
-  const selectedIdx = selectedSymbol ? MOCK_TABLE.findIndex(r => r.symbol === selectedSymbol) : -1;
+  const selectedIdx   = selectedSymbol ? MOCK_TABLE.findIndex(r => r.symbol===selectedSymbol) : -1;
   const selectedColor = selectedIdx >= 0 ? SYMBOL_COLORS[selectedIdx % SYMBOL_COLORS.length] : null;
 
   return (
-    <div className="flex flex-col text-white font-sans relative" style={{ height: "100dvh", background: "#0d1117" }}>
+    <div className="flex flex-col text-white font-sans relative" style={{ height:"100dvh", background:"#0d1117" }}>
 
       {/* ── TOP BAR ── */}
-      <div className="flex flex-col md:flex-row md:items-center gap-2 px-4 pt-3 pb-2 border-b border-white/5 shrink-0 z-20">
-        
-        <div className="flex flex-row items-center gap-2 w-full md:w-auto overflow-x-auto no-scrollbar pt-[10px] pb-1 md:pb-0">
-          
-          <div className="shrink-0 mt-0.5">
-            <ToolHint onViewDetails={() => { window.scrollTo({ top: 0 }); }}>
+      <div className="flex flex-col md:flex-row md:items-end gap-2 px-4 pt-1 pb-2 border-b border-white/5 shrink-0 z-20">
+
+        <div className="flex flex-row items-end gap-2 w-full md:w-auto overflow-x-auto no-scrollbar pt-0 pb-1 md:pb-0">
+
+          <div className="shrink-0 mb-1">
+            <ToolHint onViewDetails={() => { window.scrollTo({ top:0 }); }}>
               S50 Outstanding Short
             </ToolHint>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="relative shrink-0">
-              <label className="absolute -top-[9px] left-3 text-[10px] text-gray-500 bg-[#0d1117] px-1 leading-none pointer-events-none">Start Date</label>
-              <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-1.5 bg-white/5 text-[13px] text-gray-300">
-                <CalendarIcon />
-                <input type="date" value={startDate}
-                  max={new Date().toISOString().slice(0, 10)}
-                  onChange={e => { setStartDate(e.target.value); setRange(""); }}
-                  className="bg-transparent outline-none text-[13px] text-gray-300 cursor-pointer"
-                  style={{ colorScheme: "dark" }}/>
-              </div>
-            </div>
-            
-            <span className="text-gray-600 text-sm shrink-0">-</span>
-            
-            <div className="relative shrink-0">
-              <label className="absolute -top-[9px] left-3 text-[10px] text-gray-500 bg-[#0d1117] px-1 leading-none pointer-events-none">End Date</label>
-              <div className="flex items-center gap-2 border border-white/10 rounded-lg px-3 py-1.5 bg-white/5 text-[13px] text-gray-300">
-                <CalendarIcon />
-                <input type="date" value={endDate} 
-                  max={new Date().toISOString().slice(0, 10)}
-                  onChange={e => { setEndDate(e.target.value); setRange(""); }}
-                  className="bg-transparent outline-none text-[13px] text-gray-300 cursor-pointer"
-                  style={{ colorScheme: "dark" }}/>
-              </div>
-            </div>
-          </div>
+          {/* ── Start Date picker ── */}
+          <DatePicker
+            label="Start Date"
+            value={startDate || minDate}
+            onChange={(iso) => { setStartDate(iso); setRange(""); }}
+            minIso={minDate}
+            maxIso={endDate || today}
+          />
+
+          <span className="text-gray-600 text-sm shrink-0 mb-2">—</span>
+
+          {/* ── End Date picker ── */}
+          <DatePicker
+            label="End Date"
+            value={endDate}
+            onChange={(iso) => { setEndDate(iso); setRange(""); }}
+            minIso={startDate || minDate}
+            maxIso={today}
+          />
         </div>
 
         <div className="md:ml-auto w-full md:w-auto flex mt-1 md:mt-0 shrink-0">
-          <button onClick={() => { setSelectedSymbol(null); setIsShowAll(true); setSearchQuery(""); }}
+          <button
+            onClick={() => { setSelectedSymbol(null); setIsShowAll(true); setSearchQuery(""); }}
             className="w-full md:w-auto h-9 md:h-8 px-4 text-[12px] font-semibold tracking-wider uppercase rounded-lg transition-all"
             style={{
               background: (!selectedSymbol && isShowAll) ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.1)",
+              border:"1px solid rgba(255,255,255,0.1)",
               color: (!selectedSymbol && isShowAll) ? "#ffffff" : "#9ca3af",
             }}>
             Show All
@@ -367,7 +679,7 @@ export default function S50OutstandingShort() {
               {selectedSymbol && selectedColor && (
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "#f97316" }}/>
+                    <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background:"#f97316" }}/>
                     <span className="text-[12px] text-gray-400">Outshort</span>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -381,7 +693,7 @@ export default function S50OutstandingShort() {
               {RANGES.map(r => (
                 <button key={r} onClick={() => applyRange(r)}
                   className={`px-3 py-1 text-[12px] rounded-md transition-all font-medium shrink-0
-                    ${range === r ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300 hover:bg-white/5"}`}>
+                    ${range===r ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300 hover:bg-white/5"}`}>
                   {r}
                 </button>
               ))}
@@ -392,10 +704,10 @@ export default function S50OutstandingShort() {
           <div className="flex-1 min-h-0 px-2 pb-3 relative">
             <div ref={chartContainerRef} className="w-full h-full"
               style={{ visibility: selectedSymbol ? "visible" : "hidden" }}/>
-            
+
             {!selectedSymbol && isShowAll && (
               <div className="absolute inset-0 overflow-y-auto no-scrollbar pr-0">
-                <StackedLabelChart />
+                <StackedLabelChart/>
               </div>
             )}
 
@@ -410,75 +722,47 @@ export default function S50OutstandingShort() {
         </div>
 
         {/* ── TABLE PANEL ── */}
-        <div className="w-full md:w-[290px] md:h-full shrink-0 flex flex-col border-b md:border-b-0 md:border-l border-white/5" style={{ background: "#0b0e14" }}>
-          
+        <div className="w-full md:w-[290px] md:h-full shrink-0 flex flex-col border-b md:border-b-0 md:border-l border-white/5" style={{ background:"#0b0e14" }}>
+
           <div className="flex items-center gap-1.5 px-4 md:px-2.5 pt-3 md:pt-2.5 pb-3 md:pb-2 shrink-0">
-            
-            {/* ── Search + Dropdown UI (รวมกัน ใช้งานได้ทั้ง PC และ Mobile) ── */}
-            {/* 💡 เปลี่ยนเป็น flex-1 min-w-0 เพื่อให้กล่องหดตัวได้และไม่ดันปุ่ม */}
+
+            {/* ── Search + Dropdown ── */}
             <div className="flex-1 relative min-w-0" ref={dropdownRef}>
               <div className="relative bg-[#111827] border border-slate-700 rounded-lg px-2.5 flex items-center shadow-inner h-9 transition-colors focus-within:border-blue-500/50 focus-within:bg-[#1e293b]">
-                <SearchIcon className="text-slate-400 pointer-events-none shrink-0" style={{ fontSize: '16px' }} />
-                
+                <SearchIcon/>
                 <input
                   ref={inputRef}
                   value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setIsDropdownOpen(true);
-                  }}
-                  onFocus={() => {
-                    setIsDropdownOpen(true);
-                    if (selectedSymbol) setSearchQuery("");
-                  }}
+                  onChange={e => { setSearchQuery(e.target.value); setIsDropdownOpen(true); }}
+                  onFocus={() => { setIsDropdownOpen(true); if (selectedSymbol) setSearchQuery(""); }}
                   placeholder="Type a Symbol..."
                   className="flex-1 bg-transparent outline-none text-white text-[13px] placeholder:text-slate-500 min-w-0 pl-1.5 pr-1"
                 />
-                
                 <div className="flex items-center shrink-0">
-                  {/* Clear Button */}
                   {searchQuery && (
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSearchQuery("");
-                        inputRef.current?.focus();
-                      }}
+                      onClick={e => { e.stopPropagation(); setSearchQuery(""); inputRef.current?.focus(); }}
                       className="text-[10px] text-slate-400 hover:text-white mr-1 px-1 flex items-center justify-center h-full"
-                      title="Clear symbol"
-                    >
-                      ✕
-                    </button>
+                    >✕</button>
                   )}
-                  {/* Chevron Button */}
-                  <span
-                    onClick={() => {
-                      setIsDropdownOpen(!isDropdownOpen);
-                      if (!isDropdownOpen) inputRef.current?.focus();
-                    }}
-                    className="text-slate-400 cursor-pointer flex items-center px-1"
-                  >
-                    <div style={{ transform: isDropdownOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
-                      <ChevronDownIcon />
+                  <span onClick={() => { setIsDropdownOpen(!isDropdownOpen); if (!isDropdownOpen) inputRef.current?.focus(); }}
+                    className="text-slate-400 cursor-pointer flex items-center px-1">
+                    <div style={{ transform:isDropdownOpen?"rotate(180deg)":"rotate(0deg)", transition:"transform 0.2s" }}>
+                      <ChevronDownIcon/>
                     </div>
                   </span>
                 </div>
               </div>
 
-              {/* ── Dropdown Overlay (Both PC and Mobile) ── */}
               {isDropdownOpen && (
-                // 💡 ตั้งค่า w-full และ min-w-[200px] เพื่อให้กว้างพอแต่ยังยึดกับกล่องเดิม
                 <div className="absolute top-full mt-1.5 left-0 w-full min-w-[200px] bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto z-[60] custom-scrollbar">
-                  
                   {filteredTable.length > 0 ? (
                     filteredTable.map((item, index) => {
                       const isSelected = selectedSymbol === item.symbol;
-                      const realIdx = MOCK_TABLE.findIndex(r => r.symbol === item.symbol);
-                      const dotColor = SYMBOL_COLORS[realIdx % SYMBOL_COLORS.length];
-
+                      const realIdx    = MOCK_TABLE.findIndex(r => r.symbol===item.symbol);
+                      const dotColor   = SYMBOL_COLORS[realIdx % SYMBOL_COLORS.length];
                       return (
-                        <div
-                          key={index}
+                        <div key={index}
                           onClick={() => {
                             setSelectedSymbol(item.symbol);
                             setSearchQuery(item.symbol);
@@ -487,16 +771,12 @@ export default function S50OutstandingShort() {
                             setIsDropdownOpen(false);
                           }}
                           className={`px-4 py-3 text-[13px] transition flex items-center gap-3 cursor-pointer
-                            ${isSelected ? "bg-cyan-500/20 text-white" : "text-slate-300 hover:bg-[#1e293b] hover:text-white"}`}
-                        >
-                          {/* สีวงกลม */}
-                          <span className="shrink-0 w-2.5 h-2.5 rounded-full" style={{ background: dotColor }} />
-                          {/* ชื่อหุ้น */}
+                            ${isSelected ? "bg-cyan-500/20 text-white" : "text-slate-300 hover:bg-[#1e293b] hover:text-white"}`}>
+                          <span className="shrink-0 w-2.5 h-2.5 rounded-full" style={{ background:dotColor }}/>
                           <span className="flex-1">{item.symbol}</span>
-                          {/* ข้อมูล % */}
-                          <span className={`${isSelected ? "text-cyan-400" : "text-slate-400"}`}>{item.outshort.toFixed(2)}%</span>
+                          <span className={isSelected ? "text-cyan-400" : "text-slate-400"}>{item.outshort.toFixed(2)}%</span>
                         </div>
-                      )
+                      );
                     })
                   ) : (
                     <div className="px-4 py-3 text-[13px] text-slate-500 text-center">No results found</div>
@@ -505,76 +785,64 @@ export default function S50OutstandingShort() {
               )}
             </div>
 
-            <button onClick={() => setTableOpen(o => !o)}
-              className="hidden md:flex w-9 h-9 items-center justify-center rounded-lg text-slate-400 hover:text-white transition-colors shrink-0 bg-[#111827] border border-slate-700">
-              <ChevronUpIcon open={tableOpen}/>
+            <button onClick={() => setSortAsc(o=>!o)}
+              className="hidden md:flex w-9 h-9 items-center justify-center rounded-lg text-slate-400 hover:text-white transition-colors shrink-0 bg-[#111827] border border-slate-700"
+              title={sortAsc ? "Sorted: Low→High" : "Sorted: High→Low"}>
+              <SortIcon asc={sortAsc}/>
             </button>
+
             <button onClick={handleReset}
               className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition-colors shrink-0 bg-[#111827] border border-slate-700">
               <RefreshIcon spinning={spinning}/>
             </button>
           </div>
 
-          {/* ซ่อน Header ตารางบน Mobile (แสดงเฉพาะบน PC) */}
-          {tableOpen && (
-            <div className="hidden md:flex items-center px-4 py-2 shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-              <span className="flex-1 text-[11px] font-semibold text-gray-500 tracking-wider uppercase">Symbol</span>
-              <span className="text-[11px] font-semibold text-[#60a5fa] tracking-wider uppercase">Outshort %</span>
-            </div>
-          )}
+          {/* ── Table Header (PC only) ── */}
+          <div className="hidden md:flex items-center px-4 py-2 shrink-0" style={{ borderBottom:"1px solid rgba(255,255,255,0.05)" }}>
+            <span className="flex-1 text-[11px] font-semibold text-gray-500 tracking-wider uppercase">Symbol</span>
+            <button onClick={() => setSortAsc(o=>!o)}
+              className="flex items-center gap-1 text-[11px] font-semibold text-[#60a5fa] tracking-wider uppercase hover:text-blue-300 transition-colors">
+              Outshort % <SortIcon asc={sortAsc}/>
+            </button>
+          </div>
 
-          {/* ซ่อน List ทั้งหมดบน Mobile, แต่จะแสดงเป็น List ปกติติดแผงบน PC */}
-          {tableOpen && (
-            <div className="hidden md:block flex-1 overflow-y-auto no-scrollbar pb-2 md:pb-0">
-              
-              
-
-              {filteredTable.map((row, i) => {
-                const isSelected = selectedSymbol === row.symbol;
-                const realIdx = MOCK_TABLE.findIndex(r => r.symbol === row.symbol);
-                const dotColor = SYMBOL_COLORS[realIdx % SYMBOL_COLORS.length];
-                return (
-                  <button key={i}
-                    onClick={() => {
-                      if (selectedSymbol === row.symbol) {
-                        setSelectedSymbol(null);
-                        setIsShowAll(true); 
-                      } else {
-                        setSelectedSymbol(row.symbol);
-                        setIsShowAll(false);
-                        applyRange("MAX");
-                      }
-                    }}
-                    className="w-full flex items-center px-2 py-1 transition-all cursor-pointer">
-                    <span className="w-full flex items-center gap-2.5 px-3 py-2 rounded-full transition-all"
-                      style={{ background: isSelected ? "rgba(59,130,246,0.2)" : "transparent" }}>
-                      <span className="shrink-0 w-3 h-3 rounded-full"
-                        style={{ background: isSelected ? "#60a5fa" : dotColor }}/>
-                      <span className="flex-1 text-left text-[13px] font-semibold"
-                        style={{ color: isSelected ? "#ffffff" : "#9ca3af" }}>
-                        {row.symbol}
-                      </span>
-                      <span className="text-[13px] font-semibold"
-                        style={{ color: isSelected ? "#34d399" : "#6b7280" }}>
-                        {row.outshort.toFixed(2)}%
-                      </span>
+          {/* ── Symbol List (PC only) ── */}
+          <div className="hidden md:block flex-1 overflow-y-auto no-scrollbar pb-2 md:pb-0">
+            {filteredTable.map((row, i) => {
+              const isSelected = selectedSymbol === row.symbol;
+              const realIdx    = MOCK_TABLE.findIndex(r => r.symbol===row.symbol);
+              const dotColor   = SYMBOL_COLORS[realIdx % SYMBOL_COLORS.length];
+              return (
+                <button key={i}
+                  onClick={() => {
+                    if (selectedSymbol===row.symbol) { setSelectedSymbol(null); setIsShowAll(true); }
+                    else { setSelectedSymbol(row.symbol); setIsShowAll(false); applyRange("MAX"); }
+                  }}
+                  className="w-full flex items-center px-2 py-1 transition-all cursor-pointer">
+                  <span className="w-full flex items-center gap-2.5 px-3 py-2 rounded-full transition-all"
+                    style={{ background: isSelected ? "rgba(59,130,246,0.2)" : "transparent" }}>
+                    <span className="shrink-0 w-3 h-3 rounded-full" style={{ background: isSelected ? "#60a5fa" : dotColor }}/>
+                    <span className="flex-1 text-left text-[13px] font-semibold" style={{ color: isSelected ? "#ffffff" : "#9ca3af" }}>
+                      {row.symbol}
                     </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                    <span className="text-[13px] font-semibold" style={{ color: isSelected ? "#34d399" : "#6b7280" }}>
+                      {row.outshort.toFixed(2)}%
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       <style>{`
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.4); cursor: pointer; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .no-scrollbar::-webkit-scrollbar { display:none; }
+        .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+        .custom-scrollbar::-webkit-scrollbar { width:6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background:transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background:#475569; border-radius:10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background:#64748b; }
       `}</style>
     </div>
   );
