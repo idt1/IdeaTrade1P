@@ -386,13 +386,18 @@ function DWPill({ dw, active, type, onClick }) {
 }
 
 // ── DWSymbolPanel ──
-function DWSymbolPanel({ underlying, selectedCall, selectedPut, onSelectCall, onSelectPut, panelType }) {
+function DWSymbolPanel({ underlying, selectedCall, selectedPut, onSelectCall, onSelectPut, panelType, isMobile }) {
   const callDWs = useMemo(() => getDWByUnderlying(underlying, "C"), [underlying]);
   const putDWs  = useMemo(() => getDWByUnderlying(underlying, "P"), [underlying]);
   if (!underlying) return null;
 
   const showCall = panelType === "call" || panelType === "both";
   const showPut  = panelType === "put"  || panelType === "both";
+
+  // หากเป็นมือถือและแสดงทั้งคู่ ให้แบ่งเป็น 2 แถวบน-ล่างแทน 2 คอลัมน์
+  const gridTemplate = showCall && showPut
+    ? (isMobile ? { gridTemplateColumns: "1fr", gridTemplateRows: "1fr 1fr" } : { gridTemplateColumns: "1fr 1fr" })
+    : { gridTemplateColumns: "1fr" };
 
   const Empty = ({ type }) => (
     <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",opacity:0.3,gap:4}}>
@@ -406,9 +411,9 @@ function DWSymbolPanel({ underlying, selectedCall, selectedPut, onSelectCall, on
       borderTop:`1px solid rgba(100,116,139,0.3)`,
       padding:"10px 14px",
       display:"grid",
-      gridTemplateColumns: showCall && showPut ? "1fr 1fr" : "1fr",
+      ...gridTemplate,
       gap:10,
-      maxHeight:140,
+      maxHeight: isMobile && showCall && showPut ? 260 : 140, // บนมือถือถ้าโชว์ 2 อันให้ความสูงมากขึ้น
       flexShrink:0,
       overflow:"hidden",
     }}>
@@ -426,7 +431,13 @@ function DWSymbolPanel({ underlying, selectedCall, selectedPut, onSelectCall, on
         </div>
       )}
       {showPut && (
-        <div style={{display:"flex",flexDirection:"column",minHeight:0,borderLeft:showCall&&showPut?`1px solid rgba(100,116,139,0.2)`:"none",paddingLeft:showCall&&showPut?10:0}}>
+        <div style={{
+          display:"flex",flexDirection:"column",minHeight:0,
+          borderLeft:!isMobile&&showCall&&showPut?`1px solid rgba(100,116,139,0.2)`:"none",
+          paddingLeft:!isMobile&&showCall&&showPut?10:0,
+          borderTop:isMobile&&showCall&&showPut?`1px solid rgba(100,116,139,0.2)`:"none",
+          paddingTop:isMobile&&showCall&&showPut?10:0
+        }}>
           <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:6}}>
             <span style={{width:5,height:5,borderRadius:"50%",background:"#f472b6"}}/>
             <span style={{fontSize:8,fontWeight:700,fontFamily:FONT,color:"#f472b6",letterSpacing:"0.1em"}}>PUT</span>
@@ -647,7 +658,7 @@ export default function DWViewCharts() {
   }, [showDWPanel]);
 
   const chartCols = isMobile ? "1fr" : "1fr 1fr";
-  const chartRows = isMobile ? "repeat(4,minmax(160px,1fr))" : "1fr 1fr";
+  const chartRows = isMobile ? "repeat(4,minmax(220px,1fr))" : "1fr 1fr";
 
   const TF_DISPLAY = [
     { key:"INTRADAY", label:"INTRADAY" },
@@ -673,67 +684,67 @@ export default function DWViewCharts() {
       <div style={{width:"100%",height:"100dvh",background:C.bg,color:"#fff",display:"flex",flexDirection:"column",fontFamily:FONT,overflow:"hidden"}}>
 
         {/* ── Toolbar ── */}
-        <div style={{background:"#1e293b",borderBottom:`1px solid rgba(100,116,139,0.3)`,padding:"10px 14px",flexShrink:0,display:"flex",alignItems:"center",gap:10,flexWrap:"nowrap",minWidth:0}}>
-
-          <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
-              DW CHARTS
-          </ToolHint>
-
-          {/* Reset/Refresh */}
-          <button onMouseDown={e=>{e.preventDefault();doReset();}} disabled={!hasData||loading}
-            style={{display:"flex",alignItems:"center",justifyContent:"center",width:34,height:34,borderRadius:8,background:"rgba(255,255,255,0.04)",border:`1px solid rgba(100,116,139,0.3)`,cursor:hasData?"pointer":"not-allowed",color:hasData?C.mutedText:C.dimText,flexShrink:0,transition:"all .15s"}}
-            onMouseEnter={e=>{if(hasData){e.currentTarget.style.color=C.white;}}}
-            onMouseLeave={e=>{e.currentTarget.style.color=hasData?C.mutedText:C.dimText;}}>
-            <RefreshIcon fontSize="small" className={loading ? "animate-spin" : ""} />
-          </button>
-
-          {/* Symbol */}
-          <div style={{width:isMobile?130:180,flexShrink:0}}>
-            <SymbolInput value={symbol} onChange={v=>{setSymbol(v);setSubmitted(false);}} onEnter={doEnter}/>
+        {isMobile ? (
+          <div style={{ background: "#1e293b", borderBottom: `1px solid rgba(100,116,139,0.3)`, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 12, flexShrink: 0 }}>
+            {/* Top row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>DW CHARTS</ToolHint>
+              <div style={{ flex: 1 }}><SymbolInput value={symbol} onChange={v=>{setSymbol(v);setSubmitted(false);}} onEnter={doEnter}/></div>
+              <button onMouseDown={e=>{e.preventDefault();doReset();}} disabled={!hasData||loading} style={{display:"flex",alignItems:"center",justifyContent:"center",width:34,height:34,borderRadius:8,background:"rgba(255,255,255,0.04)",border:`1px solid rgba(100,116,139,0.3)`,cursor:hasData?"pointer":"not-allowed",color:hasData?C.mutedText:C.dimText,flexShrink:0,transition:"all .15s"}}> 
+                <RefreshIcon fontSize="small" className={loading ? "animate-spin" : ""} /> 
+              </button>
+            </div>
+            
+            {/* Date row */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <DateTimeInput label="Start Date" onChange={v=>{setStartDate(v);if(v)setSdErr(false);}} error={sdErr}/>
+              <DateTimeInput label="End Date" defaultNow alignRight/>
+            </div>
+            
+            {/* Bottom row: Timeframes + Enter */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 2 }} className="dw-scroll">
+                {TF_DISPLAY.map(({key,label})=>{
+                  const act=tf===key;
+                  return (
+                    <button key={key} onClick={()=>setTf(key)}
+                      style={{padding:"6px 14px",borderRadius:8,cursor:"pointer",border:`1px solid ${act?"#3b82f6":"rgba(100,116,139,0.3)"}`,background:act?"rgba(37,99,235,0.15)":"transparent",color:act?"#60a5fa":C.mutedText,fontSize:12,fontWeight:act?600:500,transition:"all .15s",fontFamily:FONT,whiteSpace:"nowrap",letterSpacing:"0.01em",boxShadow:act?"0 0 0 1px rgba(59,130,246,0.3)":"none"}}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              <button onClick={doEnter} disabled={!symbol.trim()||loading} style={{ padding: "0 16px", height: 32, borderRadius: 8, background: symbol.trim()?"linear-gradient(135deg,#3b82f6,#1d4ed8)":"rgba(255,255,255,0.03)", border: "none", color: symbol.trim()?"#fff":C.mutedText, fontSize: 11, fontWeight: 700, flexShrink:0 }}>ENTER</button>
+            </div>
           </div>
-
-          {/* Start date */}
-          <DateTimeInput label="Start Date" onChange={v=>{setStartDate(v);if(v)setSdErr(false);}} error={sdErr}/>
-
-          {/* End date */}
-          <DateTimeInput label="End Date" defaultNow alignRight/>
-
-          {/* Spacer */}
-          <div style={{flex:1}}/>
-
-          {/* TF pills */}
-          <div style={{display:"flex",gap:4,flexShrink:0}}>
-            {TF_DISPLAY.map(({key,label})=>{
-              const act=tf===key;
-              return (
-                <button key={key} onClick={()=>setTf(key)}
-                  style={{padding:"6px 14px",borderRadius:8,cursor:"pointer",
-                    border:`1px solid ${act?"#3b82f6":"rgba(100,116,139,0.3)"}`,
-                    background:act?"rgba(37,99,235,0.15)":"transparent",
-                    color:act?"#60a5fa":C.mutedText,
-                    fontSize:12,fontWeight:act?600:500,transition:"all .15s",fontFamily:FONT,
-                    whiteSpace:"nowrap",letterSpacing:"0.01em",
-                    boxShadow:act?"0 0 0 1px rgba(59,130,246,0.3)":"none"}}>
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-
-          {!isMobile && (
-            <button onClick={doEnter} disabled={!symbol.trim()||loading}
-              style={{display:"flex",alignItems:"center",justifyContent:"center",
-                gap:6,height:36,padding:"0 16px",borderRadius:8,flexShrink:0,
-                background:symbol.trim()?"linear-gradient(135deg,#3b82f6,#1d4ed8)":"rgba(255,255,255,0.03)",
-                border:`1px solid ${symbol.trim()?"rgba(59,130,246,0.4)":"rgba(100,116,139,0.2)"}`,
-                color:symbol.trim()?"#fff":C.mutedText,
-                cursor:symbol.trim()?"pointer":"not-allowed",
-                fontSize:11,fontWeight:700,letterSpacing:"0.06em",transition:"all .2s",whiteSpace:"nowrap"}}>
-              {ldEnter?<IcoSpinner/>:<IcoEnter/>}
-              ENTER
+        ) : (
+          /* Desktop Toolbar */
+          <div style={{background:"#1e293b",borderBottom:`1px solid rgba(100,116,139,0.3)`,padding:"10px 14px",flexShrink:0,display:"flex",alignItems:"center",gap:10,flexWrap:"nowrap",minWidth:0}}>
+            <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>DW CHARTS</ToolHint>
+            <button onMouseDown={e=>{e.preventDefault();doReset();}} disabled={!hasData||loading} style={{display:"flex",alignItems:"center",justifyContent:"center",width:34,height:34,borderRadius:8,background:"rgba(255,255,255,0.04)",border:`1px solid rgba(100,116,139,0.3)`,cursor:hasData?"pointer":"not-allowed",color:hasData?C.mutedText:C.dimText,flexShrink:0,transition:"all .15s"}} onMouseEnter={e=>{if(hasData){e.currentTarget.style.color=C.white;}}} onMouseLeave={e=>{e.currentTarget.style.color=hasData?C.mutedText:C.dimText;}}>
+              <RefreshIcon fontSize="small" className={loading ? "animate-spin" : ""} />
             </button>
-          )}
-        </div>
+            <div style={{width:180,flexShrink:0}}>
+              <SymbolInput value={symbol} onChange={v=>{setSymbol(v);setSubmitted(false);}} onEnter={doEnter}/>
+            </div>
+            <DateTimeInput label="Start Date" onChange={v=>{setStartDate(v);if(v)setSdErr(false);}} error={sdErr}/>
+            <DateTimeInput label="End Date" defaultNow alignRight/>
+            <div style={{flex:1}}/>
+            <div style={{display:"flex",gap:4,flexShrink:0}}>
+              {TF_DISPLAY.map(({key,label})=>{
+                const act=tf===key;
+                return (
+                  <button key={key} onClick={()=>setTf(key)} style={{padding:"6px 14px",borderRadius:8,cursor:"pointer",border:`1px solid ${act?"#3b82f6":"rgba(100,116,139,0.3)"}`,background:act?"rgba(37,99,235,0.15)":"transparent",color:act?"#60a5fa":C.mutedText,fontSize:12,fontWeight:act?600:500,transition:"all .15s",fontFamily:FONT,whiteSpace:"nowrap",letterSpacing:"0.01em",boxShadow:act?"0 0 0 1px rgba(59,130,246,0.3)":"none"}}>
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <button onClick={doEnter} disabled={!symbol.trim()||loading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,height:36,padding:"0 16px",borderRadius:8,flexShrink:0,background:symbol.trim()?"linear-gradient(135deg,#3b82f6,#1d4ed8)":"rgba(255,255,255,0.03)",border:`1px solid ${symbol.trim()?"rgba(59,130,246,0.4)":"rgba(100,116,139,0.2)"}`,color:symbol.trim()?"#fff":C.mutedText,cursor:symbol.trim()?"pointer":"not-allowed",fontSize:11,fontWeight:700,letterSpacing:"0.06em",transition:"all .2s",whiteSpace:"nowrap"}}>
+              {ldEnter?<IcoSpinner/>:<IcoEnter/>} ENTER
+            </button>
+          </div>
+        )}
 
         {/* ── Charts grid ── */}
         <div style={{
@@ -768,6 +779,7 @@ export default function DWViewCharts() {
             onSelectCall={setSelCall}
             onSelectPut={setSelPut}
             panelType={dwPanelType}
+            isMobile={isMobile}
           />
         )}
 
