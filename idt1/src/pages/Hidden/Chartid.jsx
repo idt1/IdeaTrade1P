@@ -346,7 +346,7 @@ function ChartPanel({
   const avoidYs = [zeroY, ...endTags.map(t => t.y)];
 
   return (
-    <div style={{
+    <div className="chart-panel-container" style={{
       flex: 1,
       background: C.panel,
       border: isExpanded ? "none" : `1px solid ${C.border}`,
@@ -356,14 +356,14 @@ function ChartPanel({
       boxShadow: isExpanded ? "none" : "0 2px 16px rgba(0,0,0,0.5)",
     }}>
       {/* ── Header ── */}
-      <div style={{
+      <div className="panel-header" style={{
         background: C.header,
-        height: 42, padding: "0 10px 0 14px",
+        minHeight: 42, padding: "8px 10px 8px 14px",
         borderBottom: `1px solid ${C.border}`,
         display: "flex", alignItems: "center", justifyContent: "space-between",
         flexShrink: 0, gap: 8,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flexShrink: 0 }}>
           {isExpanded && (
             <button onClick={onClose} style={{
               display: "flex", alignItems: "center", gap: 5,
@@ -384,7 +384,7 @@ function ChartPanel({
           <InfoTooltip text={subtitle} />
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+        <div className="controls-group" style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
           <IconBtn onClick={handleResetClick} title="Reset">
             <IconReset spinning={isResetting} />
           </IconBtn>
@@ -393,10 +393,10 @@ function ChartPanel({
               <IconExpand />
             </IconBtn>
           )}
-          <div style={{ width: 1, height: 18, background: "rgba(255,255,255,0.06)", margin: "0 2px" }} />
+          <div style={{ width: 1, height: 18, background: "rgba(255,255,255,0.06)", margin: "0 2px", flexShrink: 0 }} />
           <ToggleBtn active={showT1} color={C.t1} onClick={onToggleT1} label="Flip T-1→T" />
           <ToggleBtn active={showId}  color={C.id}  onClick={onToggleId}  label="Intraday" />
-          <div style={{ width: 1, height: 18, background: "rgba(255,255,255,0.06)", margin: "0 2px" }} />
+          <div style={{ width: 1, height: 18, background: "rgba(255,255,255,0.06)", margin: "0 2px", flexShrink: 0 }} />
           <button
             onClick={onToggleLabels}
             style={{
@@ -482,14 +482,17 @@ function ChartPanel({
               {isHovering && (
                 <g>
                   <line x1={hoverX} y1={PAD.t} x2={hoverX} y2={bodyH - PAD.b} stroke={C.crosshair} strokeWidth={1} strokeDasharray="4 4" />
+                  
                   {hoverYT1 != null && showT1 && <>
                     <line x1={0} y1={hoverYT1} x2={svgW} y2={hoverYT1} stroke={C.crosshair} strokeWidth={1} />
                     <circle cx={hoverX} cy={hoverYT1} r={4.5} fill={C.t1} stroke={C.surface} strokeWidth={2} />
                   </>}
+                  
                   {hoverYId != null && showId && <>
                     <line x1={0} y1={hoverYId} x2={svgW} y2={hoverYId} stroke={C.crosshair} strokeWidth={1} />
                     <circle cx={hoverX} cy={hoverYId} r={4.5} fill={C.id} stroke={C.surface} strokeWidth={2} />
                   </>}
+                  
                   <g transform={`translate(${hoverX}, ${bodyH - PAD.b + 17})`}>
                     <rect x={-26} y={-9} width={52} height={18} rx={4} fill={C.header} stroke={C.borderHi} strokeWidth={1} />
                     <text x={0} y={0.5} fill="#e2e8f0" fontSize={9.5} fontFamily="monospace" textAnchor="middle" dominantBaseline="central" fontWeight="700">
@@ -670,118 +673,122 @@ function Navbar({ symbol, onBack, onSymbolChange, symbolInput, setSymbolInput, o
   const SYMBOLS = ["PTT","AOT","CPALL","ADVANC","GULF","SCB","KBANK","TRUE","MINT","BDMS","BH","CPN","MAJOR","HANA","SCC"];
 
   return (
-    <div style={{
-      height: 48,
+    <div className="nav-container" style={{
+      minHeight: 48,
       background: C.navBg,
       borderBottom: `1px solid ${C.navBorder}`,
       display: "flex", alignItems: "center",
-      padding: "0 14px", gap: 8,
+      padding: "8px 14px", gap: 8,
       flexShrink: 0, zIndex: 100, position: "relative",
     }}>
-      <ToolHint onViewDetails={onOpenInfo}>
-        ---
-      </ToolHint>
+      <div className="nav-actions-left" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <ToolHint onViewDetails={onOpenInfo}>
+          ---
+        </ToolHint>
 
-      <button
-        onClick={onBack}
-        style={{
-          display: "flex", alignItems: "center", gap: 5,
-          padding: "4px 12px", borderRadius: 7,
-          border: `1px solid ${C.border}`,
-          background: "transparent",
-          color: "#64748b", cursor: "pointer",
-          fontSize: 12, fontWeight: 600, fontFamily: "monospace",
-          flexShrink: 0, transition: "all .15s",
-        }}
-        onMouseEnter={e => { e.currentTarget.style.color = "#e2e8f0"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; }}
-        onMouseLeave={e => { e.currentTarget.style.color = "#64748b"; e.currentTarget.style.borderColor = C.border; }}
-      >
-        <IconBack /> back
-      </button>
-
-      <div style={{ position: "relative", flexShrink: 0 }}>
-        <div style={{
-          display: "flex", alignItems: "center", gap: 6,
-          background: "#0a1320",
-          border: `1px solid ${C.border}`,
-          borderRadius: 7, padding: "0 10px",
-          height: 30, width: 180, cursor: "text",
-        }}>
-          <IconSearch />
-          <input
-            value={symbolInput}
-            onChange={e => setSymbolInput(e.target.value.toUpperCase())}
-            onKeyDown={e => { if (e.key === "Enter" && symbolInput) { onSymbolChange(symbolInput); setDropOpen(false); } }}
-            placeholder="Type a Symbol..."
-            style={{
-              background: "transparent", border: "none", outline: "none",
-              color: "#e2e8f0", fontSize: 11, fontFamily: "monospace", fontWeight: 600,
-              width: "100%", letterSpacing: "0.04em",
-            }}
-          />
-          <button
-            onClick={() => setDropOpen(v => !v)}
-            style={{ background: "transparent", border: "none", color: C.mutedText, cursor: "pointer", fontSize: 10, padding: 0, lineHeight: 1 }}
-          >▼</button>
-        </div>
-
-        {dropOpen && (
-          <div style={{
-            position: "absolute", top: 34, left: 0, width: 180,
-            background: "#0a1320",
-            border: `1px solid rgba(255,255,255,0.10)`,
-            borderRadius: 8, overflow: "hidden",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
-            zIndex: 200,
-          }}>
-            {SYMBOLS.filter(s => s.includes(symbolInput)).map(s => (
-              <div
-                key={s}
-                onClick={() => { onSymbolChange(s); setSymbolInput(s); setDropOpen(false); }}
-                style={{
-                  padding: "7px 12px", fontSize: 11,
-                  fontFamily: "monospace", fontWeight: 600,
-                  color: "#94a3b8", cursor: "pointer",
-                  letterSpacing: "0.05em", transition: "background .1s",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#e2e8f0"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#94a3b8"; }}
-              >{s}</div>
-            ))}
-          </div>
-        )}
+        <button
+          onClick={onBack}
+          style={{
+            display: "flex", alignItems: "center", gap: 5,
+            padding: "4px 12px", borderRadius: 7,
+            border: `1px solid ${C.border}`,
+            background: "transparent",
+            color: "#64748b", cursor: "pointer",
+            fontSize: 12, fontWeight: 600, fontFamily: "monospace",
+            flexShrink: 0, transition: "all .15s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = "#e2e8f0"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = "#64748b"; e.currentTarget.style.borderColor = C.border; }}
+        >
+          <IconBack /> back
+        </button>
       </div>
 
-      <button
-        onClick={() => {
-          const url = new URL(window.location.href);
-          if (symbol) url.searchParams.set("symbol", symbol);
-          window.open(url.toString(), "_blank");
-        }}
-        title="Open Compare in new tab"
-        style={{
-          width: 30, height: 30, borderRadius: 6,
-          border: `1px solid ${C.border}`,
-          background: "transparent",
-          color: C.mutedText, cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          flexShrink: 0, transition: "all .15s",
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.color = "#e2e8f0";
-          e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)";
-          e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.color = C.mutedText;
-          e.currentTarget.style.borderColor = C.border;
-          e.currentTarget.style.background = "transparent";
-        }}
-      >
-        <IconCompare />
-      </button>
+      <div className="nav-actions-right" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ position: "relative", flexShrink: 0 }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 6,
+            background: "#0a1320",
+            border: `1px solid ${C.border}`,
+            borderRadius: 7, padding: "0 10px",
+            height: 30, width: 150, cursor: "text",
+          }}>
+            <IconSearch />
+            <input
+              value={symbolInput}
+              onChange={e => setSymbolInput(e.target.value.toUpperCase())}
+              onKeyDown={e => { if (e.key === "Enter" && symbolInput) { onSymbolChange(symbolInput); setDropOpen(false); } }}
+              placeholder="Type a Symbol..."
+              style={{
+                background: "transparent", border: "none", outline: "none",
+                color: "#e2e8f0", fontSize: 11, fontFamily: "monospace", fontWeight: 600,
+                width: "100%", letterSpacing: "0.04em",
+              }}
+            />
+            <button
+              onClick={() => setDropOpen(v => !v)}
+              style={{ background: "transparent", border: "none", color: C.mutedText, cursor: "pointer", fontSize: 10, padding: 0, lineHeight: 1 }}
+            >▼</button>
+          </div>
 
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {dropOpen && (
+            <div style={{
+              position: "absolute", top: 34, left: 0, width: 180,
+              background: "#0a1320",
+              border: `1px solid rgba(255,255,255,0.10)`,
+              borderRadius: 8, overflow: "hidden",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+              zIndex: 200,
+            }}>
+              {SYMBOLS.filter(s => s.includes(symbolInput)).map(s => (
+                <div
+                  key={s}
+                  onClick={() => { onSymbolChange(s); setSymbolInput(s); setDropOpen(false); }}
+                  style={{
+                    padding: "7px 12px", fontSize: 11,
+                    fontFamily: "monospace", fontWeight: 600,
+                    color: "#94a3b8", cursor: "pointer",
+                    letterSpacing: "0.05em", transition: "background .1s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#e2e8f0"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#94a3b8"; }}
+                >{s}</div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={() => {
+            const url = new URL(window.location.href);
+            if (symbol) url.searchParams.set("symbol", symbol);
+            window.open(url.toString(), "_blank");
+          }}
+          title="Open Compare in new tab"
+          style={{
+            width: 30, height: 30, borderRadius: 6,
+            border: `1px solid ${C.border}`,
+            background: "transparent",
+            color: C.mutedText, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0, transition: "all .15s",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.color = "#e2e8f0";
+            e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)";
+            e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.color = C.mutedText;
+            e.currentTarget.style.borderColor = C.border;
+            e.currentTarget.style.background = "transparent";
+          }}
+        >
+          <IconCompare />
+        </button>
+      </div>
+
+      <div className="nav-symbol-title" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <span style={{
           fontSize: 15, fontWeight: 800,
           color: "#e2e8f0", fontFamily: "'JetBrains Mono', monospace",
@@ -871,6 +878,48 @@ export default function ChartFlipId() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         @keyframes spin-once { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
         ::-webkit-scrollbar { display: none; }
+
+        /* Mobile Responsive Code */
+        @media (max-width: 768px) {
+          .panels-wrapper {
+            overflow-y: auto !important;
+            display: block !important;
+            -webkit-overflow-scrolling: touch;
+          }
+          .chart-panel-container {
+            height: 360px !important;
+            margin-bottom: 16px;
+            flex: none !important;
+          }
+          .nav-container {
+            flex-wrap: wrap;
+            justify-content: space-between;
+            padding: 10px 14px !important;
+            gap: 12px !important;
+          }
+          .nav-symbol-title {
+            width: 100%;
+            text-align: center;
+            margin-top: 4px;
+            order: 4;
+          }
+          .nav-symbol-title span {
+            font-size: 14px !important;
+          }
+          .panel-header {
+            flex-wrap: wrap;
+            padding: 10px 14px !important;
+            gap: 10px !important;
+          }
+          .controls-group {
+            width: 100%;
+            overflow-x: auto;
+            flex-wrap: nowrap !important;
+            padding-bottom: 6px;
+            justify-content: flex-start;
+            -webkit-overflow-scrolling: touch;
+          }
+        }
       `}</style>
 
       <div style={{
@@ -893,7 +942,7 @@ export default function ChartFlipId() {
           onOpenInfo={() => setInfoOpen(true)}
         />
 
-        <div style={{
+        <div className="panels-wrapper" style={{
           flex: 1, display: "flex", flexDirection: "column",
           gap: 8, minHeight: 0, padding: "10px",
         }}>
