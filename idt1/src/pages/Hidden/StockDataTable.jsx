@@ -1,5 +1,4 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import ToolHint from "@/components/ToolHint.jsx";
 
 const RAW_RECORDS = [{"date":"2026-04-03","symbol":"A5","name":"โชติกร ปัญจทรัพย์","rel":"ผู้รายงาน","method":"ขาย","amount":1700000,"price":0.05,"value":85000.0},{"date":"2026-04-03","symbol":"BKIH","name":"ชัย โสภณพนิช","rel":"ผู้รายงาน","method":"ซื้อ","amount":18800,"price":323.02,"value":6072776.0},{"date":"2026-04-03","symbol":"WARRIX","name":"วิศัลย์ วนะศักดิ์ศรีสกุล","rel":"ผู้รายงาน","method":"โอน","amount":11000000,"price":0.0,"value":0.0},{"date":"2026-04-03","symbol":"VRANDA","name":"ภวัฒก์ องค์วาสิฏฐ์","rel":"ผู้รายงาน","method":"ซื้อ","amount":3000,"price":4.24,"value":12720.0},{"date":"2026-04-03","symbol":"MASTEC","name":"ดุษฎี มีชัย","rel":"ผู้รายงาน","method":"ซื้อ","amount":300000,"price":1.19,"value":357000.0},{"date":"2026-04-03","symbol":"HTC","name":"อัมริท คุมาร์ เซรสธา","rel":"ผู้รายงาน","method":"ซื้อ","amount":10000,"price":15.4,"value":154000.0},{"date":"2026-04-03","symbol":"IMH","name":"สิทธิวัตน์ กำกัดวงษ์","rel":"ผู้รายงาน","method":"ซื้อ","amount":3700,"price":3.07,"value":11359.0},{"date":"2026-04-03","symbol":"TRT","name":"กานต์ วงษ์ปาน","rel":"ผู้รายงาน","method":"ซื้อ","amount":80000,"price":4.04,"value":323200.0},{"date":"2026-04-03","symbol":"WARRIX","name":"วิศัลย์ วนะศักดิ์ศรีสกุล","rel":"ผู้รายงาน","method":"โอน","amount":11000000,"price":0.0,"value":0.0},{"date":"2026-04-03","symbol":"TRT","name":"กานต์ วงษ์ปาน","rel":"ผู้รายงาน","method":"ซื้อ","amount":13000,"price":4.02,"value":52260.0},{"date":"2026-04-03","symbol":"PLE","name":"พนิต วิกิตเศรษฐ์","rel":"ผู้รายงาน","method":"ขาย","amount":2655600,"price":0.17,"value":451452.0},{"date":"2026-04-03","symbol":"PEACE","name":"โดม ศิริโสภณา","rel":"ผู้รายงาน","method":"ซื้อ","amount":200,"price":1.68,"value":336.0},{"date":"2026-04-02","symbol":"PEACE","name":"โดม ศิริโสภณา","rel":"ผู้รายงาน","method":"ซื้อ","amount":1900,"price":1.73,"value":3287.0},{"date":"2026-04-02","symbol":"FTI","name":"วรญา ภูวพัชร์","rel":"ผู้รายงาน","method":"ซื้อ","amount":96400,"price":1.82,"value":175448.0},{"date":"2026-04-02","symbol":"AIMIRT","name":"อมร จุฬาลักษณานุกูล","rel":"ผู้รายงาน","method":"ขาย","amount":20000,"price":11.0,"value":220000.0},{"date":"2026-04-02","symbol":"JSP","name":"จิรดา แดงประเสริฐ","rel":"ผู้รายงาน","method":"ซื้อ","amount":10000,"price":1.95,"value":19500.0},{"date":"2026-04-02","symbol":"BKIH","name":"ชัย โสภณพนิช","rel":"ผู้รายงาน","method":"ซื้อ","amount":9900,"price":319.0,"value":3158100.0},{"date":"2026-04-02","symbol":"MASTEC","name":"ดุษฎี มีชัย","rel":"ผู้รายงาน","method":"ซื้อ","amount":200000,"price":1.21,"value":242000.0},{"date":"2026-04-02","symbol":"IMH","name":"สิทธิวัตน์ กำกัดวงษ์","rel":"ผู้รายงาน","method":"ซื้อ","amount":1000,"price":3.09,"value":3090.0},{"date":"2026-04-02","symbol":"PLE","name":"พนิต วิกิตเศรษฐ์","rel":"ผู้รายงาน","method":"ขาย","amount":3762300,"price":0.17,"value":639591.0},{"date":"2026-04-02","symbol":"CTW","name":"ชัย โสภณพนิช","rel":"ผู้รายงาน","method":"ซื้อ","amount":2000,"price":4.4,"value":8800.0},{"date":"2026-04-02","symbol":"SORKON","name":"จรัญพจน์ รุจิราโสภณ","rel":"ผู้รายงาน","method":"ขาย","amount":550000,"price":3.9,"value":2145000.0},{"date":"2026-04-02","symbol":"SKY","name":"รัช ตันตนันตา","rel":"ผู้รายงาน","method":"ขาย","amount":10000,"price":12.7,"value":127000.0},{"date":"2026-04-02","symbol":"EP","name":"ยุทธ ชินสุภัคกุล","rel":"ผู้รายงาน","method":"ซื้อ","amount":104000,"price":1.16,"value":120640.0},{"date":"2026-04-01","symbol":"BKIH","name":"ชัย โสภณพนิช","rel":"ผู้รายงาน","method":"ซื้อ","amount":23200,"price":323.59,"value":7507288.0},{"date":"2026-04-01","symbol":"HARN","name":"วิรัฐ สุขชัย","rel":"ผู้รายงาน","method":"ขาย","amount":1395200,"price":2.02,"value":2818304.0},{"date":"2026-04-01","symbol":"EP","name":"ยุทธ ชินสุภัคกุล","rel":"ผู้รายงาน","method":"ซื้อ","amount":28700,"price":1.14,"value":32718.0},{"date":"2026-04-01","symbol":"BDMS","name":"ปรมาภรณ์ ปราสาททองโอสถ","rel":"ผู้รายงาน","method":"ซื้อ","amount":2615300,"price":19.1,"value":49952230.0},{"date":"2026-04-01","symbol":"ACE","name":"ธีรวุฒิ ทรงเมตตา","rel":"ผู้รายงาน","method":"ซื้อ","amount":9820000,"price":1.28,"value":12569600.0},{"date":"2026-04-01","symbol":"IMH","name":"สิทธิวัตน์ กำกัดวงษ์","rel":"ผู้รายงาน","method":"ซื้อ","amount":2000,"price":3.12,"value":6240.0},{"date":"2026-04-01","symbol":"HFT","name":"เจิ้น ยง หลิน","rel":"ผู้รายงาน","method":"ขาย","amount":2279500,"price":4.6,"value":10485700.0},{"date":"2026-03-31","symbol":"SPTX","name":"รัสมิ์ภูมิ สุเมธีวิทย์","rel":"ผู้รายงาน","method":"ขาย","amount":14000000000,"price":0.01,"value":140000000.0},{"date":"2026-03-31","symbol":"EP","name":"ยุทธ ชินสุภัคกุล","rel":"ผู้รายงาน","method":"ซื้อ","amount":32100,"price":1.14,"value":36594.0},{"date":"2026-03-31","symbol":"IMH","name":"สิทธิวัตน์ กำกัดวงษ์","rel":"ผู้รายงาน","method":"ซื้อ","amount":4000,"price":3.11,"value":12440.0},{"date":"2026-03-31","symbol":"MALEE","name":"รุ่งฉัตร บุญรัตน์","rel":"ผู้รายงาน","method":"ซื้อ","amount":122600,"price":4.17,"value":511242.0},{"date":"2026-03-31","symbol":"MBK","name":"สมพล ตรีภพนารถ","rel":"ผู้รายงาน","method":"ขาย","amount":31000,"price":17.3,"value":536300.0},{"date":"2026-03-30","symbol":"WFX","name":"ชวลิต ติยาเดชาชัย","rel":"ผู้รายงาน","method":"ซื้อ","amount":64100,"price":1.19,"value":76279.0},{"date":"2026-03-30","symbol":"PHG","name":"รณชิต แย้มสอาด","rel":"ผู้รายงาน","method":"ซื้อ","amount":40000,"price":12.42,"value":496800.0},{"date":"2026-03-30","symbol":"MALEE","name":"รุ่งฉัตร บุญรัตน์","rel":"ผู้รายงาน","method":"ซื้อ","amount":60000,"price":4.09,"value":245400.0},{"date":"2026-03-27","symbol":"ALPHAX","name":"ธีร ชุติวราภรณ์","rel":"ผู้รายงาน","method":"ขาย","amount":100000000,"price":0.45,"value":45000000.0},{"date":"2026-03-27","symbol":"GUNKUL","name":"ธรากร อังภูเบศวร์","rel":"ผู้รายงาน","method":"ขาย","amount":1409961,"price":4.2,"value":5921836.2},{"date":"2026-03-26","symbol":"TURBO","name":"สุธัช เรืองสุทธิภาพ","rel":"ผู้รายงาน","method":"ซื้อ","amount":1457600,"price":1.45,"value":2113520.0},{"date":"2026-03-25","symbol":"NDR","name":"นิตยา สัมฤทธิวณิชชา","rel":"ผู้รายงาน","method":"ขาย","amount":8239800,"price":1.5,"value":12359700.0},{"date":"2026-03-25","symbol":"NDR","name":"ชัยสิทธิ์ สัมฤทธิวณิชชา","rel":"ผู้รายงาน","method":"ขาย","amount":36255300,"price":1.5,"value":54382950.0},{"date":"2026-03-24","symbol":"OHTL","name":"ยุทธชัย จรณะจิตต์","rel":"ผู้รายงาน","method":"ซื้อ","amount":66900,"price":300.0,"value":20070000.0},{"date":"2026-03-23","symbol":"BCH","name":"กันตพร หาญพาณิชย์","rel":"ผู้รายงาน","method":"ซื้อ","amount":100000,"price":9.35,"value":935000.0},{"date":"2026-03-20","symbol":"DMT","name":"สมบัติ พานิชชีวะ","rel":"ผู้รายงาน","method":"ขาย","amount":21142392,"price":11.5,"value":243137508.0},{"date":"2026-03-19","symbol":"TURBO","name":"สุธัช เรืองสุทธิภาพ","rel":"ผู้รายงาน","method":"ซื้อ","amount":2937000,"price":1.54,"value":4522980.0},{"date":"2026-03-18","symbol":"CBG","name":"เสถียร เสถียรธรรมะ","rel":"ผู้รายงาน","method":"ซื้อ","amount":250000,"price":36.6,"value":9150000.0},{"date":"2026-03-18","symbol":"OHTL","name":"ยุทธชัย จรณะจิตต์","rel":"ผู้รายงาน","method":"ซื้อ","amount":66900,"price":300.0,"value":20070000.0},{"date":"2026-03-16","symbol":"DMT","name":"สมบัติ พานิชชีวะ","rel":"ผู้รายงาน","method":"ขาย","amount":25000000,"price":11.5,"value":287500000.0},{"date":"2026-03-11","symbol":"BDMS","name":"ปรมาภรณ์ ปราสาททองโอสถ","rel":"ผู้รายงาน","method":"ซื้อ","amount":99906620,"price":18.7,"value":1868253794.0},{"date":"2026-03-09","symbol":"TACC","name":"ชัชชวี วัฒนสุข","rel":"ผู้รายงาน","method":"ขาย","amount":400000,"price":5.5,"value":2200000.0},{"date":"2026-03-05","symbol":"DMT","name":"สมบัติ พานิชชีวะ","rel":"ผู้รายงาน","method":"ขาย","amount":25000000,"price":11.5,"value":287500000.0},{"date":"2026-03-04","symbol":"HANA","name":"ริชาร์ด เดวิด ฮัน","rel":"ผู้รายงาน","method":"ซื้อ","amount":2500000,"price":16.8,"value":42000000.0},{"date":"2026-03-04","symbol":"BCH","name":"กันตพร หาญพาณิชย์","rel":"ผู้รายงาน","method":"ซื้อ","amount":600000,"price":9.6,"value":5760000.0},{"date":"2026-03-02","symbol":"TACC","name":"ชัชชวี วัฒนสุข","rel":"ผู้รายงาน","method":"ขาย","amount":1598300,"price":5.69,"value":9094327.0},{"date":"2026-03-02","symbol":"DMT","name":"สมบัติ พานิชชีวะ","rel":"ผู้รายงาน","method":"ขาย","amount":24000000,"price":11.5,"value":276000000.0},{"date":"2026-02-27","symbol":"MALEE","name":"ชัยฉัตร บุญรัตน์","rel":"ผู้รายงาน","method":"ซื้อ","amount":1291200,"price":4.52,"value":5836224.0},{"date":"2026-02-26","symbol":"TITLE","name":"ดรงค์ หุตะจูฑะ","rel":"ผู้รายงาน","method":"ซื้อ","amount":1100000,"price":7.91,"value":8701000.0},{"date":"2026-02-19","symbol":"DELTA","name":"เซิน-ลิน เฉิน","rel":"ผู้รายงาน","method":"ซื้อ","amount":5000,"price":225.0,"value":1125000.0},{"date":"2026-02-18","symbol":"MMM","name":"สุริยา วงศ์สิทธิชัยกุล","rel":"ผู้รายงาน","method":"ซื้อ","amount":400000,"price":3.42,"value":1368000.0},{"date":"2026-01-21","symbol":"NOBLE","name":"แฟรงค์ ฟง คึ่น เหลียง","rel":"นิติบุคคล","method":"ซื้อ","amount":189527791,"price":2.32,"value":439704475.12},{"date":"2026-01-13","symbol":"GULF","name":"สารัชถ์ รัตนาวะดี","rel":"ผู้รายงาน","method":"ซื้อ","amount":2139400,"price":42.75,"value":91459350.0}];
 
@@ -223,7 +222,19 @@ function fmtVal(n) {
   return n.toLocaleString();
 }
 
-function processData(records) {
+// แสดงทุก row ตามจริง ไม่รวม — ใช้ก่อนกด Check (normal display)
+function processDataRaw(records) {
+  return records.map(r => ({
+    date: r.date, symbol: r.symbol, name: r.name,
+    buy: r.method === BUY ? r.value : 0,
+    sell: r.method === SELL ? r.value : 0,
+    closePrice: r.price, price: r.price,
+    methods: r.method,
+  })).filter(r => (r.buy + r.sell) > 0 || r.methods === "โอน");
+}
+
+// รวม buy+sell ของ date|symbol เดียวกัน — ใช้หลังกด Check (isAllChecked)
+function processDataAgg(records) {
   const groups = {};
   records.forEach((r) => {
     const key = r.date + "|" + r.symbol;
@@ -258,9 +269,7 @@ function SymbolSelect({ symbols, value, onChange, onCheckboxClick, isAllChecked,
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // checkbox checked = isAllChecked OR มี symbol เลือกอยู่
   const checked = isAllChecked || !!value;
-  // label: ถ้า All → "All", ถ้าเลือก symbol → ชื่อ symbol, ไม่มี → "Type a Symbol"
   const label = isAllChecked ? "All" : (value || "Type a Symbol");
   const labelColor = isAllChecked ? "#c9d4e8" : (value ? "#60a5fa" : "#3a506a");
 
@@ -273,7 +282,6 @@ function SymbolSelect({ symbols, value, onChange, onCheckboxClick, isAllChecked,
             onCheckboxClick && onCheckboxClick();
             return;
           }
-          // เปิด dropdown ได้ก็ต่อเมื่อมีข้อมูลแล้ว (หลังกด Check)
           if (hasData) setOpen(o => !o);
         }}
         style={{
@@ -354,16 +362,15 @@ export default function Form59Dashboard() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("2026-04-03");
 
-  const [symbolFilter, setSymbolFilter] = useState("");  // "" = All, "DMT" = filter specific
-  const [isAllChecked, setIsAllChecked] = useState(false); // checkbox state
+  const [symbolFilter, setSymbolFilter] = useState("");
+  const [isAllChecked, setIsAllChecked] = useState(false);
   const [minValue, setMinValue] = useState("");
   const [sortCol, setSortCol] = useState("date");
   const [sortDir, setSortDir] = useState(-1);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
-  // sumValueSymbols: จะมีค่าก็ต่อเมื่อกด Check แล้วเท่านั้น
-  const [sumValueSymbols, setSumValueSymbols] = useState([]); // [] = ยังไม่กด Check
+  const [sumValueSymbols, setSumValueSymbols] = useState([]);
 
   const tableWrapRef = useRef(null);
 
@@ -383,74 +390,80 @@ export default function Form59Dashboard() {
     return () => observer.disconnect();
   }, []);
 
-  const allSymbols = useMemo(
-    () => [...new Set(RAW_RECORDS.map((r) => r.symbol))].sort(),
-    []
-  );
-
   // rangeData: ข้อมูลทั้ง range → ใช้สำหรับ dropdown symbols
   const rangeData = useMemo(() => {
     let d = [...RAW_RECORDS];
     if (startDate) d = d.filter(r => r.date >= startDate);
     if (endDate) d = d.filter(r => r.date <= endDate);
-    const processed = processData(d);
+    const processed = processDataAgg(d);
     const minV = parseFloat(minValue) || 0;
     return minV > 0 ? processed.filter(r => (r.buy + r.sell) >= minV) : processed;
   }, [startDate, endDate, minValue]);
 
-  // filteredNoSymbol: ข้อมูลตาราง
-  // - start+end → ชี้ end date เท่านั้น (sum value ของวันสุดท้าย)
-  // - start หรือ end อย่างเดียว → ตามปกติ
+  // filteredNoSymbol: แสดง raw rows ทุกอัน ไม่รวม — ก่อนกด Check
   const filteredNoSymbol = useMemo(() => {
     let d = [...RAW_RECORDS];
 
-if (startDate && endDate) {
-  d = d.filter((r) => r.date >= startDate && r.date <= endDate); // ทั้งคู่ → range
-} else if (startDate) {
-  d = d.filter((r) => r.date === startDate);        // start เดียว → แค่วันนั้น
-} else if (endDate) {
-  d = d.filter((r) => r.date === endDate);          // end เดียว → แค่วันนั้น
-}
+    if (startDate && endDate) {
+      d = d.filter((r) => r.date >= startDate && r.date <= endDate);
+    } else if (startDate) {
+      d = d.filter((r) => r.date === startDate);
+    } else if (endDate) {
+      d = d.filter((r) => r.date === endDate);
+    }
 
-    const processed = processData(d);
+    const processed = processDataRaw(d);
+    const minV = parseFloat(minValue) || 0;
+    return minV > 0 ? processed.filter(r => (r.buy + r.sell) >= minV) : processed;
+  }, [startDate, endDate, minValue]);
+
+  // aggregatedByDateSymbol: รวม buy+sell ของหุ้นซ้ำในวันเดียวกัน — ใช้หลังกด Check
+  const aggregatedByDateSymbol = useMemo(() => {
+    let d = [...RAW_RECORDS];
+    if (startDate && endDate) {
+      d = d.filter((r) => r.date >= startDate && r.date <= endDate);
+    } else if (startDate) {
+      d = d.filter((r) => r.date === startDate);
+    } else if (endDate) {
+      d = d.filter((r) => r.date === endDate);
+    }
+    const processed = processDataAgg(d);
     const minV = parseFloat(minValue) || 0;
     return minV > 0 ? processed.filter(r => (r.buy + r.sell) >= minV) : processed;
   }, [startDate, endDate, minValue]);
 
   function handleCheck() {
-  const allSyms = [...new Set(
-    rangeData.filter(r => (r.buy + r.sell) > 0).map(r => r.symbol)
-  )].sort();
-  setSumValueSymbols(allSyms);
-  setSymbolFilter("");
-  setIsAllChecked(false);
-  setPage(1);
-}
-
-  // filtered → isAllChecked = top symbol ของแต่ละวัน, symbolFilter = ทุก record ของ symbol นั้น
-const filtered = useMemo(() => {
-  let result = [...filteredNoSymbol];
-
-  if (isAllChecked) {
-    const byDate = {};
-    result.forEach(r => {
-      if (!byDate[r.date] || (r.buy + r.sell) > (byDate[r.date].buy + byDate[r.date].sell)) {
-        byDate[r.date] = r;
-      }
-    });
-    result = Object.values(byDate);
-  } else if (symbolFilter) {
-    result = result.filter(r => r.symbol === symbolFilter);
+    const allSyms = [...new Set(
+      rangeData.filter(r => (r.buy + r.sell) > 0).map(r => r.symbol)
+    )].sort();
+    setSumValueSymbols(allSyms);
+    setSymbolFilter("");
+    setIsAllChecked(false);
+    setPage(1);
   }
 
-  return result.sort((a, b) => {
-    let va, vb;
-    if (sortCol === "totalValue") { va = a.buy + a.sell; vb = b.buy + b.sell; }
-    else { va = a[sortCol] ?? 0; vb = b[sortCol] ?? 0; }
-    if (typeof va === "string") return va.localeCompare(vb) * sortDir;
-    return (va - vb) * sortDir;
-  });
-}, [filteredNoSymbol, symbolFilter, isAllChecked, sumValueSymbols, sortCol, sortDir]);
+  const filtered = useMemo(() => {
+    let result;
+
+    if (isAllChecked) {
+      // หลังกด Check + ติ๊ก All → ใช้ข้อมูล aggregate (ซ้ำรวม, ไม่ซ้ำปกติ)
+      result = [...aggregatedByDateSymbol];
+    } else if (symbolFilter) {
+      // เลือก symbol เฉพาะ → ก็ใช้ aggregate เพื่อรวมซ้ำด้วย
+      result = aggregatedByDateSymbol.filter(r => r.symbol === symbolFilter);
+    } else {
+      // ปกติ (ยังไม่ tick) → raw rows ทุกอัน ไม่รวม
+      result = [...filteredNoSymbol];
+    }
+
+    return result.sort((a, b) => {
+      let va, vb;
+      if (sortCol === "totalValue") { va = a.buy + a.sell; vb = b.buy + b.sell; }
+      else { va = a[sortCol] ?? 0; vb = b[sortCol] ?? 0; }
+      if (typeof va === "string") return va.localeCompare(vb) * sortDir;
+      return (va - vb) * sortDir;
+    });
+  }, [filteredNoSymbol, aggregatedByDateSymbol, symbolFilter, isAllChecked, sortCol, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -551,10 +564,6 @@ const filtered = useMemo(() => {
     <div style={S.wrap}>
       {/* ── TOP BAR ── */}
       <div style={S.topBar}>
-        <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
-          Stockdatatable - Sum Value จะแสดงเฉพาะ symbol ที่มีมูลค่าซื้อ+ขายสูงสุดของแต่ละวันในช่วงที่เลือก (ถ้าเลือกทั้ง start+end จะดูแค่วันที่ end) และสามารถเลือกดูเฉพาะ symbol นั้นๆ หรือทั้งหมดได้ด้วย checkbox
-        </ToolHint>
-
         <button style={S.resetBtn} onClick={reset} title="Reset filters">↺</button>
         <div style={S.divider} />
 
@@ -593,7 +602,6 @@ const filtered = useMemo(() => {
               setPage(1);
             }}
             onCheckboxClick={() => {
-              // กดติ๊ก checkbox → toggle All
               if (!isAllChecked) {
                 setIsAllChecked(true);
                 setSymbolFilter("");
