@@ -210,7 +210,6 @@ function ChartRenderer({ dataKey, isStep, globalHoverIndex, setGlobalHoverIndex,
   const [chartHeight, setChartHeight] = useState(200);
   const dragState = useRef({ active: false, startX: 0, scrollLeft: 0 });
 
-  // ── วัดความสูง container จริงด้วย ResizeObserver ──────────────────────────
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -230,8 +229,6 @@ function ChartRenderer({ dataKey, isStep, globalHoverIndex, setGlobalHoverIndex,
   );
 
   const yScale = calcYScale(datasets.flat());
-
-  // ── ใช้ chartHeight แบบ dynamic แทน fixed height ──────────────────────────
   const cfg = { ...CHART_CONFIG, height: chartHeight };
   const normalizeY = makeNormalizeY(cfg, yScale);
   const { paddingLeft, paddingRight, paddingTop, paddingBottom, pointGap, height, minWidth } = cfg;
@@ -308,11 +305,9 @@ function ChartRenderer({ dataKey, isStep, globalHoverIndex, setGlobalHoverIndex,
             return <line key={`grid-h-${i}`} x1={0} y1={y} x2={chartWidth} y2={y} stroke="#1e293b" strokeWidth="1" />;
           })}
           <line x1={0} y1={height - paddingBottom} x2={chartWidth} y2={height - paddingBottom} stroke="#334155" strokeWidth="1.5" />
-
           {[...Array(dataLength)].map((_, i) => (
             <text key={`label-${i}`} x={paddingLeft + i * pointGap} y={height - paddingBottom + 16} fill="#64748b" fontSize="9" textAnchor="middle">{LABELS[i]}</text>
           ))}
-
           {datasets.map((data, idx) => {
             const color = COLORS[idx % COLORS.length];
             const linePath = isStep ? buildStepPath(data, normalizeY, paddingLeft, pointGap) : buildCurvePath(data, normalizeY, paddingLeft, pointGap);
@@ -337,7 +332,6 @@ function ChartRenderer({ dataKey, isStep, globalHoverIndex, setGlobalHoverIndex,
               </g>
             );
           })}
-
           {isHovering && (
             <line x1={hoverX} y1={paddingTop} x2={hoverX} y2={height - paddingBottom} stroke="#475569" strokeWidth="1" strokeDasharray="4 4" />
           )}
@@ -483,95 +477,112 @@ function ClosePriceBig({ globalHoverIndex, symbolProp, oilTypesProp }) {
   );
 }
 
-// ── SymbolDropdown ─────────────────────────────────────────────────────────
-function SymbolDropdown({ symbol, onSelect, disabled }) {
+// ── SymbolSearch (แบบ RubberThai: inline input + dropdown) ────────────────────
+function SymbolSearch({ symbol, onSelect, disabled }) {
   const ref = useRef(null);
   const [open, setOpen] = useDropdown(ref);
+  const [query, setQuery] = useState("");
+
+  // sync query กับ symbol ที่เลือกจากภายนอก
+  useEffect(() => { setQuery(symbol); }, [symbol]);
+
+  const filteredSymbols = SYMBOL_LIST.filter((s) =>
+    s.toLowerCase().includes(query.toLowerCase())
+  );
+
+  function handleSelect(item) {
+    if (disabled) return;
+    setQuery(item);
+    setOpen(false);
+    onSelect(item);
+  }
+
+  function handleClear(e) {
+    e.stopPropagation();
+    if (disabled) return;
+    setQuery("");
+    setOpen(false);
+    onSelect("");
+  }
 
   return (
-    <div ref={ref} className="relative w-full sm:w-[220px] shrink-0">
-      <button
-        type="button"
-        disabled={disabled}
-        className="relative w-full h-[44px] bg-[#111827] border border-slate-700 rounded-md pl-9 pr-3 text-sm text-white flex items-center justify-between hover:border-slate-500 transition disabled:opacity-50"
-        onClick={() => setOpen((o) => !o)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-      >
-        <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fontSize="small" />
-        <span className={`min-w-0 flex-1 truncate text-left ${symbol ? "text-white" : "text-slate-400"}`}>
-          {symbol || "Select symbol..."}
-        </span>
-
-        <div className="ml-2 flex items-center gap-2 shrink-0">
-          {symbol && (
-            <span
-              role="button"
-              tabIndex={0}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect("");
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.stopPropagation();
-                  onSelect("");
-                }
-              }}
-              className="text-slate-400 hover:text-white text-xs cursor-pointer"
-              aria-label="Clear symbol"
+    <div ref={ref} className="relative w-full sm:w-[200px] shrink-0">
+      {/* Input bar — เหมือน RubberThai */}
+      <div className="relative bg-[#111827] border border-slate-700 rounded-lg px-3 py-2 flex items-center shadow-inner h-[44px]">
+        <SearchIcon
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+          fontSize="small"
+        />
+        <input
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+            onSelect(""); // ล้าง symbol เมื่อพิมพ์ใหม่
+          }}
+          onFocus={() => setOpen(true)}
+          disabled={disabled}
+          placeholder="Type a Symbol..."
+          className="flex-1 bg-transparent outline-none text-white text-sm placeholder:text-slate-500 min-w-0 pl-7 disabled:opacity-50"
+        />
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          {/* ปุ่ม clear */}
+          {(symbol || query) && !disabled && (
+            <button
+              onClick={handleClear}
+              className="text-slate-400 hover:text-white text-xs leading-none"
+              title="Clear symbol"
             >
               ✕
-            </span>
+            </button>
           )}
-
+          {/* toggle arrow */}
           <span
-            className={`text-slate-400 text-xs transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            onClick={() => !disabled && setOpen((o) => !o)}
+            className={`text-slate-400 text-xs cursor-pointer transition-transform duration-200 ${open ? "rotate-180" : ""}`}
           >
             ▾
           </span>
         </div>
-      </button>
+      </div>
 
+      {/* Dropdown list */}
       {open && (
-        <ul
-          role="listbox"
-          className="absolute top-full left-0 mt-2 w-full bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl max-h-[300px] overflow-y-auto z-50 p-2"
-        >
-          {SYMBOL_LIST.map((item) => {
-            const isSelected = symbol === item;
-
-            return (
-              <li
-                key={item}
-                role="option"
-                aria-selected={isSelected}
-                onClick={() => {
-                  onSelect(item);
-                  setOpen(false);
-                }}
-                className={`px-3 py-2.5 rounded-lg text-sm flex items-center justify-between cursor-pointer transition-colors mb-1
-                  ${isSelected ? "bg-[#1e293b] text-white" : "text-slate-400 hover:bg-[#162032] hover:text-slate-200"}`}
-              >
-                <span className="truncate">{item}</span>
-
-                {isSelected && (
-                  <div className="w-4 h-4 rounded-full bg-cyan-500 flex items-center justify-center shrink-0">
-                    <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
-                    </svg>
-                  </div>
-                )}
-              </li>
-            );
-          })}
+        <ul className="absolute top-full left-0 mt-2 w-full bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl max-h-[300px] overflow-y-auto z-50 p-2">
+          {filteredSymbols.length > 0 ? (
+            filteredSymbols.map((item) => {
+              const isSelected = symbol === item;
+              return (
+                <li
+                  key={item}
+                  onClick={() => handleSelect(item)}
+                  className={`px-3 py-2.5 rounded-lg text-sm flex items-center justify-between cursor-pointer transition-colors mb-1
+                    ${isSelected
+                      ? "bg-[#1e293b] text-white"
+                      : "text-slate-400 hover:bg-[#162032] hover:text-slate-200"
+                    }`}
+                >
+                  <span className="truncate">{item}</span>
+                  {isSelected && (
+                    <div className="w-4 h-4 rounded-full bg-cyan-500 flex items-center justify-center shrink-0">
+                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                      </svg>
+                    </div>
+                  )}
+                </li>
+              );
+            })
+          ) : (
+            <li className="px-4 py-3 text-sm text-slate-500 text-center">No results found</li>
+          )}
         </ul>
       )}
     </div>
   );
 }
 
-// ── OilTypeDropdown ────────────────────────────────────────────────────────
+// ── OilTypeDropdown (เหมือนเดิม) ────────────────────────────────────────────
 function OilTypeDropdown({ selectedOilTypes, onToggle, disabled }) {
   const ref = useRef(null);
   const [open, setOpen] = useDropdown(ref);
@@ -591,15 +602,8 @@ function OilTypeDropdown({ selectedOilTypes, onToggle, disabled }) {
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className="min-w-0 flex-1 truncate text-left text-slate-300">
-          {label}
-        </span>
-
-        <span
-          className={`ml-2 text-slate-400 text-xs shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-        >
-          ▾
-        </span>
+        <span className="min-w-0 flex-1 truncate text-left text-slate-300">{label}</span>
+        <span className={`ml-2 text-slate-400 text-xs shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▾</span>
       </button>
 
       {open && (
@@ -610,7 +614,6 @@ function OilTypeDropdown({ selectedOilTypes, onToggle, disabled }) {
         >
           {OIL_TYPES_LIST.map((ot) => {
             const isSelected = selectedOilTypes.includes(ot);
-
             return (
               <li
                 key={ot}
@@ -620,24 +623,16 @@ function OilTypeDropdown({ selectedOilTypes, onToggle, disabled }) {
                 className={`px-3 py-2.5 rounded-lg text-sm flex items-center gap-3 cursor-pointer transition-colors mb-1
                   ${isSelected ? "bg-[#1e293b] text-white" : "text-slate-400 hover:bg-[#162032] hover:text-slate-200"}`}
               >
-                <div
-                  className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                    isSelected ? "border-cyan-500 bg-cyan-500" : "border-slate-500"
-                  }`}
-                >
+                <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${isSelected ? "border-cyan-500 bg-cyan-500" : "border-slate-500"}`}>
                   {isSelected && (
                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
                     </svg>
                   )}
                 </div>
-
                 <div className="flex items-center gap-2 min-w-0">
                   {isSelected && (
-                    <div
-                      className="w-2 h-2 rounded-full shrink-0"
-                      style={{ backgroundColor: COLORS[OIL_TYPES_LIST.indexOf(ot) % COLORS.length] }}
-                    />
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[OIL_TYPES_LIST.indexOf(ot) % COLORS.length] }} />
                   )}
                   <span className="truncate">{ot}</span>
                 </div>
@@ -649,6 +644,7 @@ function OilTypeDropdown({ selectedOilTypes, onToggle, disabled }) {
     </div>
   );
 }
+
 // ── MAIN EXPORT ───────────────────────────────────────────────────────────────
 export default function PetroleumInsights() {
   const navigate = useNavigate();
@@ -798,40 +794,20 @@ export default function PetroleumInsights() {
       <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left border-l-4 border-cyan-500 pl-4">
         6 Main Features
       </h2>
-      <div
-        className="relative group"
-        onMouseEnter={() => {
-          isPaused.current = true;
-        }}
-        onMouseLeave={() => {
-          isPaused.current = false;
-        }}
-      >
+      <div className="relative group" onMouseEnter={() => { isPaused.current = true; }} onMouseLeave={() => { isPaused.current = false; }}>
         <button
           onClick={() => scroll("left")}
           aria-label="Scroll Left"
-          className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${
-            showLeft ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
-          }`}
+          className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${showLeft ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <div
-          ref={scrollContainerRef}
-          onScroll={checkScroll}
-          className="flex overflow-x-auto gap-6 py-4 px-1 hide-scrollbar"
-          style={scrollbarHideStyle}
-        >
+        <div ref={scrollContainerRef} onScroll={checkScroll} className="flex overflow-x-auto gap-6 py-4 px-1 hide-scrollbar" style={scrollbarHideStyle}>
           {features.map((item, index) => (
-            <div
-              key={index}
-              className="w-[350px] md:w-[400px] flex-shrink-0 group/card bg-[#0f172a]/60 border border-slate-700/50 p-8 rounded-xl hover:bg-[#1e293b]/60 hover:border-cyan-500/30 transition duration-300"
-            >
-              <h3 className="text-xl font-bold text-white mb-3 group-hover/card:text-cyan-400 transition-colors">
-                {item.title}
-              </h3>
+            <div key={index} className="w-[350px] md:w-[400px] flex-shrink-0 group/card bg-[#0f172a]/60 border border-slate-700/50 p-8 rounded-xl hover:bg-[#1e293b]/60 hover:border-cyan-500/30 transition duration-300">
+              <h3 className="text-xl font-bold text-white mb-3 group-hover/card:text-cyan-400 transition-colors">{item.title}</h3>
               <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
             </div>
           ))}
@@ -839,9 +815,7 @@ export default function PetroleumInsights() {
         <button
           onClick={() => scroll("right")}
           aria-label="Scroll Right"
-          className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${
-            showRight ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
-          }`}
+          className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${showRight ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
@@ -862,17 +836,11 @@ export default function PetroleumInsights() {
           {featuresSection}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-4 w-full max-w-sm">
             {!currentUser && (
-              <button
-                onClick={() => navigate("/welcome")}
-                className="w-full sm:w-auto px-8 py-3 rounded-full bg-slate-800 text-white font-semibold border border-slate-600 hover:bg-slate-700 hover:border-slate-500 transition-all duration-300"
-              >
+              <button onClick={() => navigate("/welcome")} className="w-full sm:w-auto px-8 py-3 rounded-full bg-slate-800 text-white font-semibold border border-slate-600 hover:bg-slate-700 hover:border-slate-500 transition-all duration-300">
                 Sign In
               </button>
             )}
-            <button
-              onClick={() => navigate("/member-register")}
-              className="w-full sm:w-auto px-8 py-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold hover:brightness-110 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300"
-            >
+            <button onClick={() => navigate("/member-register")} className="w-full sm:w-auto px-8 py-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold hover:brightness-110 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300">
               Join Membership
             </button>
           </div>
@@ -909,7 +877,6 @@ export default function PetroleumInsights() {
     const sharedChartProps = { globalHoverIndex, setGlobalHoverIndex, chartRefs, symbolProp: symbol, oilTypesProp: selectedOilTypes };
 
     return (
-      // 1. ใช้ h-[100dvh] เพื่อให้เต็มจอเสมอ และ overflow-y-auto ให้เลื่อนจอได้ถ้าพื้นที่ความสูงไม่พอ
       <div className="w-full h-[100dvh] overflow-y-auto bg-[#0c111b] text-white px-3 md:px-6 py-4 md:py-6 flex flex-col">
         <div className="w-full mx-auto flex flex-col flex-1 min-h-0">
 
@@ -919,8 +886,19 @@ export default function PetroleumInsights() {
               <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
                 Multi-asset oil price tracking, monitor fuel type variations, analyze exchange refinery rates, track market margins, and display historical price data
               </ToolHint>
-              <SymbolDropdown symbol={symbol} onSelect={handleSymbolSelect} disabled={refreshing} />
-              <OilTypeDropdown selectedOilTypes={selectedOilTypes} onToggle={handleOilTypeToggle} disabled={refreshing} />
+
+              {/* SymbolSearch แบบ RubberThai แทน SymbolDropdown เดิม */}
+              <SymbolSearch
+                symbol={symbol}
+                onSelect={handleSymbolSelect}
+                disabled={refreshing}
+              />
+
+              <OilTypeDropdown
+                selectedOilTypes={selectedOilTypes}
+                onToggle={handleOilTypeToggle}
+                disabled={refreshing}
+              />
             </div>
             <div className="flex flex-wrap gap-1.5">
               {["3M", "6M", "1Y", "YTD", "MAX"].map((p) => (
@@ -936,15 +914,12 @@ export default function PetroleumInsights() {
           </div>
 
           {/* ── Chart grid ────────────────────────────────────────────────── */}
-          {/* 2. เปลี่ยนเป็น lg:grid-cols-2 และใช้ gridAutoRows: "minmax(280px, 1fr)" */}
           {refreshing ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0" style={{ gridAutoRows: "minmax(280px, 1fr)" }}>
               {skeletonCards.map((card) => (
                 <div key={card.key} className="bg-[#111827] rounded-xl border border-slate-700/60 p-4 h-full min-h-0 flex flex-col">
                   <div className="mb-3"><span className="text-xs text-slate-400">{card.title}</span></div>
-                  <div className="flex-1 min-h-0">
-                    <WaveSkeleton delay={card.delay} />
-                  </div>
+                  <div className="flex-1 min-h-0"><WaveSkeleton delay={card.delay} /></div>
                 </div>
               ))}
             </div>
