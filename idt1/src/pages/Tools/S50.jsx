@@ -1,4 +1,3 @@
-// src/pages/tools/S50.jsx
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -279,11 +278,16 @@ function ChartCard({
               })}
               <line x1={0} y1={height - paddingBottom} x2={chartWidth} y2={height - paddingBottom} stroke="#334155" strokeWidth="1.5" />
 
-              {data.map((_, i) => (
-                <text key={i} x={paddingLeft + i * pointGap} y={height - paddingBottom + 16} fill="#64748b" fontSize="9" textAnchor="middle">
-                  {LABELS[i % LABELS.length]}
-                </text>
-              ))}
+              {/* แก้ไขการแสดงผลวันที่ (X-axis labels) ตรงนี้ */}
+              {data.map((_, i) => {
+                // เว้นระยะแสดงผลทุกๆ 3 จุด เพื่อไม่ให้ซ้อนทับกัน
+                if (i % 3 !== 0) return null;
+                return (
+                  <text key={i} x={paddingLeft + i * pointGap} y={height - paddingBottom + 16} fill="#64748b" fontSize="9" textAnchor="middle">
+                    {LABELS[i % LABELS.length]}
+                  </text>
+                );
+              })}
 
               <defs>
                 <linearGradient id={areaId} x1="0" y1="0" x2="0" y2="1">
@@ -481,7 +485,7 @@ export default function S50() {
 
   /* ==========================================================
     SHARED JSX — Features Scroll Section
-  ========================================================== */
+  ========================================================= */
   const featuresSectionJSX = (
     <div className="w-full max-w-5xl mb-12">
       <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left border-l-4 border-cyan-500 pl-4">
@@ -553,7 +557,7 @@ export default function S50() {
   );
 
   const dashboardPreviewJSX = (
-    <div className="relative group w-full max-w-5xl mb-16"> {/* 1. เปลี่ยนจาก max-w-6xl เป็น max-w-5xl */}
+    <div className="relative group w-full max-w-5xl mb-16">
       <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700"></div>
       <div className="relative bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
         <div className="bg-[#0f172a] px-4 py-3 flex items-center justify-between border-b border-slate-700/50">
@@ -564,7 +568,6 @@ export default function S50() {
           </div>
         </div>
         
-        {/* 2. เพิ่ม Effect ซูมและสว่างขึ้นตอนนำเมาส์ไปชี้ ให้เหมือนฝั่ง Gold */}
         <div className="w-full bg-[#0B1221] relative overflow-hidden group">
           <div className="opacity-90 group-hover:opacity-100 group-hover:scale-[1.01] transition duration-500 ease-out origin-center">
             <ScaledDashboardPreview dashboardWidth={1200} dashboardHeight={625} />
@@ -577,7 +580,7 @@ export default function S50() {
 
   /* ==========================================================
     CASE 1 : PREVIEW VERSION (Not Member)
-  ========================================================== */
+  ========================================================= */
   if (!isMember) {
     return (
       <div className="relative w-full min-h-screen text-white overflow-x-hidden animate-fade-in pb-20">
@@ -621,7 +624,7 @@ export default function S50() {
 
   /* ==========================================================
     CASE 2 : START SCREEN (Member but not entered)
-  ========================================================== */
+  ========================================================= */
   if (isMember && !enteredTool) {
     return (
       <div className="relative w-full min-h-screen text-white overflow-x-hidden animate-fade-in pb-20">
@@ -658,8 +661,7 @@ export default function S50() {
 
   /* ==========================================================
     CASE 3 : FULL DASHBOARD (Member + Entered)
-    — เปลี่ยนเป็น h-[100dvh] + gridAutoRows เหมือน Petroleum
-  ========================================================== */
+  ========================================================= */
   return (
     <div className="w-full h-[100dvh] overflow-y-auto bg-[#0b111a] text-white px-3 sm:px-6 py-4 sm:py-6 flex flex-col">
       <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
