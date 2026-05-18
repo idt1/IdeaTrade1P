@@ -248,15 +248,11 @@ function EmptyChartCard({ title = "Symbol...", message = "Type a symbol above", 
         </div>
       </div>
       <div style={{ flex:1, position:"relative", background:"#080e1a", borderRadius:6, overflow:"hidden", border:`1px solid ${C.border}`, minHeight:minHeight - 70 }}>
-        <GridPattern/>
-        <div style={{ position:"absolute", bottom:22, left:0, right:0, height:1, background:C.border }}/>
-        {[0.2,0.4,0.6,0.8].map((x,i) => (
-          <div key={i} style={{ position:"absolute", bottom:6, left:`${x*100}%`, width:24, height:8, background:C.border, borderRadius:2, transform:"translateX(-50%)" }}/>
-        ))}
-        <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
-          <span style={{ color:C.textMuted, fontSize:13, fontWeight:500, textAlign:"center", padding:"0 16px", opacity:0.7 }}>{message}</span>
-        </div>
-      </div>
+  <GridPattern/>
+  <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+    <span style={{ color:C.textMuted, fontSize:13, fontWeight:500, textAlign:"center", padding:"0 16px", opacity:0.7 }}>{message}</span>
+  </div>
+</div>
     </div>
   );
 }
