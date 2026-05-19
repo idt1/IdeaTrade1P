@@ -30,6 +30,9 @@ function getRowCount(category, type) {
 
 const VISIBLE_ROWS = 5;
 const MAX_SELECT   = 5;
+const ROW_H        = 40;
+const HEADER_H     = 36;
+const TABLE_H      = HEADER_H + VISIBLE_ROWS * ROW_H; // 236px — ยังคงใช้เป็น min-height
 
 /* ================= RNG + FLOW DATA ================= */
 function rng(s) {
@@ -582,9 +585,6 @@ const LWCChart = ({
 };
 
 /* ================= RANK TABLE ================= */
-const ROW_H   = 40;
-const TABLE_H = 36 + VISIBLE_ROWS * ROW_H;
-
 const RankTable = ({ data, flashMap = {}, recentMap = {}, highlighted, extraVisibleSet = [], totalCount, onRowClick, onChartFlipClick }) => {
   const containerRef = useRef(null);
   const [containerW, setContainerW] = useState(460);
@@ -597,6 +597,7 @@ const RankTable = ({ data, flashMap = {}, recentMap = {}, highlighted, extraVisi
   }, []);
 
   const isTiny = containerW < 360;
+  // ปรับ grid columns ให้ยืดหยุ่นตาม container width
   const COL    = isTiny ? "30px 1fr 90px 72px" : "36px 1fr 90px 80px 48px";
   const hiArr  = Array.isArray(highlighted) ? highlighted : (highlighted != null ? [highlighted] : []);
   const allSelected = new Set([...hiArr, ...extraVisibleSet]);
@@ -611,7 +612,7 @@ const RankTable = ({ data, flashMap = {}, recentMap = {}, highlighted, extraVisi
       }}>
       <div style={{
         display: "grid", gridTemplateColumns: COL,
-        alignItems: "center", padding: "0 10px", height: 36,
+        alignItems: "center", padding: "0 10px", height: HEADER_H,
         background: "#0a1525",
         borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0,
       }}>
@@ -789,14 +790,29 @@ const FullscreenRankings = ({ data, flashMap = {}, recentMap = {}, totalCount, h
 };
 
 /* ================= SHELLS ================= */
+
+/**
+ * DesktopShell: ใช้ flex-basis + minmax แทน fixed width
+ * - chart: flex 3 (ประมาณ 60%)
+ * - table: flex 2 (ประมาณ 40%) มี min-width 280px / max-width 520px
+ */
 const DesktopShell = ({ chart, table }) => (
-  <div style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
-    <div style={{ flex: 1, minWidth: 0, height: TABLE_H }}>{chart}</div>
-    <div style={{ width: 460, flexShrink: 0, height: TABLE_H, overflow: "hidden" }}>{table}</div>
+  <div style={{ display: "flex", gap: 12, alignItems: "stretch", height: TABLE_H }}>
+    <div style={{ flex: "3 1 0", minWidth: 0, height: "100%" }}>{chart}</div>
+    <div style={{
+      flex: "2 1 0",
+      minWidth: 280,
+      maxWidth: 520,
+      flexShrink: 0,
+      height: "100%",
+      overflow: "hidden",
+    }}>
+      {table}
+    </div>
   </div>
 );
 
-const MobileShell = ({ chart, table, timePeriod, setTimePeriod }) => {
+const MobileShell = ({ chart, table }) => {
   const [activeTab, setActiveTab] = useState("chart");
 
   const TabBtn = ({ id, label }) => (
@@ -820,13 +836,12 @@ const MobileShell = ({ chart, table, timePeriod, setTimePeriod }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
-      {/* Segmented Control Tab bar */}
-      <div style={{ 
-        display: "flex", 
-        background: "#0a1525", 
-        borderRadius: 8, 
-        padding: 4, 
-        marginBottom: 10 
+      <div style={{
+        display: "flex",
+        background: "#0a1525",
+        borderRadius: 8,
+        padding: 4,
+        marginBottom: 10
       }}>
         <TabBtn id="chart" label="Chart" />
         <TabBtn id="table" label="Rankings" />
@@ -899,7 +914,7 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
     return () => window.removeEventListener("keydown", onKey);
   }, [isFullscreen]);
 
-  /* ── FULLSCREEN LAYOUT — ไม่แตะ ── */
+  /* ── FULLSCREEN LAYOUT ── */
   if (isFullscreen) {
     const isNarrowFS = bp === "xs" || bp === "sm" || bp === "md";
     return (
@@ -1001,7 +1016,9 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
             />
           </div>
           <div style={{
-            width: isNarrowFS ? "100%" : 300,
+            width: isNarrowFS ? "100%" : "30%",
+            minWidth: isNarrowFS ? undefined : 260,
+            maxWidth: isNarrowFS ? undefined : 360,
             height: isNarrowFS ? 260 : undefined,
             flexShrink: 0, background: "#07111c",
             borderLeft: isNarrowFS ? "none" : "1px solid rgba(255,255,255,0.07)",
@@ -1023,8 +1040,6 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
   }
 
   /* ── NORMAL (card) LAYOUT ── */
-
-  // สร้าง elements ก่อนส่งเข้า Shell
   const chartEl = (
     <LWCChart
       seriesData={allSeriesData}
@@ -1100,12 +1115,7 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
         </div>
 
         {isMobile
-          ? <MobileShell
-              chart={chartEl}
-              table={tableEl}
-              timePeriod={timePeriod}
-              setTimePeriod={setTimePeriod}
-            />
+          ? <MobileShell chart={chartEl} table={tableEl} />
           : <DesktopShell chart={chartEl} table={tableEl} />
         }
       </div>
@@ -1163,9 +1173,8 @@ function IdeatradePoint({ onChartFlipClick }) {
       `}</style>
 
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: "16px 20px" }}>
-        
+
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
-          {/* แถวแรก: โลโก้/Hint, Search และ History */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
               <ToolHint onViewDetails={() => { window.scrollTo({ top: 0 }); }}>
@@ -1187,7 +1196,7 @@ function IdeatradePoint({ onChartFlipClick }) {
                 )}
               </div>
             </div>
-            
+
             <button onClick={() => navigate("/hisideatradepoint")} style={{
               display: "flex", alignItems: "center", gap: 5,
               padding: "8px 12px", borderRadius: 8, fontSize: 13, fontWeight: 600,
@@ -1201,7 +1210,6 @@ function IdeatradePoint({ onChartFlipClick }) {
             </button>
           </div>
 
-          {/* แถวที่สอง: หมวดหมู่แบบเลื่อนได้ (Horizontal Scroll) */}
           <div className="custom-scrollbar-x" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {CATEGORIES.map(cat => {
               const isActive = activeCategory === cat;
