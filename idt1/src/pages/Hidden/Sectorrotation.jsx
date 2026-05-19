@@ -248,11 +248,11 @@ function EmptyChartCard({ title = "Symbol...", message = "Type a symbol above", 
         </div>
       </div>
       <div style={{ flex:1, position:"relative", background:"#080e1a", borderRadius:6, overflow:"hidden", border:`1px solid ${C.border}`, minHeight:minHeight - 70 }}>
-  <GridPattern/>
-  <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
-    <span style={{ color:C.textMuted, fontSize:13, fontWeight:500, textAlign:"center", padding:"0 16px", opacity:0.7 }}>{message}</span>
-  </div>
-</div>
+        <GridPattern/>
+        <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+          <span style={{ color:C.textMuted, fontSize:13, fontWeight:500, textAlign:"center", padding:"0 16px", opacity:0.7 }}>{message}</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -347,7 +347,6 @@ function SectorMultiSelect({ options, selected, onChange, max=10 }) {
   return (
     <div ref={dropdownRef} style={{position:"relative",zIndex:150}}>
       <div onClick={()=>setIsOpen(!isOpen)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:C.dropdownBg,border:`1px solid ${C.border}`,borderRadius:8,padding:"0 12px",height:36,width:220,cursor:"pointer"}}>
-        {/* ── จุดที่ 1: เปลี่ยน placeholder ── */}
         <div style={{display:"flex",alignItems:"center",gap:8}}><IconLineChart/><span style={{color:selected.length>0?C.textPrimary:C.textMuted,fontSize:13}}>{selected.length>0?`${selected.length}/${max} Selected`:"Filter by sector..."}</span></div>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           {selected.length>0&&(<div onClick={e=>{e.stopPropagation();onChange([]);}} style={{display:"flex",alignItems:"center",color:"#7a9cc4",cursor:"pointer"}}><IconX/></div>)}
@@ -356,7 +355,6 @@ function SectorMultiSelect({ options, selected, onChange, max=10 }) {
       </div>
       {isOpen&&(<div style={{position:"absolute",top:"100%",left:0,marginTop:4,background:C.dropdownBg,border:`1px solid ${C.border}`,borderRadius:8,width:220,zIndex:150,boxShadow:"0 10px 25px -5px rgba(0,0,0,0.8)",display:"flex",flexDirection:"column",maxHeight:280}}>
         <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{color:"#9ab",fontSize:13,fontWeight:500}}>{selected.length}/{max} Selected</span><div style={{transform:"rotate(180deg)",cursor:"pointer",color:"#7a9cc4",display:"flex",alignItems:"center"}} onClick={e=>{e.stopPropagation();setIsOpen(false);}}><IconCaret/></div></div>
-        {/* ── จุดที่ 2: เปลี่ยน placeholder input ── */}
         <div style={{padding:"8px 14px"}}><input autoFocus type="text" placeholder="Search sector..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:"100%",background:C.inputBg,border:`1px solid ${C.border}`,color:"#fff",fontSize:12,padding:"6px",borderRadius:4,outline:"none"}}/></div>
         <div className="custom-scrollbar" style={{padding:"6px 0",overflowY:"auto",flex:1}}>
           {filtered.length===0?(<div style={{padding:"12px",color:C.textMuted,fontSize:12,textAlign:"center"}}>No match found</div>):filtered.map(opt=>{ const isSel=selected.includes(opt); const isDis=!isSel&&selected.length>=max; return(<label key={opt} style={{padding:"8px 14px",display:"flex",alignItems:"center",gap:12,cursor:isDis?"not-allowed":"pointer",opacity:isDis?0.5:1,margin:0}} onMouseEnter={e=>{if(!isDis)e.currentTarget.style.background="rgba(26,39,68,0.8)";}} onMouseLeave={e=>e.currentTarget.style.background="transparent"}><input type="checkbox" checked={isSel} disabled={isDis} onChange={()=>!isDis&&toggleOption(opt)} style={{width:16,height:16,cursor:isDis?"not-allowed":"pointer"}}/><span style={{color:isSel?C.textPrimary:"#7a9cc4",fontSize:13,fontWeight:isSel?600:400}}>{opt}</span></label>); })}
@@ -457,16 +455,17 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
   const btnBase = { background:"transparent", border:`1px solid ${C.accentBorder}`, borderRadius:6, padding:"0 14px", height:30, fontSize:11, fontWeight:600, cursor:"pointer", color:C.accent, letterSpacing:".04em", transition:"all .15s", fontFamily:"inherit" };
   return (
     <div style={{position:"fixed",inset:0,zIndex:9999,background:C.pageBg,display:"flex",flexDirection:"column"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",height:52,background:C.toolbarBg,borderBottom:`1px solid ${C.border}`,flexShrink:0,zIndex:20,gap:12}}>
-        <div style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
-          <button onClick={onClose} style={{display:"flex",alignItems:"center",gap:5,background:"transparent",border:`1px solid ${C.border}`,borderRadius:6,padding:"5px 12px",height:32,color:"#7a9cc4",cursor:"pointer",fontSize:13,fontFamily:"inherit",transition:"all .15s"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="#334d6e";e.currentTarget.style.color=C.textPrimary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color="#7a9cc4";}}>
+      {/* ── Expanded toolbar ── */}
+      <div className="expanded-toolbar" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",height:52,background:C.toolbarBg,borderBottom:`1px solid ${C.border}`,flexShrink:0,zIndex:20,gap:12}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0}}>
+          <button onClick={onClose} style={{display:"flex",alignItems:"center",gap:5,background:"transparent",border:`1px solid ${C.border}`,borderRadius:6,padding:"5px 12px",height:32,color:"#7a9cc4",cursor:"pointer",fontSize:13,fontFamily:"inherit",transition:"all .15s",flexShrink:0}} onMouseEnter={e=>{e.currentTarget.style.borderColor="#334d6e";e.currentTarget.style.color=C.textPrimary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color="#7a9cc4";}}>
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3L5 8l5 5"/></svg>back
           </button>
-          <div style={{position:"relative"}}>
-            <div onClick={()=>setShowDropdown(true)} style={{display:"flex",alignItems:"center",gap:8,background:C.inputBg,padding:"0 12px",height:32,borderRadius:6,minWidth:160,cursor:"text",border:`1px solid ${C.borderHover}`}}>
+          <div style={{position:"relative",flex:1,minWidth:0,maxWidth:220}}>
+            <div onClick={()=>setShowDropdown(true)} style={{display:"flex",alignItems:"center",gap:8,background:C.inputBg,padding:"0 12px",height:32,borderRadius:6,cursor:"text",border:`1px solid ${C.borderHover}`}}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.textMuted} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-              {showDropdown?(<input autoFocus type="text" placeholder="Search sector..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} onBlur={()=>setTimeout(()=>setShowDropdown(false),200)} style={{background:"transparent",border:"none",color:"#fff",outline:"none",width:"100%",fontSize:13}}/>):(<span style={{color:"#fff",fontWeight:"bold",fontSize:13,flex:1}}>{sector.id}</span>)}
-              <div style={{display:"flex",alignItems:"center",gap:4}}>
+              {showDropdown?(<input autoFocus type="text" placeholder="Search sector..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} onBlur={()=>setTimeout(()=>setShowDropdown(false),200)} style={{background:"transparent",border:"none",color:"#fff",outline:"none",width:"100%",fontSize:13}}/>):(<span style={{color:"#fff",fontWeight:"bold",fontSize:13,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sector.id}</span>)}
+              <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
                 {showDropdown&&searchTerm&&(<div onMouseDown={e=>{e.preventDefault();e.stopPropagation();setSearchTerm("");}} style={{cursor:"pointer",color:"#7a9cc4",display:"flex"}}><IconX/></div>)}
                 <div style={{transform:showDropdown?"rotate(180deg)":"none",transition:"transform .2s",display:"flex"}}><IconCaret/></div>
               </div>
@@ -477,17 +476,18 @@ function ExpandedChart({ sector, dateVal, tradingDates, onClose, onFirst, onLast
             </div>)}
           </div>
         </div>
-        <div style={{fontSize:15,fontWeight:"bold",color:"#fff",letterSpacing:"1px",flexShrink:0}}>{sector.id}</div>
-        <div style={{display:"flex",alignItems:"center",gap:8,flex:1,justifyContent:"flex-end"}}>
-          {topFlowStock&&(<span style={{display:"inline-flex",alignItems:"center",gap:5,background:topFlowStock.chg>=0?C.greenBg:C.yellowBg,border:`1px solid ${topFlowStock.chg>=0?C.greenBorder:C.yellowBorder}`,color:topFlowStock.chg>=0?"#4ade80":"#fbbf24",fontSize:12,fontWeight:700,padding:"3px 10px",borderRadius:99}}>{topFlowStock.sym}<span style={{fontSize:10}}>{topFlowStock.chg>=0?"▲":"▼"}</span></span>)}
-          <button onClick={handleFirst} style={btnBase} onMouseEnter={e=>e.currentTarget.style.background=C.accentBg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>FIRST DATA</button>
-          <button onClick={handleLast}  style={btnBase} onMouseEnter={e=>e.currentTarget.style.background=C.accentBg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>LAST DATA</button>
-          <button onClick={handleLast} style={{width:30,height:30,borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.textMuted,transition:"all .15s"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="#334d6e";e.currentTarget.style.color=C.textPrimary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textMuted;}}><IconRefresh/></button>
+        <div className="expanded-title" style={{fontSize:15,fontWeight:"bold",color:"#fff",letterSpacing:"1px",flexShrink:0}}>{sector.id}</div>
+        <div className="expanded-actions" style={{display:"flex",alignItems:"center",gap:8,flex:1,justifyContent:"flex-end"}}>
+          {topFlowStock&&(<span className="expanded-flow-badge" style={{display:"inline-flex",alignItems:"center",gap:5,background:topFlowStock.chg>=0?C.greenBg:C.yellowBg,border:`1px solid ${topFlowStock.chg>=0?C.greenBorder:C.yellowBorder}`,color:topFlowStock.chg>=0?"#4ade80":"#fbbf24",fontSize:12,fontWeight:700,padding:"3px 10px",borderRadius:99}}>{topFlowStock.sym}<span style={{fontSize:10}}>{topFlowStock.chg>=0?"▲":"▼"}</span></span>)}
+          <button className="expanded-data-btn" onClick={handleFirst} style={btnBase} onMouseEnter={e=>e.currentTarget.style.background=C.accentBg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>FIRST DATA</button>
+          <button className="expanded-data-btn" onClick={handleLast}  style={btnBase} onMouseEnter={e=>e.currentTarget.style.background=C.accentBg} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>LAST DATA</button>
+          <button onClick={handleLast} style={{width:30,height:30,borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:C.textMuted,transition:"all .15s",flexShrink:0}} onMouseEnter={e=>{e.currentTarget.style.borderColor="#334d6e";e.currentTarget.style.color=C.textPrimary;}} onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textMuted;}}><IconRefresh/></button>
         </div>
       </div>
-      <div style={{flex:1,display:"flex",overflow:"hidden",padding:16,gap:16}}>
+      {/* ── Expanded body ── */}
+      <div className="expanded-body" style={{flex:1,display:"flex",overflow:"hidden",padding:16,gap:16}}>
         <div ref={containerRef} style={{flex:1,background:C.panelBg,border:`1px solid ${C.border}`,borderRadius:8,overflow:"hidden",minHeight:300}}/>
-        <div style={{width:140,display:"flex",flexDirection:"column",gap:8,flexShrink:0}}>
+        <div className="expanded-sidebar" style={{width:140,display:"flex",flexDirection:"column",gap:8,flexShrink:0}}>
           <div style={{color:C.yellow,fontSize:12,fontWeight:700,textAlign:"center",letterSpacing:"0.5px",paddingBottom:4,borderBottom:`1px solid ${C.border}`}}>Symbol In Sector</div>
           <div className="custom-scrollbar" style={{display:"flex",flexDirection:"column",gap:4,overflowY:"auto",flex:1,paddingRight:2}}>
             {sector.stocks.map(st=>(<div key={st.sym} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"rgba(22,32,53,0.7)",border:`1px solid ${C.border}`,borderRadius:7,padding:"8px 10px",gap:6}}>
@@ -772,20 +772,135 @@ function SectorRotation() {
   return (
     <div style={{background:"transparent",color:C.textPrimary,fontFamily:"ui-sans-serif,system-ui,sans-serif",minHeight:"100%",padding:"20px"}}>
       <style>{`
+        /* ── Scrollbar ── */
         .custom-scrollbar::-webkit-scrollbar{width:6px}
         .custom-scrollbar::-webkit-scrollbar-track{background:transparent}
         .custom-scrollbar::-webkit-scrollbar-thumb{background-color:#1e3050;border-radius:10px}
         .custom-scrollbar::-webkit-scrollbar-thumb:hover{background-color:#253a60}
         .tv-lightweight-charts a,a[href*="tradingview"],[class*="watermark"],[class*="attribution"]{display:none!important}
+
+        /* ──────────────────────────────────────────────
+           RESPONSIVE — tablet  (≤ 768px)
+           Desktop (> 768px) is untouched.
+        ────────────────────────────────────────────── */
+        @media (max-width: 768px) {
+
+          /* Outer padding tighter */
+          .sr-root { padding: 12px !important; }
+
+          /* Top bar: stack vertically */
+          .sr-topbar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+            margin-bottom: 14px !important;
+          }
+
+          /* Left column of topbar */
+          .sr-topbar-left {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 8px !important;
+          }
+
+          /* Row with market dropdown + layout buttons */
+          .sr-market-row {
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+          }
+
+          /* Market dropdown full-width on mobile */
+          .sr-market-dropdown {
+            min-width: unset !important;
+            flex: 1 !important;
+          }
+
+          /* Sub-filter row */
+          .sr-subfilter-row {
+            margin-left: 0 !important;
+          }
+
+          /* Right column: date controls row */
+          .sr-topbar-right {
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 8px !important;
+          }
+
+          .sr-data-btns { gap: 6px !important; }
+          .sr-data-btns button { padding: 0 10px !important; font-size: 10px !important; height: 30px !important; }
+
+          /* Grid: always 1 column on mobile */
+          .sr-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          /* Sector multi-select: full width */
+          .sr-sector-select > div:first-child {
+            width: 100% !important;
+          }
+        }
+
+        /* ──────────────────────────────────────────────
+           RESPONSIVE — small mobile (≤ 480px)
+        ────────────────────────────────────────────── */
+        @media (max-width: 480px) {
+          .sr-root { padding: 8px !important; }
+
+          /* Expanded chart toolbar: wrap on very small screens */
+          .expanded-toolbar {
+            height: auto !important;
+            padding: 8px !important;
+            flex-wrap: wrap !important;
+            gap: 6px !important;
+          }
+
+          /* Hide secondary items in expanded toolbar to save space */
+          .expanded-title { display: none !important; }
+          .expanded-flow-badge { display: none !important; }
+          .expanded-data-btn { padding: 0 8px !important; font-size: 10px !important; }
+
+          /* Expanded body: stack chart + sidebar vertically */
+          .expanded-body {
+            flex-direction: column !important;
+            padding: 8px !important;
+            gap: 8px !important;
+          }
+
+          /* Sidebar goes below chart, horizontal scroll */
+          .expanded-sidebar {
+            width: 100% !important;
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            max-height: 100px !important;
+            overflow-y: auto !important;
+            gap: 4px !important;
+          }
+
+          .expanded-sidebar > div:first-child {
+            width: 100% !important;
+          }
+
+          /* Date picker text size */
+          .sr-topbar-right button { font-size: 11px !important; }
+        }
       `}</style>
 
-      <div style={{display:"flex",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:16}}>
-        <div style={{display:"flex",flexDirection:"column",gap:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
+      {/* ── TOP BAR ── */}
+      <div className="sr-topbar" style={{display:"flex",justifyContent:"space-between",marginBottom:20,flexWrap:"wrap",gap:16}}>
+        {/* Left */}
+        <div className="sr-topbar-left" style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div className="sr-market-row" style={{display:"flex",alignItems:"center",gap:8}}>
             <ToolHint onViewDetails={() => { window.scrollTo({ top: 0 }); }}>
               Sectorrotation
             </ToolHint>
-            <div ref={marketDropdownRef} style={{...boxStyle,minWidth:220}} onClick={()=>setMarketDropdownOpen(!marketDropdownOpen)}>
+            <div
+              ref={marketDropdownRef}
+              className="sr-market-dropdown"
+              style={{...boxStyle,minWidth:220}}
+              onClick={()=>setMarketDropdownOpen(!marketDropdownOpen)}
+            >
               <IconSearch/>
               <span style={{color:marketFilter?C.textPrimary:C.textMuted,fontSize:13,flex:1,fontWeight:marketFilter?"bold":"normal"}}>{marketFilter==="SET&MAI"?"SET & MAI":marketFilter||"Select market..."}</span>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -802,20 +917,23 @@ function SectorRotation() {
               {[29,8,2].map(col=>(<button key={col} onClick={()=>handleLayoutChange(col)} style={btnStyle(layoutMode===col)}>{col===29?<IconGrid3x3/>:col===8?<IconGrid2x2/>:<IconList/>}</button>))}
             </div>
           </div>
-          <div style={{display:"flex",alignItems:"center",marginLeft:40}}>
+          <div className="sr-subfilter-row" style={{display:"flex",alignItems:"center",marginLeft:40}}>
             {marketFilter==="SET&MAI"
               ? (<SingleMarketSelect selected={subMarketFilter} onChange={setSubMarketFilter}/>)
-              : (<SectorMultiSelect options={availableSectors} selected={selectedSectors} onChange={setSelectedSectors} max={marketFilter==="MAI"?8:layoutMode}/>)
+              : (<div className="sr-sector-select"><SectorMultiSelect options={availableSectors} selected={selectedSectors} onChange={setSelectedSectors} max={marketFilter==="MAI"?8:layoutMode}/></div>)
             }
           </div>
         </div>
-        <div style={{display:"flex",flexDirection:"column",gap:12,alignItems:"flex-end"}}>
-          <div style={{display:"flex",gap:8}}>{dataBtn("FIRST DATA", handleGoToFirst)}{dataBtn("LAST DATA", handleGoToLast)}</div>
+
+        {/* Right */}
+        <div className="sr-topbar-right" style={{display:"flex",flexDirection:"column",gap:12,alignItems:"flex-end"}}>
+          <div className="sr-data-btns" style={{display:"flex",gap:8}}>{dataBtn("FIRST DATA", handleGoToFirst)}{dataBtn("LAST DATA", handleGoToLast)}</div>
           <DatePicker dates={tradingDates} selected={dateVal} onChange={(key) => { setDateVal(key); setScrollTarget({ goto: "date", tick: Date.now() }); }}/>
         </div>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:gridTemplate,gap:20,transition:"all 0.3s ease",alignItems:"start"}}>
+      {/* ── GRID ── */}
+      <div className="sr-grid" style={{display:"grid",gridTemplateColumns:gridTemplate,gap:20,transition:"all 0.3s ease",alignItems:"start"}}>
         {marketFilter==="SET&MAI" ? (
           <div style={{display:"flex",flexDirection:"column",gap:20}}>
             {(subMarketFilter==="SET"||subMarketFilter==="SET&MAI")&&(<SectorCard key={SET_SUMMARY.id} sector={SET_SUMMARY} dateVal={dateVal} scrollTarget={scrollTarget} onExpand={()=>setExpandedSectorId(SET_SUMMARY.id)} onReset={handleGoToLast} defaultChartHeight={subMarketFilter==="SET&MAI"?220:500}/>)}
@@ -842,6 +960,7 @@ function SectorRotation() {
         )}
       </div>
 
+      {/* ── EXPANDED OVERLAY ── */}
       {expandedSectorId&&(()=>{
         const sec=[...SET_SECTORS,...MAI_SECTORS,SET_SUMMARY,MAI_SUMMARY].find(s=>s.id===expandedSectorId);
         if(!sec) return null;
