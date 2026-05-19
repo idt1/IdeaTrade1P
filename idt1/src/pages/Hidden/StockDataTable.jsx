@@ -147,7 +147,6 @@ function DatePicker({ value, onChange, minDate, maxDate, isMobile }) {
 
   const todayStr = toYMD(new Date());
 
-  // On mobile, popup is fixed centered; on desktop, absolute below trigger
   const popupStyle = isMobile
     ? {
         position: "fixed",
@@ -208,7 +207,6 @@ function DatePicker({ value, onChange, minDate, maxDate, isMobile }) {
 
       {open && (
         <div style={popupStyle}>
-          {/* Month nav */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
             <button onClick={prevMonth} style={{ background: "none", border: "none", color: "#60a5fa", cursor: "pointer", fontSize: 20, lineHeight: 1, padding: "0 6px" }}>‹</button>
             <div onClick={() => setShowMonthPicker(p => !p)} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
@@ -435,9 +433,8 @@ function SortArrow({ col, sortCol, sortDir }) {
 // ─── Main Dashboard ──────────────────────────────────────
 export default function Form59Dashboard() {
   const winWidth = useWindowWidth();
-  // breakpoints
-  const isMobile  = winWidth < 600;   // phones
-  const isTablet  = winWidth < 900;   // tablets / small laptops
+  const isMobile  = winWidth < 600;
+  const isTablet  = winWidth < 900;
   const isDesktop = winWidth >= 900;
 
   const [startDate, setStartDate]     = useState("");
@@ -450,7 +447,7 @@ export default function Form59Dashboard() {
   const [page, setPage]               = useState(1);
   const [pageSize, setPageSize]       = useState(15);
   const [sumValueSymbols, setSumValueSymbols] = useState([]);
-  const [filtersOpen, setFiltersOpen] = useState(false); // mobile filter drawer
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const tableWrapRef = useRef(null);
 
@@ -540,7 +537,6 @@ export default function Form59Dashboard() {
     setSortCol("date"); setSortDir(-1); setPage(1);
   }
 
-  // ── Shared sub-styles ──
   const label = { fontSize: 10, color: "#5a7090", letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600, marginBottom: 3 };
   const selectStyle = {
     background: "#111d30", border: "1px solid #1e2d45",
@@ -572,14 +568,11 @@ export default function Form59Dashboard() {
     fontSize: isMobile ? 11 : 12,
   });
 
-  // ── pagination helpers ──
   const pageStart = Math.max(1, Math.min(totalPages - (isMobile ? 2 : 4), safePage - (isMobile ? 1 : 2)));
   const pageNums  = Array.from({ length: Math.min(isMobile ? 3 : 5, totalPages) }, (_, i) => pageStart + i);
 
-  // ── Filter panel (shared between top bar on desktop and drawer on mobile) ──
   const FilterPanel = () => (
     <>
-      {/* Row 1: Dates */}
       <div style={{
         display: "grid",
         gridTemplateColumns: isMobile ? "1fr 1fr" : "160px 160px",
@@ -598,7 +591,6 @@ export default function Form59Dashboard() {
 
       {!isMobile && <div style={{ width: 1, height: 40, background: "#1e2d45", flexShrink: 0, alignSelf: "center" }} />}
 
-      {/* Sum Value */}
       <div style={{ display: "flex", flexDirection: "column", minWidth: isMobile ? undefined : 170 }}>
         <span style={label}>Sum Value</span>
         <SymbolSelect
@@ -613,7 +605,6 @@ export default function Form59Dashboard() {
 
       {!isMobile && <div style={{ width: 1, height: 40, background: "#1e2d45", flexShrink: 0, alignSelf: "center" }} />}
 
-      {/* Min Value + Check */}
       <div style={{ display: "flex", flexDirection: "column" }}>
         <span style={label}>&nbsp;</span>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -640,12 +631,20 @@ export default function Form59Dashboard() {
   );
 
   return (
+    // KEY CHANGE: use height: 100dvh + width: 100% instead of position:absolute
+    // This makes it fill the viewport without breaking normal document flow
     <div style={{
       background: "#0b1120",
-      position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-      display: "flex", flexDirection: "column",
-      fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#c9d4e8",
+      width: "100%",
+      height: "100dvh",          // fills viewport height, respects mobile browser UI
+      minHeight: 0,              // allow flex children to shrink
+      display: "flex",
+      flexDirection: "column",
+      fontFamily: "'DM Sans', sans-serif",
+      fontSize: 13,
+      color: "#c9d4e8",
       overflow: "hidden",
+      boxSizing: "border-box",
     }}>
 
       {/* ── DESKTOP TOP BAR ── */}
@@ -682,14 +681,12 @@ export default function Form59Dashboard() {
             <button onClick={reset} title="Reset"
               style={{ background: "transparent", border: "1px solid #1e2d45", borderRadius: 6, height: 34, width: 34, color: "#7a90b0", fontSize: 18, cursor: "pointer", lineHeight: 1, flexShrink: 0 }}
             >↺</button>
-            {/* Quick date summary */}
             <span style={{ fontSize: 11, color: "#5a7090" }}>
               {endDate ? formatDisplay(endDate) : "All dates"}
             </span>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {/* Active filter badge */}
             {(startDate || minValue || symbolFilter || isAllChecked) && (
               <span style={{ background: "#2563eb", borderRadius: 10, padding: "2px 7px", fontSize: 10, color: "#fff", fontWeight: 700 }}>
                 {[startDate && "Date", minValue && "Min", (symbolFilter || isAllChecked) && "Sym"].filter(Boolean).length} active
@@ -722,8 +719,11 @@ export default function Form59Dashboard() {
         </div>
       )}
 
-      {/* ── TABLE ── */}
-      <div style={{ flex: 1, minHeight: 0, overflowX: "auto", overflowY: "auto", background: "#0b1120" }} ref={tableWrapRef}>
+      {/* ── TABLE — flex: 1 + minHeight: 0 lets it fill remaining space and scroll internally ── */}
+      <div
+        style={{ flex: 1, minHeight: 0, overflowX: "auto", overflowY: "auto", background: "#0b1120" }}
+        ref={tableWrapRef}
+      >
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: isMobile ? 11 : 12 }}>
           <thead>
             <tr>
@@ -733,14 +733,12 @@ export default function Form59Dashboard() {
               <th rowSpan={2} style={{ ...th("center"), verticalAlign: "middle" }} onClick={() => handleSort("symbol")}>
                 Symbol <SortArrow col="symbol" sortCol={sortCol} sortDir={sortDir} />
               </th>
-              {/* Hide Name on very small screens */}
               {!isMobile && (
                 <th rowSpan={2} style={{ ...th("center"), verticalAlign: "middle" }} onClick={() => handleSort("name")}>
                   Name <SortArrow col="name" sortCol={sortCol} sortDir={sortDir} />
                 </th>
               )}
               <th colSpan={2} style={{ ...th("center"), borderBottom: "none", verticalAlign: "middle" }}>Value</th>
-              {/* Hide Action Price on tablets and below */}
               {!isTablet && (
                 <th rowSpan={2} style={{ ...th("center"), verticalAlign: "middle" }} onClick={() => handleSort("closePrice")}>
                   Action Price <SortArrow col="closePrice" sortCol={sortCol} sortDir={sortDir} />
