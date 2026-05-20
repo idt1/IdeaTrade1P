@@ -44,6 +44,7 @@ import ideatradepoint from "@/assets/icons/ideatradepoint.svg";
 import sectorrotation from "@/assets/icons/sector.svg";
 import form59Icon from "@/assets/icons/52.svg";
 import s50outIcon from "@/assets/icons/s50out.svg";
+import optionsIcon from "@/assets/icons/options.svg";
 
 /* ================= ICON MAP ================= */
 const sidebarIcons = {
@@ -62,6 +63,9 @@ const sidebarIcons = {
   dr:             { default: dr,            active: adr        },
   ideatradepoint: { default: ideatradepoint, active: ideatradepoint },
   sectorrotation: { default: sectorrotation, active: sectorrotation },
+  s50outstandingshort: { default: s50outIcon, active: s50outIcon },
+  "stock-data-table": { default: form59Icon, active: form59Icon },
+  options: { default: optionsIcon, active: optionsIcon },
 };
 
 const getIcon = (key, active) => {
@@ -653,6 +657,33 @@ const SidebarContent = ({
               }
             />
             {!isCollapsed && <span>Stock Data Table</span>}
+          </div>
+        </button>
+
+        {/* Options Button */}
+        <button
+          onClick={() => handleNavigation("options")}
+          onMouseEnter={(e) => handleMouseEnter(e, "Options")}
+          onMouseLeave={handleMouseLeave}
+          className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
+          ${activePage === "options" ? "bg-slate-800" : "hover:bg-white/5"}
+          ${isCollapsed ? "w-10 h-10 justify-center" : "w-full h-11 px-4 justify-between"}`}
+        >
+          <div className={`flex items-center gap-3 font-medium transition-colors pointer-events-none
+            ${activePage === "options" ? "text-white" : "text-gray-400"}
+            ${isCollapsed ? "justify-center w-full" : ""}`}
+          >
+            <img
+              src={optionsIcon}
+              className="w-5"
+              alt="Options"
+              style={
+                activePage === "options"
+                  ? { filter: "brightness(0) invert(1)" }
+                  : { filter: "brightness(0) invert(1) opacity(0.4)" }
+              }
+            />
+            {!isCollapsed && <span>Options</span>}
           </div>
         </button>
 
