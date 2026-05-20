@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { createChart, ColorType, LineStyle, LineSeries } from "lightweight-charts";
 
 // ─── Mock Data Generator ────────────────────────────────────────────────────
@@ -71,78 +72,259 @@ function getSeriesData(year, month) {
   return generateSeries(base, startDate, days, seed);
 }
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
+// ─── Dropdown (Search-style + Portal) ────────────────────────────────────────
 function Dropdown({ label, value, options, onChange }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const [query, setQuery] = useState("");
+  const wrapRef = useRef(null);
+  const inputRef = useRef(null);
+  const menuRef = useRef(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
+
+  const filtered = options.filter((o) =>
+    o.toLowerCase().includes(query.toLowerCase())
+  );
 
   useEffect(() => {
     const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      const inWrap = wrapRef.current?.contains(e.target);
+      const inMenu = menuRef.current?.contains(e.target);
+      if (!inWrap && !inMenu) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  return (
-    <div ref={ref} style={{ position: "relative" }}>
-      <div style={styles.dropLabel}>{label}</div>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        style={styles.dropBtn}
+  const openMenu = () => {
+    if (wrapRef.current) {
+      const rect = wrapRef.current.getBoundingClientRect();
+      setMenuPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    }
+    setQuery("");
+    setOpen(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const menu =
+    open &&
+    createPortal(
+      <div
+        ref={menuRef}
+        style={{
+          position: "fixed",
+          top: menuPos.top,
+          left: menuPos.left,
+          width: menuPos.width,
+          background: "#151e30",
+          border: "1px solid #2a4060",
+          borderRadius: 8,
+          zIndex: 99999,
+          overflow: "hidden",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+        }}
       >
-        {value}
-        <span style={{ marginLeft: 8, fontSize: 10, color: "#5a9fd4" }}>
-          {open ? "▲" : "▼"}
-        </span>
-      </button>
-      {open && (
-        <div style={styles.dropMenu}>
-          {options.map((opt) => (
-            <div
-              key={opt}
-              onClick={() => { onChange(opt); setOpen(false); }}
-              style={{
-                ...styles.dropItem,
-                color: opt === value ? "#5a9fd4" : "#c8d8e8",
-                fontWeight: opt === value ? 500 : 400,
-              }}
-            >
-              {opt}
-            </div>
-          ))}
-        </div>
-      )}
+        {filtered.length === 0 && (
+          <div style={{ padding: "10px 14px", fontSize: 13, color: "#5a7a9a" }}>
+            ไม่พบ
+          </div>
+        )}
+        {filtered.map((opt) => (
+          <div
+            key={opt}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onChange(opt);
+              setOpen(false);
+            }}
+            style={{
+              padding: "9px 14px",
+              fontSize: 14,
+              cursor: "pointer",
+              color: opt === value ? "#5a9fd4" : "#c8d8e8",
+              fontWeight: opt === value ? 500 : 400,
+              background: opt === value ? "rgba(90,159,212,0.08)" : "transparent",
+              transition: "background 0.1s",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(90,159,212,0.12)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = opt === value ? "rgba(90,159,212,0.08)" : "transparent")}
+          >
+            {opt}
+          </div>
+        ))}
+      </div>,
+      document.body
+    );
+
+  return (
+    <div ref={wrapRef} style={{ position: "relative" }}>
+      {/* Search-style input row */}
+      <div
+        onClick={openMenu}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          background: "#1a2236",
+          border: `1px solid ${open ? "#5a9fd4" : "#2a4060"}`,
+          borderRadius: 8,
+          padding: "0 10px",
+          height: 36,
+          cursor: "text",
+          transition: "border-color 0.15s",
+          gap: 6,
+          width: 160,
+          boxSizing: "border-box",
+          position: "relative",
+        }}
+      >
+        {/* Search icon */}
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#5a7a9a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <circle cx="6.5" cy="6.5" r="4.5" />
+          <path d="M10.5 10.5L14 14" />
+        </svg>
+
+        {/* Input or placeholder */}
+        {open ? (
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            placeholder={label}
+            style={{
+              flex: 1,
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              color: "#d0dff0",
+              fontSize: 13,
+              fontFamily: "inherit",
+              caretColor: "#5a9fd4",
+            }}
+          />
+        ) : (
+          <span style={{ flex: 1, fontSize: 13, color: value ? "#d0dff0" : "#5a7a9a" }}>
+            {value || label}
+          </span>
+        )}
+
+        {/* Arrow */}
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#5a7a9a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", right: 10, top: "50%", transform: open ? "translateY(-50%) rotate(180deg)" : "translateY(-50%) rotate(0deg)", transition: "transform 0.15s", pointerEvents: "none" }}>
+          <path d="M1 3l4 4 4-4" />
+        </svg>
+      </div>
+      {menu}
     </div>
   );
 }
 
+// ─── Legend Dot ───────────────────────────────────────────────────────────────
 function LegendDot({ color, label, dashed }) {
   return (
     <span style={styles.legendItem}>
-      <span style={{
-        display: "inline-block", width: 28, height: 2.5,
-        background: dashed ? "transparent" : color,
-        borderTop: dashed ? `2px dashed ${color}` : "none",
-        verticalAlign: "middle", marginRight: 6
-      }} />
+      <span
+        style={{
+          display: "inline-block",
+          width: 28,
+          height: 2.5,
+          background: dashed ? "transparent" : color,
+          borderTop: dashed ? `2px dashed ${color}` : "none",
+          verticalAlign: "middle",
+          marginRight: 6,
+        }}
+      />
       <span style={{ color: "#8aa8c8", fontSize: 12 }}>{label}</span>
     </span>
   );
 }
 
-// ─── Chart Component ──────────────────────────────────────────────────────────
-function DualChart({ title, dates, leftData, rightData, leftColor, rightColor, rightLabel, leftLabel, rightFormatter }) {
+// ─── Dual Chart ───────────────────────────────────────────────────────────────
+function DualChart({
+  title,
+  dates,
+  leftData,
+  rightData,
+  leftColor,
+  rightColor,
+  legendLeft,
+  legendRight,
+  cardLabel,
+  currentYear,
+  currentMonth,
+  dataKey,
+}) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
   const leftSeriesRef = useRef(null);
   const rightSeriesRef = useRef(null);
+  const [spinning, setSpinning] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Convert dd/mm/yyyy → yyyy-mm-dd for lightweight-charts
+  const [fsYear, setFsYear] = useState(currentYear);
+  const [fsMonth, setFsMonth] = useState(currentMonth);
+
+  useEffect(() => {
+    if (!isFullscreen) {
+      setFsYear(currentYear);
+      setFsMonth(currentMonth);
+    }
+  }, [currentYear, currentMonth, isFullscreen]);
+
+  const fsSeriesOptions = useMemo(
+    () => Object.keys(MONTHS).map((m) => `S50${m}${String(fsYear).slice(2)}`),
+    [fsYear]
+  );
+  const fsSeriesLabel = `S50${fsMonth}${String(fsYear).slice(2)}`;
+
+  const fsData = useMemo(() => getSeriesData(fsYear, fsMonth), [fsYear, fsMonth]);
+
+  const handleFsYearChange = (val) => {
+    setFsYear(Number(val));
+    setFsMonth("H");
+  };
+  const handleFsSeriesChange = (val) => {
+    setFsMonth(val[3]);
+  };
+
+  const activeDates = isFullscreen ? fsData.dates : dates;
+  const activeLeftData = isFullscreen ? fsData.prices : leftData;
+  const activeRightData = isFullscreen
+    ? dataKey === "oi"
+      ? fsData.oi
+      : fsData.callPut
+    : rightData;
+
   const toISO = (dmy) => {
     const [d, m, y] = dmy.split("/");
     return `${y}-${m}-${d}`;
   };
+
+  const handleReset = () => {
+    chartRef.current?.timeScale().fitContent();
+    setSpinning(true);
+    setTimeout(() => setSpinning(false), 600);
+  };
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setIsFullscreen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (containerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight || 240,
+        });
+        chartRef.current.timeScale().fitContent();
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [isFullscreen]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -158,29 +340,38 @@ function DualChart({ title, dates, leftData, rightData, leftColor, rightColor, r
         horzLines: { color: "rgba(255,255,255,0.04)" },
       },
       crosshair: {
-        vertLine: { color: "rgba(90,159,212,0.4)", labelBackgroundColor: "#1a2a40" },
-        horzLine: { color: "rgba(90,159,212,0.4)", labelBackgroundColor: "#1a2a40" },
+        vertLine: {
+          color: "rgba(90,159,212,0.4)",
+          labelBackgroundColor: "#1a2a40",
+        },
+        horzLine: {
+          color: "rgba(90,159,212,0.4)",
+          labelBackgroundColor: "#1a2a40",
+        },
       },
       rightPriceScale: { borderColor: "transparent", visible: false },
-      leftPriceScale: { borderColor: "transparent", visible: true, textColor: "rgba(200,216,232,0.7)" },
-      timeScale: {
+      leftPriceScale: {
         borderColor: "transparent",
+        visible: true,
+        textColor: "rgba(200,216,232,0.7)",
+      },
+      timeScale: {
+        borderColor: "rgba(255,255,255,0.08)",
         timeVisible: false,
         tickMarkFormatter: (t) => {
           const d = new Date(t * 1000);
-          return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
+          return `${String(d.getDate()).padStart(2, "0")}/${String(
+            d.getMonth() + 1
+          ).padStart(2, "0")}`;
         },
       },
+      watermark: { visible: false },
       handleScroll: true,
       handleScale: true,
     });
 
-    chart.priceScale("left").applyOptions({
-      scaleMargins: { top: 0.1, bottom: 0.1 },
-    });
-    chart.priceScale("right").applyOptions({
-      scaleMargins: { top: 0.1, bottom: 0.1 },
-    });
+    chart.priceScale("left").applyOptions({ scaleMargins: { top: 0.1, bottom: 0.1 } });
+    chart.priceScale("right").applyOptions({ scaleMargins: { top: 0.1, bottom: 0.1 } });
 
     const leftSeries = chart.addSeries(LineSeries, {
       color: leftColor,
@@ -212,9 +403,8 @@ function DualChart({ title, dates, leftData, rightData, leftColor, rightColor, r
     rightSeriesRef.current = rightSeries;
 
     const ro = new ResizeObserver(() => {
-      if (containerRef.current) {
+      if (containerRef.current)
         chart.applyOptions({ width: containerRef.current.clientWidth });
-      }
     });
     ro.observe(containerRef.current);
 
@@ -226,27 +416,257 @@ function DualChart({ title, dates, leftData, rightData, leftColor, rightColor, r
 
   useEffect(() => {
     if (!leftSeriesRef.current || !rightSeriesRef.current) return;
-    if (!dates.length) return;
+    if (!activeDates.length) return;
 
-    const leftD = dates.map((dmy, i) => ({
-      time: Math.floor(new Date(toISO(dmy)).getTime() / 1000),
-      value: leftData[i],
-    })).filter(p => !isNaN(p.time));
+    const leftD = activeDates
+      .map((dmy, i) => ({
+        time: Math.floor(new Date(toISO(dmy)).getTime() / 1000),
+        value: activeLeftData[i],
+      }))
+      .filter((p) => !isNaN(p.time));
 
-    const rightD = dates.map((dmy, i) => ({
-      time: Math.floor(new Date(toISO(dmy)).getTime() / 1000),
-      value: rightData[i],
-    })).filter(p => !isNaN(p.time));
+    const rightD = activeDates
+      .map((dmy, i) => ({
+        time: Math.floor(new Date(toISO(dmy)).getTime() / 1000),
+        value: activeRightData[i],
+      }))
+      .filter((p) => !isNaN(p.time));
 
     leftSeriesRef.current.setData(leftD);
     rightSeriesRef.current.setData(rightD);
     chartRef.current?.timeScale().fitContent();
-  }, [dates, leftData, rightData]);
+  }, [activeDates, activeLeftData, activeRightData]);
 
+  // ── FULLSCREEN BRANCH ──────────────────────────────────────────────────────
+  if (isFullscreen) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 1000,
+          background: "#060e1a",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* Top bar */}
+        <div
+          style={{
+            minHeight: 52,
+            background: "#07111c",
+            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            display: "flex",
+            alignItems: "center",
+            padding: "8px 16px",
+            flexShrink: 0,
+            position: "relative",
+          }}
+        >
+          {/* Left — back + reset */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, zIndex: 1 }}>
+            <button
+              onClick={() => setIsFullscreen(false)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                background: "transparent",
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 6,
+                padding: "5px 12px",
+                color: "#94a3b8",
+                cursor: "pointer",
+                fontSize: 13,
+                fontFamily: "inherit",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "#64748b";
+                e.currentTarget.style.color = "#e2e8f0";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
+                e.currentTarget.style.color = "#94a3b8";
+              }}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M10 3L5 8l5 5" />
+              </svg>
+              back
+            </button>
+
+            <button
+              onClick={handleReset}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 6,
+                border: "1px solid rgba(255,255,255,0.12)",
+                background: "transparent",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#64748b",
+                fontSize: 16,
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "#64748b";
+                e.currentTarget.style.color = "#e2e8f0";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
+                e.currentTarget.style.color = "#64748b";
+              }}
+              title="Reset"
+            >
+              <span
+                style={{
+                  display: "inline-block",
+                  transition: "transform 0.6s ease",
+                  transform: spinning ? "rotate(360deg)" : "rotate(0deg)",
+                }}
+              >
+                ⟳
+              </span>
+            </button>
+          </div>
+
+          {/* Center — badge + dropdowns + divider + legend */}
+          <div
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              pointerEvents: "none",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: "3px 12px",
+                borderRadius: 99,
+                background: "rgba(90,159,212,0.12)",
+                color: "#5a9fd4",
+                border: "1px solid rgba(90,159,212,0.3)",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                pointerEvents: "auto",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {cardLabel}
+            </span>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                pointerEvents: "auto",
+                position: "relative",
+              }}
+            >
+              <Dropdown
+                label="Select Year"
+                value={String(fsYear)}
+                options={AVAILABLE_YEARS.map(String)}
+                onChange={handleFsYearChange}
+              />
+              <Dropdown
+                label="Series"
+                value={fsSeriesLabel}
+                options={fsSeriesOptions}
+                onChange={handleFsSeriesChange}
+              />
+            </div>
+
+            <div
+              style={{
+                width: 1,
+                height: 20,
+                background: "rgba(255,255,255,0.08)",
+                flexShrink: 0,
+              }}
+            />
+
+            <LegendDot color={rightColor} label={legendRight} />
+            <LegendDot color={leftColor} label={legendLeft} dashed />
+          </div>
+        </div>
+
+        {/* Chart area */}
+        <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
+          <div style={styles.chartTitle}>{fsSeriesLabel}</div>
+          <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+        </div>
+      </div>
+    );
+  }
+
+  // ── NORMAL CARD BRANCH ─────────────────────────────────────────────────────
   return (
-    <div style={styles.chartWrap}>
-      <div style={styles.chartTitle}>{title}</div>
-      <div ref={containerRef} style={{ width: "100%", height: 240 }} />
+    <div style={styles.cardWrap}>
+      <div style={styles.cardHeader}>
+        <span style={styles.cardLabel}>{cardLabel}</span>
+        <div style={styles.legendRow}>
+          <LegendDot color={rightColor} label={legendRight} />
+          <LegendDot color={leftColor} label={legendLeft} dashed />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
+          <button onClick={handleReset} style={styles.resetBtn}>
+            <span
+              style={{
+                display: "inline-block",
+                transition: "transform 0.6s ease",
+                transform: spinning ? "rotate(360deg)" : "rotate(0deg)",
+              }}
+            >
+              ⟳
+            </span>{" "}
+            Reset
+          </button>
+          <button
+            onClick={() => setIsFullscreen(true)}
+            style={styles.iconBtn}
+            title="Fullscreen"
+          >
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div style={{ position: "relative", flex: 1 }}>
+        <div style={styles.chartTitle}>{title}</div>
+        <div ref={containerRef} style={{ width: "100%", height: 240 }} />
+      </div>
     </div>
   );
 }
@@ -273,14 +693,18 @@ export default function Options() {
   };
 
   const handleSeriesChange = (val) => {
-    const m = val[3];
-    setSelectedMonth(m);
+    setSelectedMonth(val[3]);
   };
 
   return (
-    <div style={styles.dash}>
-      {/* Controls */}
-      <div style={styles.controls}>
+    <div style={styles.pageWrap}>
+      <style>{`
+        .tv-lightweight-charts a,
+        .tv-lightweight-charts a * { display: none !important; }
+      `}</style>
+
+      {/* Top Controls */}
+      <div style={styles.topBar}>
         <Dropdown
           label="Select Year"
           value={String(selectedYear)}
@@ -295,38 +719,36 @@ export default function Options() {
         />
       </div>
 
-      {/* Volume Chart */}
-      <div style={styles.legendRow}>
-        <span style={{ color: "#8aa8c8", fontSize: 12, fontWeight: 500 }}>Volume :</span>
-        <LegendDot color="#00cc55" label="Call-Put (Accumulated)" />
-        <LegendDot color="#e84040" label="Futures Price" dashed />
-      </div>
+      {/* Chart 1 — Volume */}
       <DualChart
+        cardLabel="Volume"
         title={selectedSeriesLabel}
         dates={data.dates}
         leftData={data.prices}
         rightData={data.callPut}
         leftColor="#e84040"
         rightColor="#00cc55"
-        leftLabel="Futures Price"
-        rightLabel="Call-Put Accum"
+        legendLeft="Futures Price"
+        legendRight="Call-Put (Accumulated)"
+        currentYear={selectedYear}
+        currentMonth={selectedMonth}
+        dataKey="callPut"
       />
 
-      {/* OI Chart */}
-      <div style={{ ...styles.legendRow, marginTop: 12 }}>
-        <span style={{ color: "#8aa8c8", fontSize: 12, fontWeight: 500 }}>OI :</span>
-        <LegendDot color="#f5c842" label="Open Interest (Accumulated)" />
-        <LegendDot color="#e84040" label="Futures Price" dashed />
-      </div>
+      {/* Chart 2 — OI */}
       <DualChart
+        cardLabel="OI"
         title={selectedSeriesLabel}
         dates={data.dates}
         leftData={data.prices}
         rightData={data.oi}
         leftColor="#e84040"
         rightColor="#f5c842"
-        leftLabel="Futures Price"
-        rightLabel="OI Accum"
+        legendLeft="Futures Price"
+        legendRight="Open Interest (Accumulated)"
+        currentYear={selectedYear}
+        currentMonth={selectedMonth}
+        dataKey="oi"
       />
     </div>
   );
@@ -334,80 +756,78 @@ export default function Options() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = {
-  dash: {
-    background: "#151929",
-    padding: 16,
+  pageWrap: {
+    background: "#0d0f1a",
     minHeight: "100vh",
+    padding: 16,
     fontFamily: "'Inter', sans-serif",
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
   },
-  controls: {
+  topBar: {
     display: "flex",
     gap: 12,
-    marginBottom: 16,
     alignItems: "center",
     flexWrap: "wrap",
   },
-  dropLabel: {
-    position: "absolute",
-    top: -9,
-    left: 10,
-    fontSize: 10,
-    color: "#6c8aad",
-    background: "#151929",
-    padding: "0 4px",
-    zIndex: 2,
-    pointerEvents: "none",
+  cardWrap: {
+    background: "#151c2c",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: 20,
+    overflow: "hidden",
+    boxShadow: "0 4px 32px rgba(0,0,0,0.4)",
   },
-  dropBtn: {
-    position: "relative",
-    background: "#1e2640",
-    color: "#d0dff0",
-    border: "1.5px solid #3a6fa8",
-    borderRadius: 6,
-    padding: "8px 36px 8px 12px",
-    fontSize: 14,
-    cursor: "pointer",
-    minWidth: 130,
-    textAlign: "left",
+  cardHeader: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
-  },
-  dropMenu: {
-    position: "absolute",
-    top: "calc(100% + 4px)",
-    left: 0,
-    background: "#1a2035",
-    border: "1px solid #2a4060",
-    borderRadius: 6,
-    zIndex: 100,
-    minWidth: 130,
-    overflow: "hidden",
-  },
-  dropItem: {
+    gap: 14,
     padding: "10px 14px",
-    fontSize: 14,
-    cursor: "pointer",
-    transition: "background 0.15s",
+    borderBottom: "1px solid rgba(255,255,255,0.06)",
+    flexWrap: "wrap",
+    flexShrink: 0,
+  },
+  cardLabel: {
+    color: "#8aa8c8",
+    fontSize: 12,
+    fontWeight: 600,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginRight: 4,
   },
   legendRow: {
     display: "flex",
     gap: 14,
     alignItems: "center",
-    marginBottom: 6,
+    flex: 1,
     flexWrap: "wrap",
   },
   legendItem: {
     display: "inline-flex",
     alignItems: "center",
   },
-  chartWrap: {
-    background: "#0d1120",
-    borderRadius: 8,
-    position: "relative",
-    marginBottom: 16,
-    padding: "10px 6px 6px",
-    overflow: "hidden",
+  resetBtn: {
+    background: "#1e2a40",
+    color: "#8aa8c8",
+    border: "1px solid #2a4060",
+    borderRadius: 5,
+    padding: "3px 10px",
+    fontSize: 12,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+  },
+  iconBtn: {
+    background: "#1e2a40",
+    color: "#8aa8c8",
+    border: "1px solid #2a4060",
+    borderRadius: 5,
+    padding: "4px 7px",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
   chartTitle: {
     position: "absolute",
@@ -415,7 +835,7 @@ const styles = {
     left: "50%",
     transform: "translateX(-50%)",
     fontSize: 14,
-    color: "rgba(255,255,255,0.1)",
+    color: "rgba(255,255,255,0.06)",
     fontWeight: 500,
     letterSpacing: 3,
     pointerEvents: "none",
