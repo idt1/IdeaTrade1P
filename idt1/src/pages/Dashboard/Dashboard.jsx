@@ -33,8 +33,8 @@ import IdeaTradePoint from "@/pages/Hidden/ideatradepoint";
 import HisIdeaTradePoint from "@/pages/Hidden/hisideatradepoint";
 import SectorRotation from "@/pages/Hidden/Sectorrotation";
 import S50OutstandingShort from "@/pages/Hidden/S50OutstandingShort";
-// ✅ นำเข้าไฟล์ StockDataTable ของเรา
 import StockDataTable from "@/pages/Hidden/StockDataTable"; 
+import Options from "@/pages/Hidden/options";
 
 /* ================= CONSTANTS ================= */
 const CHART_IMAGE_URL = "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1964&auto=format&fit=crop";
@@ -84,14 +84,15 @@ const TOOL_CONFIG = {
   "sectorrotation":         { component: SectorRotation,   id: "sectorrotation",             name: "Sector Rotation",             isPremium: false },
   "s50outstandingshort": { component: S50OutstandingShort, id: "s50outstandingshort", name: "S50 Outstanding Short", isPremium: false },
 
-  // ✅ เพิ่มคอนฟิกของ Stock Data Table
   "stock-data-table": { component: StockDataTable, id: "stock-data-table", name: "Stock Data Table", isPremium: false },
+
+  "options": { component: Options, id: "options", name: "Options Analysis", isPremium: false },
 };
 
 const FULL_WIDTH_PAGES = []; 
 const FULL_WIDTH_PATHS = [];
 
-// ✅ เพิ่ม "stock-data-table" เข้าไปในนี้ด้วย เพื่อให้ตารางกินพื้นที่เต็มจอ ไม่มีขอบมาเบียด
+
 const NO_PADDING_PAGES = [
   "profile", 
   "subscription", 
@@ -168,11 +169,11 @@ export default function Dashboard({ initialPage }) {
       else if (path === "dw") setActivePage("dw"); 
       else if (path === "ideatradepoint") setActivePage("ideatradepoint");
       else if (path === "hisideatradepoint") setActivePage("hisideatradepoint");
-      else if (path === "sectorrotation" || path === "sector-rotation") setActivePage("sectorrotation"); // <--- แก้เป็นแบบนี้
+      else if (path === "sectorrotation" || path === "sector-rotation") setActivePage("sectorrotation"); 
       else if (path === "s50outstandingshort") setActivePage("s50outstandingshort");
-      
-      // ✅ เช็คให้แน่ใจว่าถ้า URL เป็น /stock-data-table ก็จะเปลี่ยนหน้า
       else if (path === "stock-data-table") setActivePage("stock-data-table");
+      else if (path === "options") setActivePage("options");
+
 
       else setActivePage("preview-projects"); 
     }
