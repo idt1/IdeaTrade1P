@@ -82,6 +82,7 @@ export default function AppRoutes() {
       <Route path="/stock-data-table" element={<Dashboard initialPage="stock-data-table" />} />
       {/* ทำเผื่อไว้ ถ้ามีใครเผลอพิมพ์ /form59 ให้เด้งมาที่หน้า stock-data-table ทันที */}
       <Route path="/form59" element={<Navigate to="/stock-data-table" replace />} />
+      <Route path="/options" element={<Dashboard initialPage="options" />} />
       
       {/* === Fallback (กันหลง) === */}
       <Route path="*" element={<Navigate to="/" replace />} />
