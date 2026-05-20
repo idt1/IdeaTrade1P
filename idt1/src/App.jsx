@@ -42,6 +42,7 @@ function MainLayout() {
     "/sectorrotation",
     "/S5OutstandingShort",
     "/stock-data-table",
+    "/options"
   ];
   
   // เช็คว่า path ปัจจุบันอยู่ในรายการที่ต้องซ่อน Sidebar หรือไม่
