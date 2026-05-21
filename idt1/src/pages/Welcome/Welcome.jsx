@@ -185,16 +185,16 @@ const setFreeAccess = (userEmail) => {
           </div>
         </div>
 
-        <div className="bg-slate-700/50 px-6 md:px-12 lg:px-16 py-6 md:py-8 flex flex-col lg:flex-row gap-4 md:gap-6 justify-between">
-          <button onClick={() => setFreeAccess()} className="flex-1 py-4 md:py-5 rounded-xl md:rounded-2xl bg-emerald-400 hover:bg-emerald-500 active:scale-95 transition-all duration-200 text-lg md:text-xl font-semibold flex items-center justify-center gap-3 shadow-lg hover:shadow-emerald-400/40">
-            <img src={Rocket} alt="rocket" className="w-5 h-5 md:w-6 md:h-6" />
-            TRY FREE VERSION
-          </button>
-          <button onClick={setMembership} className="flex-1 py-4 md:py-5 rounded-xl md:rounded-2xl bg-sky-600 hover:bg-sky-700 active:scale-95 transition-all duration-200 text-lg md:text-xl font-semibold flex items-center justify-center gap-3 shadow-lg hover:shadow-sky-500/40">
-            <img src={Crown} alt="crown" className="w-5 h-5 md:w-6 md:h-6" />
-            JOIN MEMBERSHIP
-          </button>
-        </div>
+        {/* <div className="bg-slate-700/50 px-6 md:px-12 lg:px-16 py-6 md:py-8 flex flex-col lg:flex-row gap-4 md:gap-6 justify-between"> */}
+        {/*   <button onClick={() => setFreeAccess()} className="flex-1 py-4 md:py-5 rounded-xl md:rounded-2xl bg-emerald-400 hover:bg-emerald-500 active:scale-95 transition-all duration-200 text-lg md:text-xl font-semibold flex items-center justify-center gap-3 shadow-lg hover:shadow-emerald-400/40"> */}
+        {/*     <img src={Rocket} alt="rocket" className="w-5 h-5 md:w-6 md:h-6" /> */}
+        {/*     TRY FREE VERSION */}
+        {/*   </button> */}
+        {/*   <button onClick={setMembership} className="flex-1 py-4 md:py-5 rounded-xl md:rounded-2xl bg-sky-600 hover:bg-sky-700 active:scale-95 transition-all duration-200 text-lg md:text-xl font-semibold flex items-center justify-center gap-3 shadow-lg hover:shadow-sky-500/40"> */}
+        {/*     <img src={Crown} alt="crown" className="w-5 h-5 md:w-6 md:h-6" /> */}
+        {/*     JOIN MEMBERSHIP */}
+        {/*   </button> */}
+        {/* </div> */}
       </div>
 
       <OtpModal
