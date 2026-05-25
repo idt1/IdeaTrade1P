@@ -72,8 +72,26 @@ function getSeriesData(year, month) {
   return generateSeries(base, startDate, days, seed);
 }
 
+// ─── useBreakpoint hook ───────────────────────────────────────────────────────
+function useBreakpoint() {
+  const [width, setWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1024
+  );
+  useEffect(() => {
+    const handler = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return {
+    isMobile: width < 480,
+    isTablet: width >= 480 && width < 768,
+    isDesktop: width >= 768,
+    width,
+  };
+}
+
 // ─── Dropdown (Search-style + Portal) ────────────────────────────────────────
-function Dropdown({ label, value, options, onChange }) {
+function Dropdown({ label, value, options, onChange, fullWidth }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const wrapRef = useRef(null);
@@ -145,8 +163,13 @@ function Dropdown({ label, value, options, onChange }) {
               background: opt === value ? "rgba(90,159,212,0.08)" : "transparent",
               transition: "background 0.1s",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(90,159,212,0.12)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = opt === value ? "rgba(90,159,212,0.08)" : "transparent")}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.background = "rgba(90,159,212,0.12)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.background =
+                opt === value ? "rgba(90,159,212,0.08)" : "transparent")
+            }
           >
             {opt}
           </div>
@@ -156,8 +179,7 @@ function Dropdown({ label, value, options, onChange }) {
     );
 
   return (
-    <div ref={wrapRef} style={{ position: "relative" }}>
-      {/* Search-style input row */}
+    <div ref={wrapRef} style={{ position: "relative", width: fullWidth ? "100%" : undefined }}>
       <div
         onClick={openMenu}
         style={{
@@ -171,18 +193,26 @@ function Dropdown({ label, value, options, onChange }) {
           cursor: "text",
           transition: "border-color 0.15s",
           gap: 6,
-          width: 160,
+          width: fullWidth ? "100%" : 160,
           boxSizing: "border-box",
           position: "relative",
         }}
       >
-        {/* Search icon */}
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#5a7a9a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="#5a7a9a"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ flexShrink: 0 }}
+        >
           <circle cx="6.5" cy="6.5" r="4.5" />
           <path d="M10.5 10.5L14 14" />
         </svg>
 
-        {/* Input or placeholder */}
         {open ? (
           <input
             ref={inputRef}
@@ -202,13 +232,33 @@ function Dropdown({ label, value, options, onChange }) {
             }}
           />
         ) : (
-          <span style={{ flex: 1, fontSize: 13, color: value ? "#d0dff0" : "#5a7a9a" }}>
+          <span
+            style={{ flex: 1, fontSize: 13, color: value ? "#d0dff0" : "#5a7a9a" }}
+          >
             {value || label}
           </span>
         )}
 
-        {/* Arrow */}
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#5a7a9a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", right: 10, top: "50%", transform: open ? "translateY(-50%) rotate(180deg)" : "translateY(-50%) rotate(0deg)", transition: "transform 0.15s", pointerEvents: "none" }}>
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 10 10"
+          fill="none"
+          stroke="#5a7a9a"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            position: "absolute",
+            right: 10,
+            top: "50%",
+            transform: open
+              ? "translateY(-50%) rotate(180deg)"
+              : "translateY(-50%) rotate(0deg)",
+            transition: "transform 0.15s",
+            pointerEvents: "none",
+          }}
+        >
           <path d="M1 3l4 4 4-4" />
         </svg>
       </div>
@@ -258,9 +308,13 @@ function DualChart({
   const rightSeriesRef = useRef(null);
   const [spinning, setSpinning] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const { isMobile, isTablet, width } = useBreakpoint();
 
   const [fsYear, setFsYear] = useState(currentYear);
   const [fsMonth, setFsMonth] = useState(currentMonth);
+
+  // Chart height: responsive
+  const chartHeight = isMobile ? 180 : isTablet ? 210 : 240;
 
   useEffect(() => {
     if (!isFullscreen) {
@@ -318,13 +372,13 @@ function DualChart({
       if (containerRef.current && chartRef.current) {
         chartRef.current.applyOptions({
           width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight || 240,
+          height: containerRef.current.clientHeight || chartHeight,
         });
         chartRef.current.timeScale().fitContent();
       }
     }, 50);
     return () => clearTimeout(timer);
-  }, [isFullscreen]);
+  }, [isFullscreen, chartHeight]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -439,6 +493,9 @@ function DualChart({
 
   // ── FULLSCREEN BRANCH ──────────────────────────────────────────────────────
   if (isFullscreen) {
+    // On mobile: stack controls vertically
+    const fsMobile = width < 600;
+
     return (
       <div
         style={{
@@ -453,18 +510,18 @@ function DualChart({
         {/* Top bar */}
         <div
           style={{
-            minHeight: 52,
             background: "#07111c",
             borderBottom: "1px solid rgba(255,255,255,0.07)",
             display: "flex",
-            alignItems: "center",
-            padding: "8px 16px",
+            flexDirection: fsMobile ? "column" : "row",
+            alignItems: fsMobile ? "stretch" : "center",
+            padding: fsMobile ? "8px 12px" : "8px 16px",
+            gap: fsMobile ? 8 : 0,
             flexShrink: 0,
-            position: "relative",
           }}
         >
-          {/* Left — back + reset */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, zIndex: 1 }}>
+          {/* Back + reset row */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button
               onClick={() => setIsFullscreen(false)}
               style={{
@@ -541,74 +598,126 @@ function DualChart({
                 ⟳
               </span>
             </button>
+
+            {/* Badge — show inline on mobile too */}
+            {fsMobile && (
+              <span
+                style={{
+                  marginLeft: "auto",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "3px 12px",
+                  borderRadius: 99,
+                  background: "rgba(90,159,212,0.12)",
+                  color: "#5a9fd4",
+                  border: "1px solid rgba(90,159,212,0.3)",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {cardLabel}
+              </span>
+            )}
           </div>
 
-          {/* Center — badge + dropdowns + divider + legend */}
-          <div
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              pointerEvents: "none",
-            }}
-          >
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                padding: "3px 12px",
-                borderRadius: 99,
-                background: "rgba(90,159,212,0.12)",
-                color: "#5a9fd4",
-                border: "1px solid rgba(90,159,212,0.3)",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                pointerEvents: "auto",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {cardLabel}
-            </span>
-
+          {/* Controls row (dropdowns + legend) */}
+          {fsMobile ? (
+            // Mobile: dropdowns full-width, legend below
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <Dropdown
+                    label="Select Year"
+                    value={String(fsYear)}
+                    options={AVAILABLE_YEARS.map(String)}
+                    onChange={handleFsYearChange}
+                    fullWidth
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Dropdown
+                    label="Series"
+                    value={fsSeriesLabel}
+                    options={fsSeriesOptions}
+                    onChange={handleFsSeriesChange}
+                    fullWidth
+                  />
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                <LegendDot color={rightColor} label={legendRight} />
+                <LegendDot color={leftColor} label={legendLeft} dashed />
+              </div>
+            </div>
+          ) : (
+            // Desktop: centered absolute layout (unchanged)
             <div
               style={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%, -50%)",
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
-                pointerEvents: "auto",
-                position: "relative",
+                pointerEvents: "none",
               }}
             >
-              <Dropdown
-                label="Select Year"
-                value={String(fsYear)}
-                options={AVAILABLE_YEARS.map(String)}
-                onChange={handleFsYearChange}
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "3px 12px",
+                  borderRadius: 99,
+                  background: "rgba(90,159,212,0.12)",
+                  color: "#5a9fd4",
+                  border: "1px solid rgba(90,159,212,0.3)",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  pointerEvents: "auto",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {cardLabel}
+              </span>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  pointerEvents: "auto",
+                  position: "relative",
+                }}
+              >
+                <Dropdown
+                  label="Select Year"
+                  value={String(fsYear)}
+                  options={AVAILABLE_YEARS.map(String)}
+                  onChange={handleFsYearChange}
+                />
+                <Dropdown
+                  label="Series"
+                  value={fsSeriesLabel}
+                  options={fsSeriesOptions}
+                  onChange={handleFsSeriesChange}
+                />
+              </div>
+
+              <div
+                style={{
+                  width: 1,
+                  height: 20,
+                  background: "rgba(255,255,255,0.08)",
+                  flexShrink: 0,
+                }}
               />
-              <Dropdown
-                label="Series"
-                value={fsSeriesLabel}
-                options={fsSeriesOptions}
-                onChange={handleFsSeriesChange}
-              />
+
+              <LegendDot color={rightColor} label={legendRight} />
+              <LegendDot color={leftColor} label={legendLeft} dashed />
             </div>
-
-            <div
-              style={{
-                width: 1,
-                height: 20,
-                background: "rgba(255,255,255,0.08)",
-                flexShrink: 0,
-              }}
-            />
-
-            <LegendDot color={rightColor} label={legendRight} />
-            <LegendDot color={leftColor} label={legendLeft} dashed />
-          </div>
+          )}
         </div>
 
         {/* Chart area */}
@@ -623,49 +732,72 @@ function DualChart({
   // ── NORMAL CARD BRANCH ─────────────────────────────────────────────────────
   return (
     <div style={styles.cardWrap}>
-      <div style={styles.cardHeader}>
-        <span style={styles.cardLabel}>{cardLabel}</span>
-        <div style={styles.legendRow}>
+      {/* Card header — two rows on mobile */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "flex-start" : "center",
+          gap: isMobile ? 6 : 14,
+          padding: isMobile ? "8px 10px" : "10px 14px",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          flexShrink: 0,
+        }}
+      >
+        {/* Row 1: label + buttons */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
+          <span style={styles.cardLabel}>{cardLabel}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
+            <button onClick={handleReset} style={styles.resetBtn}>
+              <span
+                style={{
+                  display: "inline-block",
+                  transition: "transform 0.6s ease",
+                  transform: spinning ? "rotate(360deg)" : "rotate(0deg)",
+                }}
+              >
+                ⟳
+              </span>{" "}
+              Reset
+            </button>
+            <button
+              onClick={() => setIsFullscreen(true)}
+              style={styles.iconBtn}
+              title="Fullscreen"
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Row 2 (always visible): legend */}
+        <div
+          style={{
+            display: "flex",
+            gap: 14,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
           <LegendDot color={rightColor} label={legendRight} />
           <LegendDot color={leftColor} label={legendLeft} dashed />
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
-          <button onClick={handleReset} style={styles.resetBtn}>
-            <span
-              style={{
-                display: "inline-block",
-                transition: "transform 0.6s ease",
-                transform: spinning ? "rotate(360deg)" : "rotate(0deg)",
-              }}
-            >
-              ⟳
-            </span>{" "}
-            Reset
-          </button>
-          <button
-            onClick={() => setIsFullscreen(true)}
-            style={styles.iconBtn}
-            title="Fullscreen"
-          >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" />
-            </svg>
-          </button>
         </div>
       </div>
 
       <div style={{ position: "relative", flex: 1 }}>
         <div style={styles.chartTitle}>{title}</div>
-        <div ref={containerRef} style={{ width: "100%", height: 240 }} />
+        <div ref={containerRef} style={{ width: "100%", height: chartHeight }} />
       </div>
     </div>
   );
@@ -675,6 +807,7 @@ function DualChart({
 export default function Options() {
   const [selectedYear, setSelectedYear] = useState(2023);
   const [selectedMonth, setSelectedMonth] = useState("H");
+  const { isMobile } = useBreakpoint();
 
   const seriesOptions = useMemo(
     () => Object.keys(MONTHS).map((m) => `S50${m}${String(selectedYear).slice(2)}`),
@@ -703,19 +836,28 @@ export default function Options() {
         .tv-lightweight-charts a * { display: none !important; }
       `}</style>
 
-      {/* Top Controls */}
-      <div style={styles.topBar}>
+      {/* Top Controls — stack vertically on mobile */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          gap: 10,
+          alignItems: isMobile ? "stretch" : "center",
+        }}
+      >
         <Dropdown
           label="Select Year"
           value={String(selectedYear)}
           options={AVAILABLE_YEARS.map(String)}
           onChange={handleYearChange}
+          fullWidth={isMobile}
         />
         <Dropdown
           label="Series"
           value={selectedSeriesLabel}
           options={seriesOptions}
           onChange={handleSeriesChange}
+          fullWidth={isMobile}
         />
       </div>
 
@@ -765,27 +907,12 @@ const styles = {
     flexDirection: "column",
     gap: 16,
   },
-  topBar: {
-    display: "flex",
-    gap: 12,
-    alignItems: "center",
-    flexWrap: "wrap",
-  },
   cardWrap: {
     background: "#151c2c",
     border: "1px solid rgba(255,255,255,0.08)",
     borderRadius: 20,
     overflow: "hidden",
     boxShadow: "0 4px 32px rgba(0,0,0,0.4)",
-  },
-  cardHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: 14,
-    padding: "10px 14px",
-    borderBottom: "1px solid rgba(255,255,255,0.06)",
-    flexWrap: "wrap",
-    flexShrink: 0,
   },
   cardLabel: {
     color: "#8aa8c8",
@@ -794,13 +921,7 @@ const styles = {
     letterSpacing: 1,
     textTransform: "uppercase",
     marginRight: 4,
-  },
-  legendRow: {
-    display: "flex",
-    gap: 14,
-    alignItems: "center",
-    flex: 1,
-    flexWrap: "wrap",
+    flexShrink: 0,
   },
   legendItem: {
     display: "inline-flex",
@@ -817,6 +938,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: 4,
+    flexShrink: 0,
   },
   iconBtn: {
     background: "#1e2a40",
@@ -828,6 +950,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
   chartTitle: {
     position: "absolute",
@@ -840,5 +963,6 @@ const styles = {
     letterSpacing: 3,
     pointerEvents: "none",
     zIndex: 1,
+    whiteSpace: "nowrap",
   },
 };

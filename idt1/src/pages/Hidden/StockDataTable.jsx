@@ -11,7 +11,6 @@ const MONTHS_TH = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.",
 const MONTHS_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DAYS_LABEL = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
-// ─── hooks ──────────────────────────────────────────────
 function useWindowWidth() {
   const [width, setWidth] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth : 1200
@@ -24,7 +23,6 @@ function useWindowWidth() {
   return width;
 }
 
-// ─── helpers ────────────────────────────────────────────
 function parseDate(str) {
   if (!str) return null;
   const [y, m, d] = str.split("-").map(Number);
@@ -68,13 +66,7 @@ function processDataAgg(records) {
   records.forEach((r) => {
     const key = r.date + "|" + r.symbol;
     if (!groups[key]) {
-      groups[key] = {
-        date: r.date, symbol: r.symbol,
-        names: new Set(),
-        buy: 0, sell: 0,
-        closePrice: r.price, price: r.price,
-        methods: new Set()
-      };
+      groups[key] = { date: r.date, symbol: r.symbol, names: new Set(), buy: 0, sell: 0, closePrice: r.price, price: r.price, methods: new Set() };
     }
     groups[key].names.add(r.name);
     if (r.method === BUY) groups[key].buy += r.value;
@@ -89,8 +81,18 @@ function processDataAgg(records) {
   }));
 }
 
+// ─── Calendar icon SVG ────────────────────────────────────
+function CalendarIcon({ size = 16, color = "#4a6a9a" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="3" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+  );
+}
+
 // ─── DatePicker ─────────────────────────────────────────
-function DatePicker({ value, onChange, minDate, maxDate, isMobile }) {
+function DatePicker({ value, onChange, minDate, maxDate, isMobile, placeholder = "Select start date" }) {
   const [open, setOpen] = useState(false);
   const [viewYear, setViewYear] = useState(() => {
     const d = parseDate(value); return d ? d.getFullYear() : 2026;
@@ -152,14 +154,13 @@ function DatePicker({ value, onChange, minDate, maxDate, isMobile }) {
         position: "fixed",
         top: "50%", left: "50%",
         transform: "translate(-50%, -50%)",
-        zIndex: 1000,
+        zIndex: 2000,
         background: "#0f1c2e",
         border: "1px solid #1e2d45",
         borderRadius: 12,
         padding: "16px 14px 12px",
         boxShadow: "0 16px 60px rgba(0,0,0,.85)",
         width: "min(320px, 92vw)",
-        animation: "dpFade .15s ease",
       }
     : {
         position: "absolute",
@@ -172,7 +173,6 @@ function DatePicker({ value, onChange, minDate, maxDate, isMobile }) {
         padding: "16px 14px 12px",
         boxShadow: "0 12px 40px rgba(0,0,0,.7)",
         width: 290,
-        animation: "dpFade .15s ease",
       };
 
   return (
@@ -180,25 +180,28 @@ function DatePicker({ value, onChange, minDate, maxDate, isMobile }) {
       <style>{`
         .dp-cell:hover { background: #1e3a5f !important; }
         .dp-mth:hover { background: #1e2d45 !important; }
-        @keyframes dpFade { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
-        .dp-overlay { position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999; }
+        .dp-overlay { position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1999; }
       `}</style>
 
+      {/* Trigger — matches reference image style */}
       <div
         onClick={() => { setOpen(o => !o); setShowMonthPicker(false); }}
         style={{
-          display: "flex", alignItems: "center", gap: 8,
-          background: "#111d30", border: "1px solid #1e2d45",
-          borderRadius: 6, padding: "0 10px", height: 36, width: "100%",
-          cursor: "pointer", color: value ? "#c9d4e8" : "#3a506a",
-          fontSize: 12, userSelect: "none", boxSizing: "border-box",
+          display: "flex", alignItems: "center",
+          background: "#111d30", border: "1px solid #1e3a5f",
+          borderRadius: 8, padding: "0 12px 0 14px", height: 44,
+          cursor: "pointer", userSelect: "none", boxSizing: "border-box",
+          width: "100%", gap: 8,
         }}
       >
-        <span style={{ color: "#2563eb", fontSize: 14, flexShrink: 0 }}>◈</span>
-        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {value ? formatDisplay(value) : "เลือกวันที่"}
+        <span style={{
+          flex: 1, fontSize: 13,
+          color: value ? "#c9d4e8" : "#4a6a9a",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
+          {value ? formatDisplay(value) : placeholder}
         </span>
-        <span style={{ color: "#3a506a", fontSize: 10, flexShrink: 0 }}>{open ? "▲" : "▼"}</span>
+        <CalendarIcon size={18} color={value ? "#60a5fa" : "#4a6a9a"} />
       </div>
 
       {open && isMobile && (
@@ -234,7 +237,7 @@ function DatePicker({ value, onChange, minDate, maxDate, isMobile }) {
                       fontSize: 12, cursor: "pointer", fontFamily: "inherit",
                       background: i === viewMonth ? "#2563eb" : "transparent",
                       color: i === viewMonth ? "#fff" : "#a0b4cc",
-                      fontWeight: i === viewMonth ? 700 : 400, transition: "background .1s",
+                      fontWeight: i === viewMonth ? 700 : 400,
                     }}
                   >{m}</div>
                 ))}
@@ -265,14 +268,11 @@ function DatePicker({ value, onChange, minDate, maxDate, isMobile }) {
                     background: isSelected ? "#2563eb" : "transparent",
                     color: isDisabled ? "#253040" : isSelected ? "#fff" : isToday ? "#60a5fa" : "#c9d4e8",
                     fontWeight: isSelected || isToday ? 700 : 400,
-                    fontSize: 13, fontFamily: "inherit", transition: "background .1s",
+                    fontSize: 13, fontFamily: "inherit",
                   }}
                 >
                   <div>{day}</div>
-                  <div style={{
-                    width: 4, height: 4, borderRadius: "50%", margin: "2px auto 0",
-                    background: isDisabled ? "transparent" : isSelected ? "rgba(255,255,255,0.6)" : "#2563eb",
-                  }} />
+                  <div style={{ width: 4, height: 4, borderRadius: "50%", margin: "2px auto 0", background: isDisabled ? "transparent" : isSelected ? "rgba(255,255,255,0.6)" : "#2563eb" }} />
                 </div>
               );
             })}
@@ -308,7 +308,7 @@ function SymbolSelect({ symbols, value, onChange, onCheckboxClick, isAllChecked,
 
   const checked = isAllChecked || !!value;
   const label = isAllChecked ? "All" : (value || "Type a Symbol");
-  const labelColor = isAllChecked ? "#c9d4e8" : (value ? "#60a5fa" : "#3a506a");
+  const labelColor = isAllChecked ? "#c9d4e8" : (value ? "#60a5fa" : "#4a6a9a");
 
   return (
     <div ref={ref} style={{ position: "relative", display: "inline-block", width: "100%" }}>
@@ -319,17 +319,16 @@ function SymbolSelect({ symbols, value, onChange, onCheckboxClick, isAllChecked,
           if (hasData) setOpen(o => !o);
         }}
         style={{
-          display: "flex", alignItems: "center", gap: 9,
-          background: "#111d30", border: "1px solid #1e2d45",
-          borderRadius: 8, padding: "0 32px 0 10px", height: 36,
+          display: "flex", alignItems: "center", gap: 10,
+          background: "#111d30", border: "1px solid #1e3a5f",
+          borderRadius: 8, padding: "0 14px", height: 44,
           cursor: hasData ? "pointer" : "default",
-          fontSize: 12, userSelect: "none", position: "relative",
-          boxSizing: "border-box", width: "100%",
+          fontSize: 13, userSelect: "none", boxSizing: "border-box", width: "100%",
         }}
       >
         <div data-cb="1" style={{
-          width: 14, height: 14, borderRadius: 3, flexShrink: 0,
-          border: "1px solid #3a506a",
+          width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+          border: `1.5px solid ${checked ? "#2563eb" : "#3a506a"}`,
           background: checked ? "#2563eb" : "#0b1422",
           display: "flex", alignItems: "center", justifyContent: "center",
           cursor: "pointer",
@@ -344,11 +343,9 @@ function SymbolSelect({ symbols, value, onChange, onCheckboxClick, isAllChecked,
           {label}
         </span>
         {hasData && (
-          <span style={{
-            position: "absolute", right: 10, top: "50%",
-            transform: `translateY(-50%) rotate(${open ? 180 : 0}deg)`,
-            color: "#3a506a", fontSize: 10, pointerEvents: "none", transition: "transform .15s",
-          }}>▾</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#4a6a9a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 4l4 4 4-4" />
+          </svg>
         )}
       </div>
 
@@ -362,7 +359,7 @@ function SymbolSelect({ symbols, value, onChange, onCheckboxClick, isAllChecked,
           {symbols.map(s => (
             <div key={s}
               onMouseDown={e => { e.preventDefault(); onChange(s); setOpen(false); }}
-              style={{ padding: "8px 14px", fontSize: 12, cursor: "pointer", color: value === s ? "#60a5fa" : "#c9d4e8", fontWeight: value === s ? 700 : 400, background: "transparent" }}
+              style={{ padding: "8px 14px", fontSize: 13, cursor: "pointer", color: value === s ? "#60a5fa" : "#c9d4e8", fontWeight: value === s ? 700 : 400, background: "transparent" }}
               onMouseEnter={e => e.currentTarget.style.background = "#1e3a5f"}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
@@ -375,11 +372,173 @@ function SymbolSelect({ symbols, value, onChange, onCheckboxClick, isAllChecked,
   );
 }
 
+// ─── MobileSymbolDropdown — plain dropdown, no checkbox ──────────────────────
+function MobileSymbolDropdown({ symbols, value, onChange, hasData }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: "relative", width: "100%" }}>
+      <div
+        onClick={() => hasData && setOpen(o => !o)}
+        style={{
+          display: "flex", alignItems: "center",
+          background: "#111d30", border: "1px solid #1e3a5f",
+          borderRadius: 8, padding: "0 14px", height: 44,
+          cursor: hasData ? "pointer" : "default",
+          userSelect: "none", boxSizing: "border-box", width: "100%",
+        }}
+      >
+        <span style={{ flex: 1, fontSize: 13, color: value ? "#60a5fa" : "#4a6a9a", fontWeight: value ? 700 : 400 }}>
+          {value || "Type a Symbol"}
+        </span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#4a6a9a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d={open ? "M2 8l4-4 4 4" : "M2 4l4 4 4-4"} />
+        </svg>
+      </div>
+
+      {open && hasData && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+          background: "#0f1c2e", border: "1px solid #1e2d45", borderRadius: 10,
+          zIndex: 1000, boxShadow: "0 8px 32px rgba(0,0,0,.6)",
+          maxHeight: 220, overflowY: "auto",
+        }}>
+          <div
+            onMouseDown={e => { e.preventDefault(); onChange(""); setOpen(false); }}
+            style={{ padding: "9px 14px", fontSize: 13, cursor: "pointer", color: "#4a6a9a" }}
+            onMouseEnter={e => e.currentTarget.style.background = "#1e3a5f"}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          >— All —</div>
+          {symbols.map(s => (
+            <div key={s}
+              onMouseDown={e => { e.preventDefault(); onChange(s); setOpen(false); }}
+              style={{ padding: "9px 14px", fontSize: 13, cursor: "pointer", color: value === s ? "#60a5fa" : "#c9d4e8", fontWeight: value === s ? 700 : 400, background: "transparent" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#1e3a5f"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >{s}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function SumValueInput({ value, onChange, isMobile }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const OPTIONS = [
+    { label: "Min Value", value: "" },
+    { label: "100 THB", value: "100" },
+    { label: "1,000 THB", value: "1000" },
+    { label: "10,000 THB", value: "10000" },
+    { label: "100,000 THB", value: "100000" },
+    { label: "500,000 THB", value: "500000" },
+    { label: "1M THB", value: "1000000" },
+    { label: "5M THB", value: "5000000" },
+    { label: "10M THB", value: "10000000" },
+    { label: "50M THB", value: "50000000" },
+    { label: "100M THB", value: "100000000" },
+  ];
+  const selected = OPTIONS.find(o => o.value === value) || OPTIONS[0];
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  if (!isMobile) {
+    return (
+      <select
+        style={{
+          background: "#111d30", border: "1px solid #1e2d45",
+          borderRadius: 6, padding: "0 8px", height: 36,
+          color: "#c9d4e8", fontSize: 12, outline: "none",
+          cursor: "pointer", width: "100%", fontFamily: "inherit",
+        }}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+      >
+        {OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    );
+  }
+
+  return (
+    <div ref={ref} style={{ position: "relative", width: "100%" }}>
+      <div
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: "flex", alignItems: "center", gap: 10,
+          background: "#111d30", border: "1px solid #1e3a5f",
+          borderRadius: 8, padding: "0 14px", height: 44,
+          cursor: "pointer", userSelect: "none", boxSizing: "border-box", width: "100%",
+        }}
+      >
+        {/* Checkbox visual */}
+        <div style={{
+          width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+          border: `1.5px solid ${value ? "#2563eb" : "#3a506a"}`,
+          background: value ? "#2563eb" : "#0b1422",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          {value && (
+            <svg width="9" height="6" viewBox="0 0 9 6" fill="none">
+              <path d="M1 3L3.5 5.5L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          )}
+        </div>
+        <span style={{ flex: 1, fontSize: 13, color: value ? "#c9d4e8" : "#4a6a9a" }}>
+          {selected.label === "Min Value" ? "Type a Value..." : selected.label}
+        </span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#4a6a9a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d={open ? "M2 8l4-4 4 4" : "M2 4l4 4 4-4"} />
+        </svg>
+      </div>
+
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+          background: "#0f1c2e", border: "1px solid #1e2d45", borderRadius: 10,
+          zIndex: 1000, boxShadow: "0 8px 32px rgba(0,0,0,.6)",
+          maxHeight: 260, overflowY: "auto",
+        }}>
+          {OPTIONS.map(o => (
+            <div key={o.value}
+              onMouseDown={e => { e.preventDefault(); onChange(o.value); setOpen(false); }}
+              style={{
+                padding: "10px 14px", fontSize: 13, cursor: "pointer",
+                color: value === o.value ? "#60a5fa" : o.value === "" ? "#4a6a9a" : "#c9d4e8",
+                fontWeight: value === o.value ? 700 : 400, background: "transparent",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "#1e3a5f"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              {o.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── NameCell ────────────────────────────────────────────
 function NameCell({ name }) {
   const [show, setShow] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
-  const ref = useRef(null);
 
   if (!name) return <span style={{ color: "#3a506a" }}>–</span>;
   const parts = name.split(" / ");
@@ -397,7 +556,7 @@ function NameCell({ name }) {
   if (!isTruncated) return inner;
 
   return (
-    <span ref={ref} style={{ cursor: "default", display: "block", textAlign: "center" }}
+    <span style={{ cursor: "default", display: "block", textAlign: "center" }}
       onMouseEnter={() => setShow(true)}
       onMouseLeave={() => setShow(false)}
       onMouseMove={e => setPos({ x: e.clientX, y: e.clientY })}
@@ -435,19 +594,18 @@ export default function Form59Dashboard() {
   const winWidth = useWindowWidth();
   const isMobile  = winWidth < 600;
   const isTablet  = winWidth < 900;
-  const isDesktop = winWidth >= 900;
 
-  const [startDate, setStartDate]     = useState("");
-  const [endDate, setEndDate]         = useState("2026-04-03");
+  const [startDate, setStartDate]       = useState("");
+  const [endDate, setEndDate]           = useState("2026-04-03");
   const [symbolFilter, setSymbolFilter] = useState("");
   const [isAllChecked, setIsAllChecked] = useState(false);
-  const [minValue, setMinValue]       = useState("");
-  const [sortCol, setSortCol]         = useState("date");
-  const [sortDir, setSortDir]         = useState(-1);
-  const [page, setPage]               = useState(1);
-  const [pageSize, setPageSize]       = useState(15);
+  const [minValue, setMinValue]         = useState("");
+  const [sortCol, setSortCol]           = useState("date");
+  const [sortDir, setSortDir]           = useState(-1);
+  const [page, setPage]                 = useState(1);
+  const [pageSize, setPageSize]         = useState(15);
   const [sumValueSymbols, setSumValueSymbols] = useState([]);
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen]   = useState(true);
 
   const tableWrapRef = useRef(null);
 
@@ -502,14 +660,13 @@ export default function Form59Dashboard() {
     setSymbolFilter("");
     setIsAllChecked(false);
     setPage(1);
-    if (isMobile) setFiltersOpen(false);
   }
 
   const filtered = useMemo(() => {
     let result;
-    if (isAllChecked)       result = [...aggregatedByDateSymbol];
-    else if (symbolFilter)  result = aggregatedByDateSymbol.filter(r => r.symbol === symbolFilter);
-    else                    result = [...filteredNoSymbol];
+    if (isAllChecked)      result = [...aggregatedByDateSymbol];
+    else if (symbolFilter) result = aggregatedByDateSymbol.filter(r => r.symbol === symbolFilter);
+    else                   result = [...filteredNoSymbol];
 
     return result.sort((a, b) => {
       let va, vb;
@@ -537,20 +694,12 @@ export default function Form59Dashboard() {
     setSortCol("date"); setSortDir(-1); setPage(1);
   }
 
-  const label = { fontSize: 10, color: "#5a7090", letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600, marginBottom: 3 };
+  const label = { fontSize: 11, color: "#5a7090", letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600, marginBottom: 5 };
   const selectStyle = {
     background: "#111d30", border: "1px solid #1e2d45",
     borderRadius: 6, padding: "0 8px", height: 36,
     color: "#c9d4e8", fontSize: 12, outline: "none",
     cursor: "pointer", width: "100%", fontFamily: "inherit",
-  };
-  const checkBtn = {
-    height: 36, padding: "0 18px",
-    background: "#2563eb", border: "none",
-    borderRadius: 6, color: "#fff",
-    fontSize: 12, fontWeight: 700,
-    cursor: "pointer", fontFamily: "inherit",
-    whiteSpace: "nowrap", flexShrink: 0,
   };
   const th = (align = "center") => ({
     padding: isMobile ? "8px 8px" : "10px 14px",
@@ -571,27 +720,138 @@ export default function Form59Dashboard() {
   const pageStart = Math.max(1, Math.min(totalPages - (isMobile ? 2 : 4), safePage - (isMobile ? 1 : 2)));
   const pageNums  = Array.from({ length: Math.min(isMobile ? 3 : 5, totalPages) }, (_, i) => pageStart + i);
 
-  const FilterPanel = () => (
-    <>
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: isMobile ? "1fr 1fr" : "160px 160px",
-        gap: 10,
-        alignItems: "end",
-      }}>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={label}>Start Date</span>
-          <DatePicker value={startDate} onChange={v => { setStartDate(v); setPage(1); }} maxDate={endDate || STATS.date_max} isMobile={isMobile} />
+  // ── MOBILE FILTER PANEL ─────────────────────────────────────────────────────
+  const MobileFilterPanel = () => (
+    <div style={{
+      background: "#0c1628",
+      padding: "16px 14px 14px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+      borderBottom: "1px solid #1e2d45",
+      flexShrink: 0,
+    }}>
+      {/* Row 1: ? button + Start Date + End Date */}
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
+        {/* ? circle button */}
+        <button style={{
+          width: 44, height: 44, flexShrink: 0,
+          borderRadius: "50%",
+          background: "#111d30",
+          border: "1px solid #1e3a5f",
+          color: "#5a7090", fontSize: 18, fontWeight: 700,
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          fontFamily: "inherit",
+        }}>?</button>
+
+        {/* Start Date */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+          <span style={{ fontSize: 10, color: "#5a7090", marginBottom: 4, letterSpacing: "0.04em" }}>Start Date</span>
+          <DatePicker
+            value={startDate}
+            onChange={v => { setStartDate(v); setPage(1); }}
+            maxDate={endDate || STATS.date_max}
+            isMobile={isMobile}
+            placeholder="Select start date"
+          />
         </div>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={label}>End Date</span>
-          <DatePicker value={endDate} onChange={v => { setEndDate(v); setPage(1); }} minDate={startDate || STATS.date_min} maxDate={STATS.date_max} isMobile={isMobile} />
+
+        {/* End Date */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+          <span style={{ fontSize: 10, color: "#5a7090", marginBottom: 4, letterSpacing: "0.04em" }}>End Date</span>
+          <DatePicker
+            value={endDate}
+            onChange={v => { setEndDate(v); setPage(1); }}
+            minDate={startDate || STATS.date_min}
+            maxDate={STATS.date_max}
+            isMobile={isMobile}
+            placeholder="Select start date"
+          />
         </div>
       </div>
 
-      {!isMobile && <div style={{ width: 1, height: 40, background: "#1e2d45", flexShrink: 0, alignSelf: "center" }} />}
+      {/* Row 2: Symbol dropdown (no checkbox, plain dropdown) */}
+      <MobileSymbolDropdown
+        symbols={sumValueSymbols}
+        value={symbolFilter}
+        onChange={v => { setSymbolFilter(v); setIsAllChecked(false); setPage(1); }}
+        hasData={sumValueSymbols.length > 0}
+      />
 
-      <div style={{ display: "flex", flexDirection: "column", minWidth: isMobile ? undefined : 170 }}>
+      {/* Row 3: Sum Value with label + checkbox + text */}
+      <SumValueInput value={minValue} onChange={v => { setMinValue(v); setPage(1); }} isMobile={isMobile} />
+
+      {/* Row 4: Search left, Reset icon right */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <button
+          onClick={handleCheck}
+          style={{
+            width: 160, height: 46,
+            background: "transparent",
+            border: "1.5px solid #4a6a9a",
+            borderRadius: 10,
+            color: "#c9d4e8",
+            fontSize: 15, fontWeight: 600,
+            cursor: "pointer", fontFamily: "inherit",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#60a5fa"; e.currentTarget.style.color = "#60a5fa"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "#4a6a9a"; e.currentTarget.style.color = "#c9d4e8"; }}
+        >
+          Search
+        </button>
+
+        <button
+          onClick={reset}
+          title="Reset"
+          style={{
+            width: 46, height: 46,
+            background: "#111d30",
+            border: "1px solid #1e3a5f",
+            borderRadius: 10,
+            color: "#5a7090", fontSize: 20,
+            cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#4a6a9a"; e.currentTarget.style.color = "#a0b4cc"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "#1e3a5f"; e.currentTarget.style.color = "#5a7090"; }}
+        >↺</button>
+      </div>
+    </div>
+  );
+
+  // ── DESKTOP FILTER PANEL ────────────────────────────────────────────────────
+  const DesktopFilterPanel = () => (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      padding: isTablet ? "8px 12px" : "10px 16px",
+      background: "#0d1526", borderBottom: "1px solid #1e2d45",
+      flexWrap: "wrap", flexShrink: 0,
+    }}>
+      <button onClick={reset} title="Reset filters"
+        style={{
+          background: "transparent", border: "1px solid #1e2d45",
+          borderRadius: 6, height: 36, padding: "0 12px",
+          color: "#7a90b0", fontSize: 18, cursor: "pointer",
+          lineHeight: 1, flexShrink: 0,
+        }}
+      >↺</button>
+      <div style={{ width: 1, height: 24, background: "#1e2d45", flexShrink: 0 }} />
+
+      {/* Date range */}
+      <div style={{ display: "grid", gridTemplateColumns: "160px 160px", gap: 10, alignItems: "end" }}>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <span style={label}>Start Date</span>
+          <DatePicker value={startDate} onChange={v => { setStartDate(v); setPage(1); }} maxDate={endDate || STATS.date_max} isMobile={false} />
+        </div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <span style={label}>End Date</span>
+          <DatePicker value={endDate} onChange={v => { setEndDate(v); setPage(1); }} minDate={startDate || STATS.date_min} maxDate={STATS.date_max} isMobile={false} />
+        </div>
+      </div>
+
+      <div style={{ width: 1, height: 40, background: "#1e2d45", flexShrink: 0, alignSelf: "center" }} />
+
+      <div style={{ display: "flex", flexDirection: "column", minWidth: 170 }}>
         <span style={label}>Sum Value</span>
         <SymbolSelect
           symbols={sumValueSymbols}
@@ -603,41 +863,36 @@ export default function Form59Dashboard() {
         />
       </div>
 
-      {!isMobile && <div style={{ width: 1, height: 40, background: "#1e2d45", flexShrink: 0, alignSelf: "center" }} />}
+      <div style={{ width: 1, height: 40, background: "#1e2d45", flexShrink: 0, alignSelf: "center" }} />
 
       <div style={{ display: "flex", flexDirection: "column" }}>
         <span style={label}>&nbsp;</span>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <select style={selectStyle} value={minValue} onChange={e => { setMinValue(e.target.value); setPage(1); }}>
-            <option value="">Min Value</option>
-            <option value="100">100 THB</option>
-            <option value="1000">1,000 THB</option>
-            <option value="10000">10,000 THB</option>
-            <option value="100000">100,000 THB</option>
-            <option value="500000">500,000 THB</option>
-            <option value="1000000">1M THB</option>
-            <option value="5000000">5M THB</option>
-            <option value="10000000">10M THB</option>
-            <option value="50000000">50M THB</option>
-            <option value="100000000">100M THB</option>
-          </select>
-          <button style={checkBtn} onClick={handleCheck}
+          <SumValueInput value={minValue} onChange={v => { setMinValue(v); setPage(1); }} isMobile={false} />
+          <button
+            style={{
+              height: 36, padding: "0 18px",
+              background: "#2563eb", border: "none",
+              borderRadius: 6, color: "#fff",
+              fontSize: 12, fontWeight: 700,
+              cursor: "pointer", fontFamily: "inherit",
+              whiteSpace: "nowrap", flexShrink: 0,
+            }}
+            onClick={handleCheck}
             onMouseEnter={e => e.currentTarget.style.background = "#1d4ed8"}
             onMouseLeave={e => e.currentTarget.style.background = "#2563eb"}
           >Check</button>
         </div>
       </div>
-    </>
+    </div>
   );
 
   return (
-    // KEY CHANGE: use height: 100dvh + width: 100% instead of position:absolute
-    // This makes it fill the viewport without breaking normal document flow
     <div style={{
       background: "#0b1120",
       width: "100%",
-      height: "100dvh",          // fills viewport height, respects mobile browser UI
-      minHeight: 0,              // allow flex children to shrink
+      height: "100dvh",
+      minHeight: 0,
       display: "flex",
       flexDirection: "column",
       fontFamily: "'DM Sans', sans-serif",
@@ -648,78 +903,12 @@ export default function Form59Dashboard() {
     }}>
 
       {/* ── DESKTOP TOP BAR ── */}
-      {!isMobile && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10,
-          padding: isTablet ? "8px 12px" : "10px 16px",
-          background: "#0d1526", borderBottom: "1px solid #1e2d45",
-          flexWrap: "wrap", flexShrink: 0,
-        }}>
-          <button
-            onClick={reset}
-            title="Reset filters"
-            style={{
-              background: "transparent", border: "1px solid #1e2d45",
-              borderRadius: 6, height: 36, padding: "0 12px",
-              color: "#7a90b0", fontSize: 18, cursor: "pointer",
-              lineHeight: 1, flexShrink: 0,
-            }}
-          >↺</button>
-          <div style={{ width: 1, height: 24, background: "#1e2d45", flexShrink: 0 }} />
-          <FilterPanel />
-        </div>
-      )}
+      {!isMobile && <DesktopFilterPanel />}
 
-      {/* ── MOBILE TOP BAR ── */}
-      {isMobile && (
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "8px 12px", background: "#0d1526", borderBottom: "1px solid #1e2d45",
-          flexShrink: 0, gap: 8,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button onClick={reset} title="Reset"
-              style={{ background: "transparent", border: "1px solid #1e2d45", borderRadius: 6, height: 34, width: 34, color: "#7a90b0", fontSize: 18, cursor: "pointer", lineHeight: 1, flexShrink: 0 }}
-            >↺</button>
-            <span style={{ fontSize: 11, color: "#5a7090" }}>
-              {endDate ? formatDisplay(endDate) : "All dates"}
-            </span>
-          </div>
+      {/* ── MOBILE: filter panel always visible ── */}
+      {isMobile && <MobileFilterPanel />}
 
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {(startDate || minValue || symbolFilter || isAllChecked) && (
-              <span style={{ background: "#2563eb", borderRadius: 10, padding: "2px 7px", fontSize: 10, color: "#fff", fontWeight: 700 }}>
-                {[startDate && "Date", minValue && "Min", (symbolFilter || isAllChecked) && "Sym"].filter(Boolean).length} active
-              </span>
-            )}
-            <button
-              onClick={() => setFiltersOpen(o => !o)}
-              style={{
-                background: filtersOpen ? "#1e3a5f" : "#111d30",
-                border: `1px solid ${filtersOpen ? "#2563eb" : "#1e2d45"}`,
-                borderRadius: 6, height: 34, padding: "0 12px",
-                color: filtersOpen ? "#60a5fa" : "#7a90b0",
-                fontSize: 12, cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
-              }}
-            >
-              ⚙ Filters {filtersOpen ? "▲" : "▼"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── MOBILE FILTER DRAWER ── */}
-      {isMobile && filtersOpen && (
-        <div style={{
-          background: "#0d1526", borderBottom: "1px solid #1e2d45",
-          padding: "12px", display: "flex", flexDirection: "column", gap: 10,
-          flexShrink: 0, zIndex: 100,
-        }}>
-          <FilterPanel />
-        </div>
-      )}
-
-      {/* ── TABLE — flex: 1 + minHeight: 0 lets it fill remaining space and scroll internally ── */}
+      {/* ── TABLE ── */}
       <div
         style={{ flex: 1, minHeight: 0, overflowX: "auto", overflowY: "auto", background: "#0b1120" }}
         ref={tableWrapRef}
@@ -807,14 +996,15 @@ export default function Form59Dashboard() {
             </span>
           )}
           <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-            <button
-              style={{ background: "transparent", border: "1px solid #1e2d45", borderRadius: 5, padding: "3px 9px", color: safePage === 1 ? "#253040" : "#7a90b0", fontSize: 11, cursor: safePage === 1 ? "default" : "pointer", fontFamily: "inherit" }}
-              disabled={safePage === 1} onClick={() => setPage(1)}
-            >«</button>
-            <button
-              style={{ background: "transparent", border: "1px solid #1e2d45", borderRadius: 5, padding: "3px 9px", color: safePage === 1 ? "#253040" : "#7a90b0", fontSize: 11, cursor: safePage === 1 ? "default" : "pointer", fontFamily: "inherit" }}
-              disabled={safePage === 1} onClick={() => setPage(p => p - 1)}
-            >←</button>
+            {[
+              { label: "«", disabled: safePage === 1, onClick: () => setPage(1) },
+              { label: "←", disabled: safePage === 1, onClick: () => setPage(p => p - 1) },
+            ].map(btn => (
+              <button key={btn.label}
+                style={{ background: "transparent", border: "1px solid #1e2d45", borderRadius: 5, padding: "3px 9px", color: btn.disabled ? "#253040" : "#7a90b0", fontSize: 11, cursor: btn.disabled ? "default" : "pointer", fontFamily: "inherit" }}
+                disabled={btn.disabled} onClick={btn.onClick}
+              >{btn.label}</button>
+            ))}
             {pageNums.map(p => (
               <button key={p}
                 style={{
@@ -827,14 +1017,15 @@ export default function Form59Dashboard() {
                 onClick={() => setPage(p)}
               >{p}</button>
             ))}
-            <button
-              style={{ background: "transparent", border: "1px solid #1e2d45", borderRadius: 5, padding: "3px 9px", color: safePage === totalPages ? "#253040" : "#7a90b0", fontSize: 11, cursor: safePage === totalPages ? "default" : "pointer", fontFamily: "inherit" }}
-              disabled={safePage === totalPages} onClick={() => setPage(p => p + 1)}
-            >→</button>
-            <button
-              style={{ background: "transparent", border: "1px solid #1e2d45", borderRadius: 5, padding: "3px 9px", color: safePage === totalPages ? "#253040" : "#7a90b0", fontSize: 11, cursor: safePage === totalPages ? "default" : "pointer", fontFamily: "inherit" }}
-              disabled={safePage === totalPages} onClick={() => setPage(totalPages)}
-            >»</button>
+            {[
+              { label: "→", disabled: safePage === totalPages, onClick: () => setPage(p => p + 1) },
+              { label: "»", disabled: safePage === totalPages, onClick: () => setPage(totalPages) },
+            ].map(btn => (
+              <button key={btn.label}
+                style={{ background: "transparent", border: "1px solid #1e2d45", borderRadius: 5, padding: "3px 9px", color: btn.disabled ? "#253040" : "#7a90b0", fontSize: 11, cursor: btn.disabled ? "default" : "pointer", fontFamily: "inherit" }}
+                disabled={btn.disabled} onClick={btn.onClick}
+              >{btn.label}</button>
+            ))}
           </div>
           {isMobile && (
             <span style={{ width: "100%", textAlign: "center", fontSize: 10 }}>
