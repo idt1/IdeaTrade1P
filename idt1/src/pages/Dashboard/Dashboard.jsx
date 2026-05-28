@@ -24,7 +24,6 @@ import FlowIntraday from "@/pages/Tools/FlowIntraday";
 import S50 from "@/pages/Tools/S50";
 import Gold from "@/pages/Tools/Gold";
 import BidAsk from "@/pages/Tools/BidAsk";
-import MultiBidAsk from "@/pages/Tools/MultiBidAsk";
 import TickMatch from "@/pages/Tools/TickMatch";
 import DRInsight from "@/pages/Tools/DRInsight";
 import ChartFlipId from "@/pages/Hidden/Chartid";
@@ -64,8 +63,6 @@ const TOOL_CONFIG = {
 
   bidask: { component: BidAsk, id: "bidask", name: "BidAsk Analysis", isPremium: true },
   "BidAsk": { component: BidAsk, id: "bidask", name: "BidAsk Analysis", isPremium: true },
-
-  "multibidask": { component: MultiBidAsk, id: "multibidask", name: "Multi BidAsk", isPremium: true },
 
   tickmatch: { component: TickMatch, id: "tickmatch", name: "TickMatch", isPremium: true },
   "TickMatch": { component: TickMatch, id: "tickmatch", name: "TickMatch", isPremium: true },
@@ -160,7 +157,6 @@ export default function Dashboard({ initialPage }) {
       else if (path === "s50" || path === "S50") setActivePage("s50");
       else if (path === "gold" || path === "Gold") setActivePage("gold");
       else if (path === "bidask" || path === "BidAsk") setActivePage("bidask");
-      else if (path === "multibidask") setActivePage("multibidask");
       else if (path === "tickmatch" || path === "TickMatch") setActivePage("tickmatch");
       else if (path === "dr" || path === "DRInsight") setActivePage("dr");
       else if (path === "profile") setActivePage("profile");

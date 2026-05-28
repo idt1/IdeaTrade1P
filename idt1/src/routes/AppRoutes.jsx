@@ -58,7 +58,6 @@ export default function AppRoutes() {
       <Route path="/Gold" element={<Dashboard initialPage="gold" />} />
 
       <Route path="/bidask" element={<Dashboard initialPage="bidask" />} />
-      <Route path="/multibidask" element={<Dashboard initialPage="multibidask" />} />
       <Route path="/BidAsk" element={<Dashboard initialPage="bidask" />} />
 
       <Route path="/tickmatch" element={<Dashboard initialPage="tickmatch" />} />
