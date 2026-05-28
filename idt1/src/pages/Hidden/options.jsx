@@ -3,6 +3,41 @@ import { createPortal } from "react-dom";
 import { createChart, ColorType, LineStyle, LineSeries } from "lightweight-charts";
 import ToolHint from "@/components/ToolHint.jsx";
 
+// ─── Rotate Modal ─────────────────────────────────────────────────────────────
+function RotateModal({ onClose }) {
+  return createPortal(
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.8)", backdropFilter:"blur(4px)", zIndex:99999, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+      <div style={{ background:"#1c1c1e", border:"1px solid rgba(255,255,255,0.1)", borderRadius:20, width:"100%", maxWidth:360, overflow:"hidden", boxShadow:"0 24px 60px rgba(0,0,0,0.7)", fontFamily:"'Inter',sans-serif" }}>
+        <div style={{ display:"flex", justifyContent:"flex-end", padding:"14px 14px 0" }}>
+          <button onClick={onClose} style={{ width:30, height:30, borderRadius:"50%", background:"rgba(255,255,255,0.08)", border:"none", color:"#94a3b8", cursor:"pointer", fontSize:16, display:"flex", alignItems:"center", justifyContent:"center", transition:"background 0.15s" }}
+            onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.15)"}
+            onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,0.08)"}
+          >✕</button>
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"4px 28px 28px" }}>
+          <div style={{ width:64, height:64, borderRadius:"50%", background:"rgba(245,193,66,0.15)", border:"1px solid rgba(245,193,66,0.35)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:20 }}>
+            <style>{`@keyframes tiltPhone{0%,15%{transform:rotate(0deg)}40%,65%{transform:rotate(-90deg)}85%,100%{transform:rotate(0deg)}}`}</style>
+            <svg style={{ width:32, height:32, color:"#f5c842", animation:"tiltPhone 2.5s ease-in-out infinite" }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
+            </svg>
+          </div>
+          <h3 style={{ fontSize:20, fontWeight:700, color:"#fff", margin:"0 0 8px", textAlign:"center" }}>หมุนหน้าจอ</h3>
+          <p style={{ fontSize:13, color:"#94a3b8", textAlign:"center", lineHeight:1.6, margin:"0 0 24px" }}>
+            เพื่อประสบการณ์ดูกราฟ fullscreen ที่ดีที่สุด<br/>
+            กรุณาหมุนมือถือเป็น <span style={{ color:"#fff", fontWeight:600 }}>แนวนอน (Landscape)</span>
+          </p>
+          <button onClick={onClose}
+            style={{ width:"100%", padding:"14px", borderRadius:12, background:"#f5c842", border:"none", color:"#000", fontWeight:700, fontSize:14, cursor:"pointer", transition:"all 0.15s" }}
+            onMouseEnter={e => e.currentTarget.style.background="#ffd84d"}
+            onMouseLeave={e => e.currentTarget.style.background="#f5c842"}
+          >รับทราบ</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function seedRng(seed) {
   let s = seed;
   return () => {
@@ -71,7 +106,7 @@ const YearIcon = () => (
 );
 
 function VDivider() {
-  return <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)", flexShrink: 0, marginLeft: 6 }} />;
+  return <div style={{ width:1, height:16, background:"rgba(255,255,255,0.1)", flexShrink:0, marginLeft:6, marginRight:6 }} />;
 }
 
 function DatePicker({ label, value, onChange }) {
@@ -156,7 +191,7 @@ function DatePicker({ label, value, onChange }) {
     <div ref={wrapRef} style={{ position:"relative" }}>
       <div onClick={openPicker} style={{
         display:"flex", alignItems:"center", gap:5,
-        padding:"0 8px", height:34, cursor:"pointer",
+        padding:"0 8px", height:32, cursor:"pointer",
         minWidth:110, boxSizing:"border-box",
         border:"1px solid rgba(255,255,255,0.12)",
         borderRadius:6,
@@ -220,11 +255,11 @@ function Dropdown({ label, value, options, onChange, icon }) {
     <div ref={wrapRef} style={{ position:"relative" }}>
       <div onClick={openMenu} style={{
         display:"flex", alignItems:"center", gap:5,
-        padding:"0 8px", height:34, cursor:"pointer",
-        minWidth:160,
+        padding:"0 8px", height:32, cursor:"pointer",
+        minWidth:120,
         width: open ? triggerWidth : "auto",
         boxSizing:"border-box",
-        border:"1px solid rgba(255,255,255,0.12)",  
+        border:"1px solid rgba(255,255,255,0.12)",
         borderRadius:6,
         transition:"border-color 0.15s",
       }}
@@ -254,7 +289,7 @@ function LegendDot({ color, label, dashed }) {
   );
 }
 
-function DualChart({ title, dates, leftData, rightData, leftColor, rightColor, legendLeft, legendRight, cardLabel, currentYear, currentMonth, dataKey }) {
+function DualChart({ title, dates, leftData, rightData, leftColor, rightColor, legendLeft, legendRight, cardLabel, currentYear, currentMonth, dataKey, onFullscreen }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
   const leftSeriesRef = useRef(null);
@@ -278,7 +313,11 @@ function DualChart({ title, dates, leftData, rightData, leftColor, rightColor, l
   const activeRightData = isFullscreen ? (dataKey === "oi" ? fsData.oi : fsData.callPut) : rightData;
 
   const toISO = (dmy) => { const [d, m, y] = dmy.split("/"); return `${y}-${m}-${d}`; };
-  const handleReset = () => { chartRef.current?.timeScale().fitContent(); setSpinning(true); setTimeout(() => setSpinning(false), 600); };
+  const handleReset = () => {
+    chartRef.current?.timeScale().fitContent();
+    setSpinning(true);
+    setTimeout(() => setSpinning(false), 600);
+  };
 
   useEffect(() => {
     if (!isFullscreen) return;
@@ -290,10 +329,12 @@ function DualChart({ title, dates, leftData, rightData, leftColor, rightColor, l
   useEffect(() => {
     const timer = setTimeout(() => {
       if (containerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({ width:containerRef.current.clientWidth, height:containerRef.current.clientHeight || 240 });
+        const w = containerRef.current.clientWidth;
+        const h = containerRef.current.clientHeight || (window.innerHeight - 48);
+        chartRef.current.applyOptions({ width: w, height: h });
         chartRef.current.timeScale().fitContent();
       }
-    }, 50);
+    }, 100);
     return () => clearTimeout(timer);
   }, [isFullscreen]);
 
@@ -316,7 +357,15 @@ function DualChart({ title, dates, leftData, rightData, leftColor, rightColor, l
     chart.priceScale("right").applyOptions({ visible:true, textColor:"rgba(200,216,232,0.6)", borderColor:"transparent" });
     chartRef.current = chart; leftSeriesRef.current = leftSeries; rightSeriesRef.current = rightSeries;
     setChartReady(true);
-    const ro = new ResizeObserver(() => { if (containerRef.current) chart.applyOptions({ width:containerRef.current.clientWidth }); });
+
+    const ro = new ResizeObserver(() => {
+      if (containerRef.current) {
+        chart.applyOptions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight || 240,
+        });
+      }
+    });
     ro.observe(containerRef.current);
     return () => { ro.disconnect(); chart.remove(); setChartReady(false); };
   }, []);
@@ -358,7 +407,7 @@ function DualChart({ title, dates, leftData, rightData, leftColor, rightColor, l
             <LegendDot color={leftColor} label={legendLeft} dashed />
           </div>
         </div>
-        <div style={{ flex:1, position:"relative", minHeight:0 }}>
+        <div style={{ flex:1, position:"relative", minHeight:0, height:"100%" }}>
           <div ref={containerRef} style={{ width:"100%", height:"100%" }} />
         </div>
       </div>
@@ -374,7 +423,7 @@ function DualChart({ title, dates, leftData, rightData, leftColor, rightColor, l
           <LegendDot color={leftColor} label={legendLeft} dashed />
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:5, marginLeft:"auto", flexShrink:0 }}>
-          <button onClick={() => setIsFullscreen(true)} style={styles.iconBtn} title="Fullscreen">
+          <button onClick={() => { setIsFullscreen(true); onFullscreen(); }} style={styles.iconBtn} title="Fullscreen">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5"/></svg>
           </button>
           <button onClick={handleReset} style={styles.iconBtn} title="Reset">
@@ -393,6 +442,7 @@ export default function Options() {
   const [selectedYear, setSelectedYear] = useState(2023);
   const [selectedMonth, setSelectedMonth] = useState("H");
   const [selectedDate, setSelectedDate] = useState("");
+  const [showRotateModal, setShowRotateModal] = useState(false);
 
   const seriesOptions = useMemo(() => Object.keys(MONTHS).map(m => `S50${m}${String(selectedYear).slice(2)}`), [selectedYear]);
   const selectedSeriesLabel = `S50${selectedMonth}${String(selectedYear).slice(2)}`;
@@ -403,7 +453,10 @@ export default function Options() {
 
   return (
     <div style={styles.pageWrap}>
-      <style>{`.tv-lightweight-charts a, .tv-lightweight-charts a * { display: none !important; }`}</style>
+      <style>{`
+        .tv-lightweight-charts a, .tv-lightweight-charts a * { display: none !important; }
+      `}</style>
+      {showRotateModal && <RotateModal onClose={() => setShowRotateModal(false)} />}
       <div style={styles.topBar}>
         <div style={styles.topGroup}>
           <div style={{ flexShrink:0 }}>
@@ -418,8 +471,8 @@ export default function Options() {
           <Dropdown label="Select Year..." value={String(selectedYear)} options={AVAILABLE_YEARS.map(String)} onChange={handleYearChange} icon={<YearIcon />} />
         </div>
       </div>
-      <DualChart cardLabel="Volume" title={selectedSeriesLabel} dates={data.dates} leftData={data.prices} rightData={data.callPut} leftColor="#e84040" rightColor="#00cc55" legendLeft="Futures Price" legendRight="Call-Put (Accumulated)" currentYear={selectedYear} currentMonth={selectedMonth} dataKey="callPut" />
-      <DualChart cardLabel="OI" title={selectedSeriesLabel} dates={data.dates} leftData={data.prices} rightData={data.oi} leftColor="#e84040" rightColor="#f5c842" legendLeft="Futures Price" legendRight="Open Interest (Accumulated)" currentYear={selectedYear} currentMonth={selectedMonth} dataKey="oi" />
+      <DualChart cardLabel="Volume" title={selectedSeriesLabel} dates={data.dates} leftData={data.prices} rightData={data.callPut} leftColor="#e84040" rightColor="#00cc55" legendLeft="Futures Price" legendRight="Call-Put (Accumulated)" currentYear={selectedYear} currentMonth={selectedMonth} dataKey="callPut" onFullscreen={() => setShowRotateModal(true)} />
+      <DualChart cardLabel="OI" title={selectedSeriesLabel} dates={data.dates} leftData={data.prices} rightData={data.oi} leftColor="#e84040" rightColor="#f5c842" legendLeft="Futures Price" legendRight="Open Interest (Accumulated)" currentYear={selectedYear} currentMonth={selectedMonth} dataKey="oi" onFullscreen={() => setShowRotateModal(true)} />
     </div>
   );
 }
@@ -427,12 +480,11 @@ export default function Options() {
 const styles = {
   pageWrap: { background:"#0d0f1a", minHeight:"100vh", padding:16, fontFamily:"'Inter',sans-serif", display:"flex", flexDirection:"column", gap:16 },
   topBar: { display:"flex", gap:10, alignItems:"center", flexWrap:"wrap", width:"100%" },
-  topGroup: { display:"flex", alignItems:"center", gap:6, background:"#151c2c", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"0 8px", height:54, boxSizing:"border-box" },
+  topGroup: { display:"flex", alignItems:"center", gap:6, background:"#151c2c", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"0 8px", height:42, boxSizing:"border-box" },
   cardWrap: { background:"#151c2c", border:"1px solid rgba(255,255,255,0.08)", borderRadius:16, overflow:"hidden", boxShadow:"0 4px 24px rgba(0,0,0,0.3)" },
   cardHeader: { display:"flex", alignItems:"center", gap:10, padding:"8px 12px", borderBottom:"1px solid rgba(255,255,255,0.06)" },
   cardLabel: { color:"#c8d8e8", fontSize:12, fontWeight:700, letterSpacing:0.5, flexShrink:0 },
   legendRow: { display:"flex", gap:12, alignItems:"center", flex:1, flexWrap:"wrap" },
   legendItem: { display:"inline-flex", alignItems:"center" },
   iconBtn: { background:"transparent", color:"#5a7a9a", border:"1px solid rgba(255,255,255,0.1)", borderRadius:5, padding:"3px 6px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s" },
-  chartTitle: { position:"absolute", top:14, left:"50%", transform:"translateX(-50%)", fontSize:14, color:"rgba(255,255,255,0.05)", fontWeight:500, letterSpacing:3, pointerEvents:"none", zIndex:1 },
 };
