@@ -912,6 +912,7 @@ export default function RubberThai() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-3 sm:mb-6 shrink-0">
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <ToolHint
+            detailsVariant="link"
               onViewDetails={() => {
                 setEnteredTool(false);
                 window.scrollTo({ top: 0 });

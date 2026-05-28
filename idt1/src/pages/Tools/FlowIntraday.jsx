@@ -1272,7 +1272,7 @@ export default function FlowIntraday() {
         <div className="flex flex-row items-center justify-between gap-2 mb-3 flex-shrink-0">
           <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             <div className="flex items-center gap-2">
-              <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
+              <ToolHint detailsVariant="link" onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
                  Monitor real-time institutional fund flow and sector rotation throughout the day.
               </ToolHint>
               <div className="flex items-center gap-1.5 bg-[#111827] border border-slate-700 px-1.5 py-1 rounded-lg">

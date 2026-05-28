@@ -1088,7 +1088,7 @@ export default function DRInsight() {
       {(!isMobile && !isTablet) && (
         <div className={`flex flex-col h-screen overflow-hidden animate-fade-in ${isDesktop ? 'p-4 gap-4' : 'p-3 gap-3'}`}>
           <div className="flex items-center justify-center gap-6 shrink-0">
-            <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
+            <ToolHint detailsVariant="link" onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
               Map every Thai DR to its global parent stock, track arbitrage opportunities, monitor real-time valuations, and analyze multi-market trends
             </ToolHint>
             <div className="w-52"><SearchBar value={globalFilter} onChange={setGlobalFilter} /></div>

@@ -682,7 +682,7 @@ export default function S50() {
             isRefreshing={isRefreshing}
             onRefresh={handleRefresh}
             toolHint={
-              <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
+              <ToolHint detailsVariant="link" onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
                 Monitor SET50 Index in multiple timeframes, analyze trend with flow analysis, confirm bullish/bearish momentum, and sync charts for comparative analysis
               </ToolHint>
             }

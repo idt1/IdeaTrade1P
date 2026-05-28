@@ -1800,6 +1800,7 @@ export default function StockFortuneTeller() {
 
         <div className="flex items-center gap-3 mb-6">
           <ToolHint
+          detailsVariant="link"
             onViewDetails={() => {
               setEnteredTool(false);
               window.scrollTo({ top: 0 });

@@ -1506,7 +1506,7 @@ export default function TickMatch() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                         <AnalysisPanel defaultSymbol="" defaultDate={todayStr}
                             toolHint={
-                                <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
+                                <ToolHint detailsVariant="link" onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
                                     Match tick-by-tick data patterns, recognize trading flow correlations, detect relationships between assets, and analyze pattern-based insights
                                 </ToolHint>
                             }

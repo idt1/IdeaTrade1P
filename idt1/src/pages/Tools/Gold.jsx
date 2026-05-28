@@ -338,7 +338,7 @@ export default function Gold() {
         <DynamicChart
           title="Gold (COMEX)"
           toolHint={
-            <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
+            <ToolHint detailsVariant="link" onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
               Track smart gold flow signals, monitor VIX-gold correlation, analyze DXY dollar strength impact, and watch US 10-year yield for capital rotation signals
             </ToolHint>
           }

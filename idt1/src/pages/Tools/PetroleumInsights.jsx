@@ -883,7 +883,7 @@ export default function PetroleumInsights() {
           {/* ── Toolbar ─────────────────────────────────────────────────── */}
           <div className="flex flex-col gap-3 mb-5 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between flex-shrink-0">
             <div className="flex flex-wrap items-center gap-2 min-w-0 w-full lg:w-auto">
-              <ToolHint onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
+              <ToolHint detailsVariant="link" onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
                 Multi-asset oil price tracking, monitor fuel type variations, analyze exchange refinery rates, track market margins, and display historical price data
               </ToolHint>
 
