@@ -7,7 +7,7 @@ import hintHoverIcon from "@/assets/icons/hinthover.svg";
  * @param {React.ReactNode} children - Content ที่จะแสดงใน popover
  * @param {function} onViewDetails - callback เมื่อคลิก "View feature details here"
  */
-export default function ToolHint({ children, onViewDetails }) {
+export default function ToolHint({ children, onViewDetails, detailsLabel, detailsVariant = "button" }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const buttonRef = useRef(null);
@@ -183,15 +183,30 @@ export default function ToolHint({ children, onViewDetails }) {
                 <div className="mb-4 text-slate-300 text-xs leading-relaxed">{children}</div>
               )}
               {onViewDetails && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleClose(); onViewDetails(); }}
-                  className="text-cyan-400 hover:text-cyan-300 text-xs font-semibold transition-colors inline-flex items-center gap-1.5 group"
-                >
-                  View feature details here
-                  <svg className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
+                detailsVariant === "link" ? (
+                  // แบบเดิม — text link
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleClose(); onViewDetails(); }}
+                    className="text-cyan-400 hover:text-cyan-300 text-xs font-semibold transition-colors inline-flex items-center gap-1.5 group"
+                  >
+                    {detailsLabel ?? "View feature details here"}
+                    <svg className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                ) : (
+                  // แบบใหม่ — ปุ่ม
+                  <div style={{ display:"flex", justifyContent:"flex-end", marginTop:16 }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleClose(); onViewDetails(); }}
+                      style={{ background:"#2d5aad", color:"#fff", border:"none", borderRadius:10, padding:"10px 18px", fontSize:13, fontWeight:700, cursor:"pointer", transition:"background 0.15s" }}
+                      onMouseEnter={e => e.currentTarget.style.background="#3a6fd0"}
+                      onMouseLeave={e => e.currentTarget.style.background="#2d5aad"}
+                    >
+                      {detailsLabel ?? "View feature details here"}
+                    </button>
+                  </div>
+                )
               )}
             </div>
           </div>
