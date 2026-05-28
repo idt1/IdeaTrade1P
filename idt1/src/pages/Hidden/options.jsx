@@ -21,16 +21,16 @@ function RotateModal({ onClose }) {
               <rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
             </svg>
           </div>
-          <h3 style={{ fontSize:20, fontWeight:700, color:"#fff", margin:"0 0 8px", textAlign:"center" }}>หมุนหน้าจอ</h3>
+          <h3 style={{ fontSize:20, fontWeight:700, color:"#fff", margin:"0 0 8px", textAlign:"center" }}>Rotate Screen</h3>
           <p style={{ fontSize:13, color:"#94a3b8", textAlign:"center", lineHeight:1.6, margin:"0 0 24px" }}>
-            เพื่อประสบการณ์ดูกราฟ fullscreen ที่ดีที่สุด<br/>
-            กรุณาหมุนมือถือเป็น <span style={{ color:"#fff", fontWeight:600 }}>แนวนอน (Landscape)</span>
+            To achieve the best fullscreen charting experience<br/>
+            Please rotate your phone to <span style={{ color:"#fff", fontWeight:600 }}>landscape mode</span>
           </p>
           <button onClick={onClose}
             style={{ width:"100%", padding:"14px", borderRadius:12, background:"#f5c842", border:"none", color:"#000", fontWeight:700, fontSize:14, cursor:"pointer", transition:"all 0.15s" }}
             onMouseEnter={e => e.currentTarget.style.background="#ffd84d"}
             onMouseLeave={e => e.currentTarget.style.background="#f5c842"}
-          >รับทราบ</button>
+          >Accept</button>
         </div>
       </div>
     </div>,
@@ -480,7 +480,7 @@ export default function Options() {
 const styles = {
   pageWrap: { background:"#0d0f1a", minHeight:"100vh", padding:16, fontFamily:"'Inter',sans-serif", display:"flex", flexDirection:"column", gap:16 },
   topBar: { display:"flex", gap:10, alignItems:"center", flexWrap:"wrap", width:"100%" },
-  topGroup: { display:"flex", alignItems:"center", gap:6, background:"#151c2c", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"0 8px", height:42, boxSizing:"border-box" },
+  topGroup: { display:"flex", alignItems:"center", gap:6, background:"#151c2c", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"0 8px", height:50, boxSizing:"border-box" },
   cardWrap: { background:"#151c2c", border:"1px solid rgba(255,255,255,0.08)", borderRadius:16, overflow:"hidden", boxShadow:"0 4px 24px rgba(0,0,0,0.3)" },
   cardHeader: { display:"flex", alignItems:"center", gap:10, padding:"8px 12px", borderBottom:"1px solid rgba(255,255,255,0.06)" },
   cardLabel: { color:"#c8d8e8", fontSize:12, fontWeight:700, letterSpacing:0.5, flexShrink:0 },
