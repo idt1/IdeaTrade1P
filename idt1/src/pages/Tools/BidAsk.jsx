@@ -297,7 +297,7 @@ const dashboardPreviewJSX = (
 
 // ---------------- Sub Components ----------------
 
-function ReplayPanel({ toolHint }) {
+export function ReplayPanel({ toolHint }) {
     const [symbol, setSymbol] = useState("");
     const [isSearched, setIsSearched] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
