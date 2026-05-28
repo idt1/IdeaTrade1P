@@ -203,7 +203,7 @@ export default function ToolHint({ children, onViewDetails, detailsLabel, detail
                       onMouseEnter={e => e.currentTarget.style.background="#3a6fd0"}
                       onMouseLeave={e => e.currentTarget.style.background="#2d5aad"}
                     >
-                      {detailsLabel ?? "View feature details here"}
+                      {detailsLabel ?? "Got it, Thanks!"}
                     </button>
                   </div>
                 )
