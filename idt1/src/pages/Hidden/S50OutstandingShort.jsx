@@ -42,14 +42,7 @@ const ALL_SYMBOLS = [...MOCK_TABLE];
 const RANGE_DAYS = { "1M": 30, "3M": 90, "6M": 180, "1Y": 365, "YTD": 100, "MAX": 730 };
 const RANGES = ["1M", "3M", "6M", "1Y", "YTD", "MAX"];
 
-const BAR_COLORS = [
-  "#ef4444","#f97316","#eab308","#22c55e","#14b8a6",
-  "#3b82f6","#8b5cf6","#ec4899","#f43f5e","#10b981",
-  "#f59e0b","#6366f1","#84cc16","#06b6d4","#a855f7",
-  "#fb923c","#4ade80","#38bdf8","#c084fc","#fbbf24",
-];
-
-/* ================= DATE PICKER (ported from HisRealFlow) ================= */
+/* ================= DATE PICKER ================= */
 const MONTH_NAMES_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const MONTH_NAMES_FULL  = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DAY_NAMES         = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -77,7 +70,6 @@ function formatPickerDisplay(key) {
   return `${String(day).padStart(2,"0")} ${MONTH_NAMES_SHORT[month-1]} ${year}`;
 }
 
-/* Generate all calendar days between two ISO date strings (weekdays only) */
 function getTradingDatesBetween(startIso, endIso) {
   const keys = [];
   const start = new Date(startIso);
@@ -199,10 +191,7 @@ const DatePicker = memo(({ label, value, onChange, minIso, maxIso }) => {
 
   return (
     <div ref={ref} style={{flexShrink:0}} className="relative">
-      {/* ── Label ── */}
       <div style={{fontSize:10, color:"#6b7280", marginBottom:1, paddingLeft:2, letterSpacing:"0.03em"}}>{label}</div>
-
-      {/* ── Trigger button ── */}
       <button
         onClick={() => {
           if (!open && selectedKey) { const p=parsePickerKey(selectedKey); setViewMonth(p.month); setViewYear(p.year); }
@@ -236,11 +225,8 @@ const DatePicker = memo(({ label, value, onChange, minIso, maxIso }) => {
         </svg>
       </button>
 
-      {/* ── Popup ── */}
       {open && (
         <div style={popup}>
-
-          {/* ── YEAR VIEW ── */}
           {view==="year" && (<>
             <div style={dpHeader}>
               <button style={navBtn(decadeStart>(availableYears[0]??2025))} onClick={()=>setViewYear(decadeStart-1)}
@@ -279,7 +265,6 @@ const DatePicker = memo(({ label, value, onChange, minIso, maxIso }) => {
             </div>
           </>)}
 
-          {/* ── MONTH VIEW ── */}
           {view==="month" && (<>
             <div style={dpHeader}>
               <button style={navBtn(availableYears.includes(viewYear-1))} onClick={()=>setViewYear(y=>y-1)}
@@ -320,7 +305,6 @@ const DatePicker = memo(({ label, value, onChange, minIso, maxIso }) => {
             </div>
           </>)}
 
-          {/* ── DAY VIEW ── */}
           {view==="day" && (<>
             <div style={dpHeader}>
               <button style={navBtn(canPrev())} onClick={prevMonth}
@@ -452,33 +436,83 @@ const SortIcon = ({ asc }) => (
   </svg>
 );
 
-/* ================= STACKED LABEL CHART ================= */
-function StackedLabelChart() {
-  const sorted = [...ALL_SYMBOLS].sort((a, b) => a.outshort - b.outshort);
+/* ================= MULTI LINE CHART (Show All) ================= */
+function MultiLineChart({ allSeriesData }) {
+  const containerRef = useRef(null);
+  const chartRef     = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
+
+    const symbols = Object.keys(allSeriesData);
+    if (symbols.length === 0) return;
+
+    const chart = createChart(containerRef.current, {
+      layout: {
+        background: { color: "transparent" },
+        textColor: "#6b7280",
+        fontFamily: "inherit",
+        fontSize: 11,
+      },
+      grid: {
+        vertLines: { color: "rgba(255,255,255,0.04)" },
+        horzLines: { color: "rgba(255,255,255,0.04)" },
+      },
+      crosshair: {
+        mode: CrosshairMode.Normal,
+        vertLine: { color: "rgba(255,255,255,0.15)", style: LineStyle.Dashed, labelBackgroundColor: "#1e2330" },
+        horzLine: { color: "rgba(255,255,255,0.15)", style: LineStyle.Dashed, labelBackgroundColor: "#1e2330" },
+      },
+      rightPriceScale: {
+        borderColor: "rgba(255,255,255,0.06)",
+        textColor: "#6b7280",
+        scaleMargins: { top: 0.05, bottom: 0.05 },
+      },
+      timeScale: {
+        borderColor: "rgba(255,255,255,0.06)",
+        timeVisible: false,
+        fixLeftEdge: true,
+        fixRightEdge: true,
+      },
+      handleScroll: true,
+      handleScale: true,
+    });
+    chartRef.current = chart;
+
+    symbols.forEach((sym, i) => {
+      const color = SYMBOL_COLORS[i % SYMBOL_COLORS.length];
+      const series = chart.addSeries(LineSeries, {
+        color,
+        lineWidth: 1.5,
+        priceScaleId: "right",
+        crosshairMarkerVisible: true,
+        crosshairMarkerRadius: 3,
+        crosshairMarkerBackgroundColor: color,
+        lastValueVisible: true,
+        priceLineVisible: false,
+        title: sym,
+      });
+      series.setData(allSeriesData[sym]);
+    });
+
+    chart.timeScale().fitContent();
+
+    const ro = new ResizeObserver(() => {
+      if (containerRef.current)
+        chart.applyOptions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight,
+        });
+    });
+    ro.observe(containerRef.current);
+
+    return () => { ro.disconnect(); chart.remove(); chartRef.current = null; };
+  }, [allSeriesData]);
+
   return (
-    <div className="absolute top-0 bottom-0 right-0 left-0 md:left-auto flex items-stretch overflow-y-auto no-scrollbar md:overflow-visible">
-      <div style={{ display:"flex", flexDirection:"column", height:"100%", paddingBottom:24, minWidth:"100%", alignItems:"flex-end" }}>
-        {sorted.map((item, i) => {
-          const color = BAR_COLORS[i % BAR_COLORS.length];
-          return (
-            <div key={item.symbol} style={{ display:"flex", flex:1, minHeight:"24px" }}>
-              <div style={{
-                width:64, height:"100%", background:"#0d1117",
-                display:"flex", alignItems:"center", justifyContent:"flex-end",
-                paddingRight:6, borderRight:`2px solid ${color}`,
-              }}>
-                <span style={{ fontSize:10, fontWeight:700, color, letterSpacing:"0.03em" }}>{item.symbol}</span>
-              </div>
-              <div style={{
-                width:44, height:"100%", background:color,
-                display:"flex", alignItems:"center", justifyContent:"center",
-              }}>
-                <span style={{ fontSize:10, fontWeight:700, color:"#000" }}>{item.outshort.toFixed(2)}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+    <div style={{ display:"flex", flexDirection:"column", height:"100%" }}>
+      <div ref={containerRef} style={{ flex:1, minHeight:0 }}/>
     </div>
   );
 }
@@ -492,8 +526,8 @@ export default function S50OutstandingShort() {
   const dropdownRef       = useRef(null);
   const inputRef          = useRef(null);
 
-  const today    = new Date().toISOString().slice(0,10);
-  const minDate  = "2019-01-02";
+  const today   = new Date().toISOString().slice(0,10);
+  const minDate = "2019-01-02";
 
   const [range,           setRange]           = useState("");
   const [startDate,       setStartDate]       = useState("");
@@ -536,6 +570,7 @@ export default function S50OutstandingShort() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [selectedSymbol]);
 
+  /* Single-symbol chart */
   useEffect(() => {
     if (!chartContainerRef.current) return;
     if (chartRef.current) {
@@ -624,16 +659,12 @@ export default function S50OutstandingShort() {
 
       {/* ── TOP BAR ── */}
       <div className="flex flex-col md:flex-row md:items-end gap-2 px-4 pt-1 pb-2 border-b border-white/5 shrink-0 z-20">
-
         <div className="flex flex-row items-end gap-2 w-full md:w-auto overflow-x-auto no-scrollbar pt-0 pb-1 md:pb-0">
-
           <div className="shrink-0 mb-1">
             <ToolHint onViewDetails={() => { window.scrollTo({ top:0 }); }}>
               S50 Outstanding Short
             </ToolHint>
           </div>
-
-          {/* ── Start Date picker ── */}
           <DatePicker
             label="Start Date"
             value={startDate || minDate}
@@ -641,10 +672,7 @@ export default function S50OutstandingShort() {
             minIso={minDate}
             maxIso={endDate || today}
           />
-
           <span className="text-gray-600 text-sm shrink-0 mb-2">—</span>
-
-          {/* ── End Date picker ── */}
           <DatePicker
             label="End Date"
             value={endDate}
@@ -688,6 +716,7 @@ export default function S50OutstandingShort() {
                   </div>
                 </div>
               )}
+
             </div>
             <div className="flex items-center gap-1 overflow-x-auto no-scrollbar w-full md:w-auto pb-1 md:pb-0">
               {RANGES.map(r => (
@@ -702,15 +731,18 @@ export default function S50OutstandingShort() {
 
           {/* ── CHART MOUNT ── */}
           <div className="flex-1 min-h-0 px-2 pb-3 relative">
+            {/* Single symbol chart */}
             <div ref={chartContainerRef} className="w-full h-full"
               style={{ visibility: selectedSymbol ? "visible" : "hidden" }}/>
 
-            {!selectedSymbol && isShowAll && (
-              <div className="absolute inset-0 overflow-y-auto no-scrollbar pr-0">
-                <StackedLabelChart/>
+            {/* Show All — multi-line chart */}
+            {!selectedSymbol && isShowAll && Object.keys(allSeriesData).length > 0 && (
+              <div className="absolute inset-0">
+                <MultiLineChart allSeriesData={allSeriesData} />
               </div>
             )}
 
+            {/* Empty state */}
             {!selectedSymbol && !isShowAll && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-4 text-center">
                 <span className="text-[16px] text-gray-600 tracking-wide">
@@ -725,8 +757,7 @@ export default function S50OutstandingShort() {
         <div className="w-full md:w-[290px] md:h-full shrink-0 flex flex-col border-b md:border-b-0 md:border-l border-white/5" style={{ background:"#0b0e14" }}>
 
           <div className="flex items-center gap-1.5 px-4 md:px-2.5 pt-3 md:pt-2.5 pb-3 md:pb-2 shrink-0">
-
-            {/* ── Search + Dropdown ── */}
+            {/* Search + Dropdown */}
             <div className="flex-1 relative min-w-0" ref={dropdownRef}>
               <div className="relative bg-[#111827] border border-slate-700 rounded-lg px-2.5 flex items-center shadow-inner h-9 transition-colors focus-within:border-blue-500/50 focus-within:bg-[#1e293b]">
                 <SearchIcon/>
@@ -797,7 +828,7 @@ export default function S50OutstandingShort() {
             </button>
           </div>
 
-          {/* ── Table Header (PC only) ── */}
+          {/* Table Header (PC only) */}
           <div className="hidden md:flex items-center px-4 py-2 shrink-0" style={{ borderBottom:"1px solid rgba(255,255,255,0.05)" }}>
             <span className="flex-1 text-[11px] font-semibold text-gray-500 tracking-wider uppercase">Symbol</span>
             <button onClick={() => setSortAsc(o=>!o)}
@@ -806,7 +837,7 @@ export default function S50OutstandingShort() {
             </button>
           </div>
 
-          {/* ── Symbol List (PC only) ── */}
+          {/* Symbol List (PC only) */}
           <div className="hidden md:block flex-1 overflow-y-auto no-scrollbar pb-2 md:pb-0">
             {filteredTable.map((row, i) => {
               const isSelected = selectedSymbol === row.symbol;
