@@ -29,12 +29,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🟢 สร้าง Map เพื่อเก็บ OTP ไว้ใน Memory ชั่วคราว
-const otpStorage = new Map();
+const db = admin.firestore();
 
 // 1. Route เช็คสถานะเซิร์ฟเวอร์
 app.get("/", (req, res) => {
-  res.send("Backend Running on Render 🚀 (Powered by Google Apps Script & Firebase Admin)");
+  res.send("Backend Running on Vercel 🚀 (Powered by Google Apps Script & Firebase Admin)");
 });
 
 // 2. API สำหรับทดสอบระบบ
@@ -51,28 +50,28 @@ app.post("/api/request-otp", async (req, res) => {
   // สร้างรหัส OTP 6 หลักแบบสุ่ม
   const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-  // 🟢 เก็บ OTP ไว้ใน Memory พร้อมเวลาหมดอายุ 5 นาที
-  otpStorage.set(formattedEmail, {
-    code: otpCode,
-    expiresAt: Date.now() + 5 * 60 * 1000
-  });
-
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyWFvhTdfmWyIOlQT6feXrQCy-qVfMR7f_5y0-v74HqZGLkpMF4USXcBYXdADJKgxiH/exec"; 
-
-  const emailPayload = {
-    to: formattedEmail,
-    subject: "รหัส OTP สำหรับเข้าสู่ระบบ IdeaTrade",
-    htmlBody: `
-      <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f9f9f9; border-radius: 10px;">
-        <h2 style="color: #333;">รหัส OTP ของคุณ</h2>
-        <p style="color: #555; font-size: 16px;">กรุณานำรหัสนี้ไปกรอกในหน้าเว็บไซต์เพื่อยืนยันตัวตน</p>
-        <h1 style="color: #4F46E5; letter-spacing: 5px; font-size: 36px; margin: 20px 0;">${otpCode}</h1>
-        <p style="color: #999; font-size: 12px;">รหัสนี้มีอายุการใช้งาน 5 นาที</p>
-      </div>
-    `
-  };
-
   try {
+    // 🟢 เก็บ OTP ไว้ใน Firestore แทน Memory (เพื่อรองรับ Serverless)
+    await db.collection("otps").doc(formattedEmail).set({
+      code: otpCode,
+      expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + 5 * 60 * 1000)
+    });
+
+    const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbyWFvhTdfmWyIOlQT6feXrQCy-qVfMR7f_5y0-v74HqZGLkpMF4USXcBYXdADJKgxiH/exec"; 
+
+    const emailPayload = {
+      to: formattedEmail,
+      subject: "รหัส OTP สำหรับเข้าสู่ระบบ IdeaTrade",
+      htmlBody: `
+        <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f9f9f9; border-radius: 10px;">
+          <h2 style="color: #333;">รหัส OTP ของคุณ</h2>
+          <p style="color: #555; font-size: 16px;">กรุณานำรหัสนี้ไปกรอกในหน้าเว็บไซต์เพื่อยืนยันตัวตน</p>
+          <h1 style="color: #4F46E5; letter-spacing: 5px; font-size: 36px; margin: 20px 0;">${otpCode}</h1>
+          <p style="color: #999; font-size: 12px;">รหัสนี้มีอายุการใช้งาน 5 นาที</p>
+        </div>
+      `
+    };
+
     const response = await fetch(GOOGLE_SCRIPT_URL, {
       method: "POST",
       headers: {
@@ -84,7 +83,7 @@ app.post("/api/request-otp", async (req, res) => {
     const result = await response.json();
 
     if (result.success) {
-      console.log(`✅ ส่ง OTP [${otpCode}] ไปที่ ${formattedEmail} สำเร็จผ่าน Google Script!`);
+      console.log(`✅ ส่ง OTP [${otpCode}] ไปที่ ${formattedEmail} สำเร็จ!`);
       res.json({ 
         success: true, 
         message: "ระบบได้ส่งรหัส OTP ไปยังอีเมลของคุณแล้ว" 
@@ -108,44 +107,44 @@ app.post("/api/request-otp", async (req, res) => {
   }
 });
 
-// 🌟 4. API สำหรับยืนยัน OTP (อัปเดตเป็นเช็คของจริงแล้ว!)
+// 🌟 4. API สำหรับยืนยัน OTP
 app.post("/api/verify-otp", async (req, res) => { 
   const { email, otp } = req.body;
   const formattedEmail = email.trim().toLowerCase();
   console.log("🔑 กำลังเช็ค OTP:", otp, "ของอีเมล:", formattedEmail);
   
-  // 🟢 1. ดึง OTP ที่เก็บไว้ออกมาเช็ค
-  const storedData = otpStorage.get(formattedEmail);
-
-  if (!storedData) {
-    console.log("❌ ไม่พบข้อมูล OTP หรือหมดเวลาแล้ว");
-    return res.status(400).json({ success: false, error: "ไม่พบรหัส OTP กรุณากดส่งใหม่อีกครั้ง" });
-  }
-
-  // 🟢 2. เช็คเวลาหมดอายุ
-  if (Date.now() > storedData.expiresAt) {
-    otpStorage.delete(formattedEmail);
-    console.log("❌ รหัส OTP หมดอายุ");
-    return res.status(400).json({ success: false, error: "รหัส OTP หมดอายุแล้ว กรุณากดส่งใหม่" });
-  }
-
-  // 🟢 3. เช็คว่าเลขตรงกันไหม! (จุดสำคัญที่สุด)
-  if (String(storedData.code) !== String(otp)) {
-    console.log("❌ ลูกค้ากรอก OTP ผิด");
-    return res.status(400).json({ success: false, error: "รหัส OTP ไม่ถูกต้อง กรุณาลองใหม่" });
-  }
-
-  // 🟢 ถ้ามาถึงตรงนี้แปลว่า รหัสถูก! เวลาไม่หมด! 
   try {
-    // 🌟 เสก Custom Token ของจริง!
+    // 🟢 1. ดึง OTP จาก Firestore ออกมาเช็ค
+    const otpDoc = await db.collection("otps").doc(formattedEmail).get();
+
+    if (!otpDoc.exists) {
+      console.log("❌ ไม่พบข้อมูล OTP");
+      return res.status(400).json({ success: false, error: "ไม่พบรหัส OTP กรุณากดส่งใหม่อีกครั้ง" });
+    }
+
+    const storedData = otpDoc.data();
+
+    // 🟢 2. เช็คเวลาหมดอายุ
+    if (Date.now() > storedData.expiresAt.toMillis()) {
+      await db.collection("otps").doc(formattedEmail).delete();
+      console.log("❌ รหัส OTP หมดอายุ");
+      return res.status(400).json({ success: false, error: "รหัส OTP หมดอายุแล้ว กรุณากดส่งใหม่" });
+    }
+
+    // 🟢 3. เช็คว่าเลขตรงกันไหม
+    if (String(storedData.code) !== String(otp)) {
+      console.log("❌ ลูกค้ากรอก OTP ผิด");
+      return res.status(400).json({ success: false, error: "รหัส OTP ไม่ถูกต้อง กรุณาลองใหม่" });
+    }
+
+    // 🌟 เสก Custom Token ของจริง
     const customToken = await admin.auth().createCustomToken(formattedEmail);
     
     console.log("✅ ยืนยัน OTP และสร้าง Token สำเร็จสำหรับ:", formattedEmail);
     
-    // ลบ OTP ออกจากหน่วยความจำเพื่อความปลอดภัย
-    otpStorage.delete(formattedEmail);
+    // ลบ OTP ออกจาก Firestore
+    await db.collection("otps").doc(formattedEmail).delete();
 
-    // ส่ง Token กลับไปให้หน้าบ้าน
     res.json({ 
       success: true, 
       token: customToken 
@@ -161,21 +160,21 @@ app.post("/api/verify-otp", async (req, res) => {
   }
 });
 
-// 5. API สำหรับหน้า Login (เดิมของคุณ)
+// 5. API สำหรับหน้า Login
 app.post("/api/login", (req, res) => {
-  const { email, password } = req.body;
-  console.log("ข้อมูล Login ที่ส่งมา:", email, password);
   res.json({ success: true, message: "เข้าสู่ระบบสำเร็จ (จำลอง)" });
 });
 
-// 6. API สำหรับหน้า Register (เดิมของคุณ)
+// 6. API สำหรับหน้า Register
 app.post("/api/register", (req, res) => {
-  const userData = req.body;
-  console.log("ข้อมูลสมัครสมาชิกใหม่:", userData);
   res.json({ success: true, message: "สมัครสมาชิกสำเร็จ (จำลอง)" });
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+export default app;
