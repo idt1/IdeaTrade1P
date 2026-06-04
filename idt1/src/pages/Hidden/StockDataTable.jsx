@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import ToolHint from "@/components/ToolHint.jsx";
 
 const RAW_RECORDS = [{"date":"2026-04-03","symbol":"A5","name":"โชติกร ปัญจทรัพย์","rel":"ผู้รายงาน","method":"ขาย","amount":1700000,"price":0.05,"value":85000.0},{"date":"2026-04-03","symbol":"BKIH","name":"ชัย โสภณพนิช","rel":"ผู้รายงาน","method":"ซื้อ","amount":18800,"price":323.02,"value":6072776.0},{"date":"2026-04-03","symbol":"WARRIX","name":"วิศัลย์ วนะศักดิ์ศรีสกุล","rel":"ผู้รายงาน","method":"โอน","amount":11000000,"price":0.0,"value":0.0},{"date":"2026-04-03","symbol":"VRANDA","name":"ภวัฒก์ องค์วาสิฏฐ์","rel":"ผู้รายงาน","method":"ซื้อ","amount":3000,"price":4.24,"value":12720.0},{"date":"2026-04-03","symbol":"MASTEC","name":"ดุษฎี มีชัย","rel":"ผู้รายงาน","method":"ซื้อ","amount":300000,"price":1.19,"value":357000.0},{"date":"2026-04-03","symbol":"HTC","name":"อัมริท คุมาร์ เซรสธา","rel":"ผู้รายงาน","method":"ซื้อ","amount":10000,"price":15.4,"value":154000.0},{"date":"2026-04-03","symbol":"IMH","name":"สิทธิวัตน์ กำกัดวงษ์","rel":"ผู้รายงาน","method":"ซื้อ","amount":3700,"price":3.07,"value":11359.0},{"date":"2026-04-03","symbol":"TRT","name":"กานต์ วงษ์ปาน","rel":"ผู้รายงาน","method":"ซื้อ","amount":80000,"price":4.04,"value":323200.0},{"date":"2026-04-03","symbol":"WARRIX","name":"วิศัลย์ วนะศักดิ์ศรีสกุล","rel":"ผู้รายงาน","method":"โอน","amount":11000000,"price":0.0,"value":0.0},{"date":"2026-04-03","symbol":"TRT","name":"กานต์ วงษ์ปาน","rel":"ผู้รายงาน","method":"ซื้อ","amount":13000,"price":4.02,"value":52260.0},{"date":"2026-04-03","symbol":"PLE","name":"พนิต วิกิตเศรษฐ์","rel":"ผู้รายงาน","method":"ขาย","amount":2655600,"price":0.17,"value":451452.0},{"date":"2026-04-03","symbol":"PEACE","name":"โดม ศิริโสภณา","rel":"ผู้รายงาน","method":"ซื้อ","amount":200,"price":1.68,"value":336.0},{"date":"2026-04-02","symbol":"PEACE","name":"โดม ศิริโสภณา","rel":"ผู้รายงาน","method":"ซื้อ","amount":1900,"price":1.73,"value":3287.0},{"date":"2026-04-02","symbol":"FTI","name":"วรญา ภูวพัชร์","rel":"ผู้รายงาน","method":"ซื้อ","amount":96400,"price":1.82,"value":175448.0},{"date":"2026-04-02","symbol":"AIMIRT","name":"อมร จุฬาลักษณานุกูล","rel":"ผู้รายงาน","method":"ขาย","amount":20000,"price":11.0,"value":220000.0},{"date":"2026-04-02","symbol":"JSP","name":"จิรดา แดงประเสริฐ","rel":"ผู้รายงาน","method":"ซื้อ","amount":10000,"price":1.95,"value":19500.0},{"date":"2026-04-02","symbol":"BKIH","name":"ชัย โสภณพนิช","rel":"ผู้รายงาน","method":"ซื้อ","amount":9900,"price":319.0,"value":3158100.0},{"date":"2026-04-02","symbol":"MASTEC","name":"ดุษฎี มีชัย","rel":"ผู้รายงาน","method":"ซื้อ","amount":200000,"price":1.21,"value":242000.0},{"date":"2026-04-02","symbol":"IMH","name":"สิทธิวัตน์ กำกัดวงษ์","rel":"ผู้รายงาน","method":"ซื้อ","amount":1000,"price":3.09,"value":3090.0},{"date":"2026-04-02","symbol":"PLE","name":"พนิต วิกิตเศรษฐ์","rel":"ผู้รายงาน","method":"ขาย","amount":3762300,"price":0.17,"value":639591.0},{"date":"2026-04-02","symbol":"CTW","name":"ชัย โสภณพนิช","rel":"ผู้รายงาน","method":"ซื้อ","amount":2000,"price":4.4,"value":8800.0},{"date":"2026-04-02","symbol":"SORKON","name":"จรัญพจน์ รุจิราโสภณ","rel":"ผู้รายงาน","method":"ขาย","amount":550000,"price":3.9,"value":2145000.0},{"date":"2026-04-02","symbol":"SKY","name":"รัช ตันตนันตา","rel":"ผู้รายงาน","method":"ขาย","amount":10000,"price":12.7,"value":127000.0},{"date":"2026-04-02","symbol":"EP","name":"ยุทธ ชินสุภัคกุล","rel":"ผู้รายงาน","method":"ซื้อ","amount":104000,"price":1.16,"value":120640.0},{"date":"2026-04-01","symbol":"BKIH","name":"ชัย โสภณพนิช","rel":"ผู้รายงาน","method":"ซื้อ","amount":23200,"price":323.59,"value":7507288.0},{"date":"2026-04-01","symbol":"HARN","name":"วิรัฐ สุขชัย","rel":"ผู้รายงาน","method":"ขาย","amount":1395200,"price":2.02,"value":2818304.0},{"date":"2026-04-01","symbol":"EP","name":"ยุทธ ชินสุภัคกุล","rel":"ผู้รายงาน","method":"ซื้อ","amount":28700,"price":1.14,"value":32718.0},{"date":"2026-04-01","symbol":"BDMS","name":"ปรมาภรณ์ ปราสาททองโอสถ","rel":"ผู้รายงาน","method":"ซื้อ","amount":2615300,"price":19.1,"value":49952230.0},{"date":"2026-04-01","symbol":"ACE","name":"ธีรวุฒิ ทรงเมตตา","rel":"ผู้รายงาน","method":"ซื้อ","amount":9820000,"price":1.28,"value":12569600.0},{"date":"2026-04-01","symbol":"IMH","name":"สิทธิวัตน์ กำกัดวงษ์","rel":"ผู้รายงาน","method":"ซื้อ","amount":2000,"price":3.12,"value":6240.0},{"date":"2026-04-01","symbol":"HFT","name":"เจิ้น ยง หลิน","rel":"ผู้รายงาน","method":"ขาย","amount":2279500,"price":4.6,"value":10485700.0},{"date":"2026-03-31","symbol":"SPTX","name":"รัสมิ์ภูมิ สุเมธีวิทย์","rel":"ผู้รายงาน","method":"ขาย","amount":14000000000,"price":0.01,"value":140000000.0},{"date":"2026-03-31","symbol":"EP","name":"ยุทธ ชินสุภัคกุล","rel":"ผู้รายงาน","method":"ซื้อ","amount":32100,"price":1.14,"value":36594.0},{"date":"2026-03-31","symbol":"IMH","name":"สิทธิวัตน์ กำกัดวงษ์","rel":"ผู้รายงาน","method":"ซื้อ","amount":4000,"price":3.11,"value":12440.0},{"date":"2026-03-31","symbol":"MALEE","name":"รุ่งฉัตร บุญรัตน์","rel":"ผู้รายงาน","method":"ซื้อ","amount":122600,"price":4.17,"value":511242.0},{"date":"2026-03-31","symbol":"MBK","name":"สมพล ตรีภพนารถ","rel":"ผู้รายงาน","method":"ขาย","amount":31000,"price":17.3,"value":536300.0},{"date":"2026-03-30","symbol":"WFX","name":"ชวลิต ติยาเดชาชัย","rel":"ผู้รายงาน","method":"ซื้อ","amount":64100,"price":1.19,"value":76279.0},{"date":"2026-03-30","symbol":"PHG","name":"รณชิต แย้มสอาด","rel":"ผู้รายงาน","method":"ซื้อ","amount":40000,"price":12.42,"value":496800.0},{"date":"2026-03-30","symbol":"MALEE","name":"รุ่งฉัตร บุญรัตน์","rel":"ผู้รายงาน","method":"ซื้อ","amount":60000,"price":4.09,"value":245400.0},{"date":"2026-03-27","symbol":"ALPHAX","name":"ธีร ชุติวราภรณ์","rel":"ผู้รายงาน","method":"ขาย","amount":100000000,"price":0.45,"value":45000000.0},{"date":"2026-03-27","symbol":"GUNKUL","name":"ธรากร อังภูเบศวร์","rel":"ผู้รายงาน","method":"ขาย","amount":1409961,"price":4.2,"value":5921836.2},{"date":"2026-03-26","symbol":"TURBO","name":"สุธัช เรืองสุทธิภาพ","rel":"ผู้รายงาน","method":"ซื้อ","amount":1457600,"price":1.45,"value":2113520.0},{"date":"2026-03-25","symbol":"NDR","name":"นิตยา สัมฤทธิวณิชชา","rel":"ผู้รายงาน","method":"ขาย","amount":8239800,"price":1.5,"value":12359700.0},{"date":"2026-03-25","symbol":"NDR","name":"ชัยสิทธิ์ สัมฤทธิวณิชชา","rel":"ผู้รายงาน","method":"ขาย","amount":36255300,"price":1.5,"value":54382950.0},{"date":"2026-03-24","symbol":"OHTL","name":"ยุทธชัย จรณะจิตต์","rel":"ผู้รายงาน","method":"ซื้อ","amount":66900,"price":300.0,"value":20070000.0},{"date":"2026-03-23","symbol":"BCH","name":"กันตพร หาญพาณิชย์","rel":"ผู้รายงาน","method":"ซื้อ","amount":100000,"price":9.35,"value":935000.0},{"date":"2026-03-20","symbol":"DMT","name":"สมบัติ พานิชชีวะ","rel":"ผู้รายงาน","method":"ขาย","amount":21142392,"price":11.5,"value":243137508.0},{"date":"2026-03-19","symbol":"TURBO","name":"สุธัช เรืองสุทธิภาพ","rel":"ผู้รายงาน","method":"ซื้อ","amount":2937000,"price":1.54,"value":4522980.0},{"date":"2026-03-18","symbol":"CBG","name":"เสถียร เสถียรธรรมะ","rel":"ผู้รายงาน","method":"ซื้อ","amount":250000,"price":36.6,"value":9150000.0},{"date":"2026-03-18","symbol":"OHTL","name":"ยุทธชัย จรณะจิตต์","rel":"ผู้รายงาน","method":"ซื้อ","amount":66900,"price":300.0,"value":20070000.0},{"date":"2026-03-16","symbol":"DMT","name":"สมบัติ พานิชชีวะ","rel":"ผู้รายงาน","method":"ขาย","amount":25000000,"price":11.5,"value":287500000.0},{"date":"2026-03-11","symbol":"BDMS","name":"ปรมาภรณ์ ปราสาททองโอสถ","rel":"ผู้รายงาน","method":"ซื้อ","amount":99906620,"price":18.7,"value":1868253794.0},{"date":"2026-03-09","symbol":"TACC","name":"ชัชชวี วัฒนสุข","rel":"ผู้รายงาน","method":"ขาย","amount":400000,"price":5.5,"value":2200000.0},{"date":"2026-03-05","symbol":"DMT","name":"สมบัติ พานิชชีวะ","rel":"ผู้รายงาน","method":"ขาย","amount":25000000,"price":11.5,"value":287500000.0},{"date":"2026-03-04","symbol":"HANA","name":"ริชาร์ด เดวิด ฮัน","rel":"ผู้รายงาน","method":"ซื้อ","amount":2500000,"price":16.8,"value":42000000.0},{"date":"2026-03-04","symbol":"BCH","name":"กันตพร หาญพาณิชย์","rel":"ผู้รายงาน","method":"ซื้อ","amount":600000,"price":9.6,"value":5760000.0},{"date":"2026-03-02","symbol":"TACC","name":"ชัชชวี วัฒนสุข","rel":"ผู้รายงาน","method":"ขาย","amount":1598300,"price":5.69,"value":9094327.0},{"date":"2026-03-02","symbol":"DMT","name":"สมบัติ พานิชชีวะ","rel":"ผู้รายงาน","method":"ขาย","amount":24000000,"price":11.5,"value":276000000.0},{"date":"2026-02-27","symbol":"MALEE","name":"ชัยฉัตร บุญรัตน์","rel":"ผู้รายงาน","method":"ซื้อ","amount":1291200,"price":4.52,"value":5836224.0},{"date":"2026-02-26","symbol":"TITLE","name":"ดรงค์ หุตะจูฑะ","rel":"ผู้รายงาน","method":"ซื้อ","amount":1100000,"price":7.91,"value":8701000.0},{"date":"2026-02-19","symbol":"DELTA","name":"เซิน-ลิน เฉิน","rel":"ผู้รายงาน","method":"ซื้อ","amount":5000,"price":225.0,"value":1125000.0},{"date":"2026-02-18","symbol":"MMM","name":"สุริยา วงศ์สิทธิชัยกุล","rel":"ผู้รายงาน","method":"ซื้อ","amount":400000,"price":3.42,"value":1368000.0},{"date":"2026-01-21","symbol":"NOBLE","name":"แฟรงค์ ฟง คึ่น เหลียง","rel":"นิติบุคคล","method":"ซื้อ","amount":189527791,"price":2.32,"value":439704475.12},{"date":"2026-01-13","symbol":"GULF","name":"สารัชถ์ รัตนาวะดี","rel":"ผู้รายงาน","method":"ซื้อ","amount":2139400,"price":42.75,"value":91459350.0}];
 
@@ -81,7 +82,6 @@ function processDataAgg(records) {
   }));
 }
 
-// ─── Calendar icon SVG ────────────────────────────────────
 function CalendarIcon({ size = 16, color = "#4a6a9a" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -91,7 +91,6 @@ function CalendarIcon({ size = 16, color = "#4a6a9a" }) {
   );
 }
 
-// ─── DatePicker ─────────────────────────────────────────
 function DatePicker({ value, onChange, minDate, maxDate, isMobile, placeholder = "Select start date" }) {
   const [open, setOpen] = useState(false);
   const [viewYear, setViewYear] = useState(() => {
@@ -183,7 +182,6 @@ function DatePicker({ value, onChange, minDate, maxDate, isMobile, placeholder =
         .dp-overlay { position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1999; }
       `}</style>
 
-      {/* Trigger — matches reference image style */}
       <div
         onClick={() => { setOpen(o => !o); setShowMonthPicker(false); }}
         style={{
@@ -293,7 +291,6 @@ function DatePicker({ value, onChange, minDate, maxDate, isMobile, placeholder =
   );
 }
 
-// ─── SymbolSelect ────────────────────────────────────────
 function SymbolSelect({ symbols, value, onChange, onCheckboxClick, isAllChecked, hasData }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -372,7 +369,6 @@ function SymbolSelect({ symbols, value, onChange, onCheckboxClick, isAllChecked,
   );
 }
 
-// ─── MobileSymbolDropdown — plain dropdown, no checkbox ──────────────────────
 function MobileSymbolDropdown({ symbols, value, onChange, hasData }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -432,7 +428,6 @@ function MobileSymbolDropdown({ symbols, value, onChange, hasData }) {
   );
 }
 
-
 function SumValueInput({ value, onChange, isMobile }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -487,7 +482,6 @@ function SumValueInput({ value, onChange, isMobile }) {
           cursor: "pointer", userSelect: "none", boxSizing: "border-box", width: "100%",
         }}
       >
-        {/* Checkbox visual */}
         <div style={{
           width: 16, height: 16, borderRadius: 4, flexShrink: 0,
           border: `1.5px solid ${value ? "#2563eb" : "#3a506a"}`,
@@ -535,7 +529,6 @@ function SumValueInput({ value, onChange, isMobile }) {
   );
 }
 
-// ─── NameCell ────────────────────────────────────────────
 function NameCell({ name }) {
   const [show, setShow] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -589,7 +582,6 @@ function SortArrow({ col, sortCol, sortDir }) {
   return <span style={{ marginLeft: 4, opacity: active ? 1 : 0.3, fontSize: 10 }}>{active ? (sortDir === 1 ? "↑" : "↓") : "⇅"}</span>;
 }
 
-// ─── Main Dashboard ──────────────────────────────────────
 export default function Form59Dashboard() {
   const winWidth = useWindowWidth();
   const isMobile  = winWidth < 600;
@@ -605,7 +597,6 @@ export default function Form59Dashboard() {
   const [page, setPage]                 = useState(1);
   const [pageSize, setPageSize]         = useState(15);
   const [sumValueSymbols, setSumValueSymbols] = useState([]);
-  const [filtersOpen, setFiltersOpen]   = useState(true);
 
   const tableWrapRef = useRef(null);
 
@@ -695,12 +686,7 @@ export default function Form59Dashboard() {
   }
 
   const label = { fontSize: 11, color: "#5a7090", letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600, marginBottom: 5 };
-  const selectStyle = {
-    background: "#111d30", border: "1px solid #1e2d45",
-    borderRadius: 6, padding: "0 8px", height: 36,
-    color: "#c9d4e8", fontSize: 12, outline: "none",
-    cursor: "pointer", width: "100%", fontFamily: "inherit",
-  };
+
   const th = (align = "center") => ({
     padding: isMobile ? "8px 8px" : "10px 14px",
     textAlign: align, color: "#ffffff", fontWeight: 600,
@@ -720,7 +706,6 @@ export default function Form59Dashboard() {
   const pageStart = Math.max(1, Math.min(totalPages - (isMobile ? 2 : 4), safePage - (isMobile ? 1 : 2)));
   const pageNums  = Array.from({ length: Math.min(isMobile ? 3 : 5, totalPages) }, (_, i) => pageStart + i);
 
-  // ── MOBILE FILTER PANEL ─────────────────────────────────────────────────────
   const MobileFilterPanel = () => (
     <div style={{
       background: "#0c1628",
@@ -731,20 +716,13 @@ export default function Form59Dashboard() {
       borderBottom: "1px solid #1e2d45",
       flexShrink: 0,
     }}>
-      {/* Row 1: ? button + Start Date + End Date */}
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
-        {/* ? circle button */}
-        <button style={{
-          width: 44, height: 44, flexShrink: 0,
-          borderRadius: "50%",
-          background: "#111d30",
-          border: "1px solid #1e3a5f",
-          color: "#5a7090", fontSize: 18, fontWeight: 700,
-          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: "inherit",
-        }}>?</button>
+      {/* ToolHint — top of mobile filter panel */}
+      <div style={{ flexShrink: 0 }}>
+        <ToolHint onViewDetails={() => { window.scrollTo({ top: 0 }); }}>Form 59 — insider trading report data from the Stock Exchange of Thailand</ToolHint>
+      </div>
 
-        {/* Start Date */}
+      {/* Row 1: Start Date + End Date */}
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
         <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           <span style={{ fontSize: 10, color: "#5a7090", marginBottom: 4, letterSpacing: "0.04em" }}>Start Date</span>
           <DatePicker
@@ -756,7 +734,6 @@ export default function Form59Dashboard() {
           />
         </div>
 
-        {/* End Date */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           <span style={{ fontSize: 10, color: "#5a7090", marginBottom: 4, letterSpacing: "0.04em" }}>End Date</span>
           <DatePicker
@@ -765,12 +742,12 @@ export default function Form59Dashboard() {
             minDate={startDate || STATS.date_min}
             maxDate={STATS.date_max}
             isMobile={isMobile}
-            placeholder="Select start date"
+            placeholder="Select end date"
           />
         </div>
       </div>
 
-      {/* Row 2: Symbol dropdown (no checkbox, plain dropdown) */}
+      {/* Row 2: Symbol dropdown */}
       <MobileSymbolDropdown
         symbols={sumValueSymbols}
         value={symbolFilter}
@@ -778,10 +755,10 @@ export default function Form59Dashboard() {
         hasData={sumValueSymbols.length > 0}
       />
 
-      {/* Row 3: Sum Value with label + checkbox + text */}
+      {/* Row 3: Sum Value */}
       <SumValueInput value={minValue} onChange={v => { setMinValue(v); setPage(1); }} isMobile={isMobile} />
 
-      {/* Row 4: Search left, Reset icon right */}
+      {/* Row 4: Search + Reset */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <button
           onClick={handleCheck}
@@ -819,7 +796,6 @@ export default function Form59Dashboard() {
     </div>
   );
 
-  // ── DESKTOP FILTER PANEL ────────────────────────────────────────────────────
   const DesktopFilterPanel = () => (
     <div style={{
       display: "flex", alignItems: "center", gap: 10,
@@ -827,6 +803,11 @@ export default function Form59Dashboard() {
       background: "#0d1526", borderBottom: "1px solid #1e2d45",
       flexWrap: "wrap", flexShrink: 0,
     }}>
+      {/* ToolHint — before reset button */}
+      <div style={{ flexShrink: 0 }}>
+        <ToolHint onViewDetails={() => { window.scrollTo({ top: 0 }); }}>Form 59 — insider trading report data from the Stock Exchange of Thailand</ToolHint>
+      </div>
+
       <button onClick={reset} title="Reset filters"
         style={{
           background: "transparent", border: "1px solid #1e2d45",
@@ -902,13 +883,9 @@ export default function Form59Dashboard() {
       boxSizing: "border-box",
     }}>
 
-      {/* ── DESKTOP TOP BAR ── */}
       {!isMobile && <DesktopFilterPanel />}
-
-      {/* ── MOBILE: filter panel always visible ── */}
       {isMobile && <MobileFilterPanel />}
 
-      {/* ── TABLE ── */}
       <div
         style={{ flex: 1, minHeight: 0, overflowX: "auto", overflowY: "auto", background: "#0b1120" }}
         ref={tableWrapRef}
@@ -980,7 +957,6 @@ export default function Form59Dashboard() {
         </table>
       </div>
 
-      {/* ── PAGINATION ── */}
       {totalPages > 1 && (
         <div style={{
           display: "flex", alignItems: "center",
