@@ -686,8 +686,8 @@ function Navbar({ symbol, onBack, onSymbolChange, symbolInput, setSymbolInput, o
       {/* ส่วนปุ่ม Back และไอคอน */}
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
         <ToolHint onViewDetails={onOpenInfo}>
-          ---
-        </ToolHint>
+  Net flow chart — Flip T-1→T and Intraday across SET, MAI, and Warrant.
+</ToolHint>
 
         <button
           className="nav-back-btn"

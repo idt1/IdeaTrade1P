@@ -32,7 +32,7 @@ const VISIBLE_ROWS = 5;
 const MAX_SELECT   = 5;
 const ROW_H        = 40;
 const HEADER_H     = 36;
-const TABLE_H      = HEADER_H + VISIBLE_ROWS * ROW_H; // 236px — ยังคงใช้เป็น min-height
+const TABLE_H      = HEADER_H + VISIBLE_ROWS * ROW_H;
 
 /* ================= RNG + FLOW DATA ================= */
 function rng(s) {
@@ -364,7 +364,7 @@ const LWCChart = ({
         barSpacing: 20,
         tickMarkFormatter: (time) => {
           const d = new Date((time + 7 * 3600) * 1000);
-          return `${String(d.getUTCHours()).padStart(2,"0")}:${String(d.getUTCMinutes()).padStart(2,"0")}`;
+          return `${String(d.getUTCHours()).padStart(2,"00")}:${String(d.getUTCMinutes()).padStart(2,"00")}`;
         },
       },
       rightPriceScale: {
@@ -597,7 +597,6 @@ const RankTable = ({ data, flashMap = {}, recentMap = {}, highlighted, extraVisi
   }, []);
 
   const isTiny = containerW < 360;
-  // ปรับ grid columns ให้ยืดหยุ่นตาม container width
   const COL    = isTiny ? "30px 1fr 90px 72px" : "36px 1fr 90px 80px 48px";
   const hiArr  = Array.isArray(highlighted) ? highlighted : (highlighted != null ? [highlighted] : []);
   const allSelected = new Set([...hiArr, ...extraVisibleSet]);
@@ -790,23 +789,10 @@ const FullscreenRankings = ({ data, flashMap = {}, recentMap = {}, totalCount, h
 };
 
 /* ================= SHELLS ================= */
-
-/**
- * DesktopShell: ใช้ flex-basis + minmax แทน fixed width
- * - chart: flex 3 (ประมาณ 60%)
- * - table: flex 2 (ประมาณ 40%) มี min-width 280px / max-width 520px
- */
 const DesktopShell = ({ chart, table }) => (
   <div style={{ display: "flex", gap: 12, alignItems: "stretch", height: TABLE_H }}>
     <div style={{ flex: "3 1 0", minWidth: 0, height: "100%" }}>{chart}</div>
-    <div style={{
-      flex: "2 1 0",
-      minWidth: 280,
-      maxWidth: 520,
-      flexShrink: 0,
-      height: "100%",
-      overflow: "hidden",
-    }}>
+    <div style={{ flex: "2 1 0", minWidth: 280, maxWidth: 520, flexShrink: 0, height: "100%", overflow: "hidden" }}>
       {table}
     </div>
   </div>
@@ -814,48 +800,26 @@ const DesktopShell = ({ chart, table }) => (
 
 const MobileShell = ({ chart, table }) => {
   const [activeTab, setActiveTab] = useState("chart");
-
   const TabBtn = ({ id, label }) => (
-    <button
-      onClick={() => setActiveTab(id)}
-      style={{
-        flex: 1, padding: "6px 0",
-        background: activeTab === id ? "#1e293b" : "transparent",
-        border: "none",
-        borderRadius: 6,
-        color: activeTab === id ? "#e2e8f0" : "#64748b",
-        fontSize: 12, fontWeight: activeTab === id ? 700 : 500,
-        cursor: "pointer", fontFamily: "inherit",
-        transition: "all 0.2s ease-in-out",
-        boxShadow: activeTab === id ? "0 1px 3px rgba(0,0,0,0.3)" : "none"
-      }}
-    >
-      {label}
-    </button>
+    <button onClick={() => setActiveTab(id)} style={{
+      flex: 1, padding: "6px 0",
+      background: activeTab === id ? "#1e293b" : "transparent",
+      border: "none", borderRadius: 6,
+      color: activeTab === id ? "#e2e8f0" : "#64748b",
+      fontSize: 12, fontWeight: activeTab === id ? 700 : 500,
+      cursor: "pointer", fontFamily: "inherit",
+      transition: "all 0.2s ease-in-out",
+      boxShadow: activeTab === id ? "0 1px 3px rgba(0,0,0,0.3)" : "none",
+    }}>{label}</button>
   );
-
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
-      <div style={{
-        display: "flex",
-        background: "#0a1525",
-        borderRadius: 8,
-        padding: 4,
-        marginBottom: 10
-      }}>
+      <div style={{ display: "flex", background: "#0a1525", borderRadius: 8, padding: 4, marginBottom: 10 }}>
         <TabBtn id="chart" label="Chart" />
         <TabBtn id="table" label="Rankings" />
       </div>
-
-      {activeTab === "chart" && (
-        <div style={{ height: TABLE_H }}>
-          {React.cloneElement(chart, { height: TABLE_H })}
-        </div>
-      )}
-
-      {activeTab === "table" && (
-        <div style={{ height: TABLE_H, overflow: "hidden" }}>{table}</div>
-      )}
+      {activeTab === "chart" && <div style={{ height: TABLE_H }}>{React.cloneElement(chart, { height: TABLE_H })}</div>}
+      {activeTab === "table" && <div style={{ height: TABLE_H, overflow: "hidden" }}>{table}</div>}
     </div>
   );
 };
@@ -914,6 +878,8 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
     return () => window.removeEventListener("keydown", onKey);
   }, [isFullscreen]);
 
+  const TOOL_HINT_TEXT = "Ideatrade Point — real-time buy and sell flow rankings with live charts across SET100, NON-SET100, MAI, and Warrant. Click a row to highlight, Ctrl+click to compare up to 5 symbols.";
+
   /* ── FULLSCREEN LAYOUT ── */
   if (isFullscreen) {
     const isNarrowFS = bp === "xs" || bp === "sm" || bp === "md";
@@ -925,7 +891,7 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
           display: "flex", alignItems: "center", gap: 8,
           padding: "8px 16px", flexShrink: 0, flexWrap: "wrap",
         }}>
-          <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>---</ToolHint>
+          <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>{TOOL_HINT_TEXT}</ToolHint>
           <button onClick={() => setIsFullscreen(false)} style={{
             display: "flex", alignItems: "center", gap: 5,
             background: "transparent", border: "1px solid rgba(255,255,255,0.12)",
@@ -1000,19 +966,11 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
         <div style={{ flex: 1, display: "flex", flexDirection: isNarrowFS ? "column" : "row", minHeight: 0 }}>
           <div style={{ flex: 1, minWidth: 0, minHeight: 0, padding: isNarrowFS ? "8px 8px 0" : "12px 0 12px 12px", display: "flex" }}>
             <LWCChart
-              seriesData={allSeriesData}
-              highlighted={highlighted}
-              extraVisibleSet={extraVisibleSet}
-              allData={liveData}
-              height="100%"
-              chartId={`${chartId}-fs`}
-              chartRefs={chartRefs}
-              onZoom={onZoom}
-              globalLogical={globalLogical}
-              setGlobalLogical={setGlobalLogical}
-              showLabels={true}
-              labelData={liveData}
-              timePeriod={timePeriod}
+              seriesData={allSeriesData} highlighted={highlighted}
+              extraVisibleSet={extraVisibleSet} allData={liveData}
+              height="100%" chartId={`${chartId}-fs`} chartRefs={chartRefs}
+              onZoom={onZoom} globalLogical={globalLogical} setGlobalLogical={setGlobalLogical}
+              showLabels={true} labelData={liveData} timePeriod={timePeriod}
             />
           </div>
           <div style={{
@@ -1027,11 +985,9 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
           }}>
             <FullscreenRankings
               data={liveData} flashMap={flashMap} recentMap={recentMap}
-              totalCount={totalCount}
-              highlighted={highlighted}
+              totalCount={totalCount} highlighted={highlighted}
               extraVisibleSet={extraVisibleSet}
-              onRowClick={handleRowClick}
-              onChartFlipClick={onChartFlipClick}
+              onRowClick={handleRowClick} onChartFlipClick={onChartFlipClick}
             />
           </div>
         </div>
@@ -1039,49 +995,29 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
     );
   }
 
-  /* ── NORMAL (card) LAYOUT ── */
+  /* ── NORMAL LAYOUT ── */
   const chartEl = (
     <LWCChart
-      seriesData={allSeriesData}
-      highlighted={highlighted}
-      extraVisibleSet={extraVisibleSet}
-      allData={liveData}
-      height={TABLE_H}
-      chartId={chartId}
-      chartRefs={chartRefs}
-      onZoom={onZoom}
-      globalLogical={globalLogical}
-      setGlobalLogical={setGlobalLogical}
-      timePeriod={timePeriod}
-      showLabels={true}
-      labelData={liveData}
+      seriesData={allSeriesData} highlighted={highlighted}
+      extraVisibleSet={extraVisibleSet} allData={liveData}
+      height={TABLE_H} chartId={chartId} chartRefs={chartRefs}
+      onZoom={onZoom} globalLogical={globalLogical} setGlobalLogical={setGlobalLogical}
+      timePeriod={timePeriod} showLabels={true} labelData={liveData}
     />
   );
-
   const tableEl = (
     <RankTable
-      data={liveData}
-      flashMap={flashMap}
-      recentMap={recentMap}
-      highlighted={highlighted}
-      extraVisibleSet={extraVisibleSet}
-      totalCount={totalCount}
-      onRowClick={handleRowClick}
-      onChartFlipClick={onChartFlipClick}
+      data={liveData} flashMap={flashMap} recentMap={recentMap}
+      highlighted={highlighted} extraVisibleSet={extraVisibleSet}
+      totalCount={totalCount} onRowClick={handleRowClick} onChartFlipClick={onChartFlipClick}
     />
   );
 
   return (
     <div style={{ marginBottom: 16 }}>
-      <div
-        className="bg-[#1e293b] rounded-xl border border-slate-700/60 shadow-lg"
-        style={{ padding: isMobile ? "12px 10px" : "16px 20px", display: "flex", flexDirection: "column" }}
-      >
-        <div style={{
-          display: "flex", alignItems: "flex-start",
-          justifyContent: "space-between",
-          marginBottom: 12, flexShrink: 0, gap: 8,
-        }}>
+      <div className="bg-[#1e293b] rounded-xl border border-slate-700/60 shadow-lg"
+        style={{ padding: isMobile ? "12px 10px" : "16px 20px", display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12, flexShrink: 0, gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", flex: 1, minWidth: 0 }}>
             <span style={{ fontSize: 14, fontWeight: 800, color: "#e2e8f0", letterSpacing: "0.04em", fontFamily: "monospace" }}>{category}</span>
             <span style={{
@@ -1097,27 +1033,19 @@ const SectionCard = ({ category, type, seed: initSeed, onChartFlipClick, chartRe
             <LastUpdateBadge lastUpdated={lastUpdated} />
           </div>
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-            <button onClick={handleFullscreen}
-              style={{ width: 30, height: 30, borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}
-              title="Fullscreen">
+            <button onClick={handleFullscreen} style={{ width: 30, height: 30, borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }} title="Fullscreen">
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                 <path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5"/>
               </svg>
             </button>
-            <button onClick={handleRefresh}
-              style={{ width: 30, height: 30, borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}
-              title="Refresh">
+            <button onClick={handleRefresh} style={{ width: 30, height: 30, borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }} title="Refresh">
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M13.5 6A6 6 0 1 0 14 10"/><path d="M14 4v3h-3"/>
               </svg>
             </button>
           </div>
         </div>
-
-        {isMobile
-          ? <MobileShell chart={chartEl} table={tableEl} />
-          : <DesktopShell chart={chartEl} table={tableEl} />
-        }
+        {isMobile ? <MobileShell chart={chartEl} table={tableEl} /> : <DesktopShell chart={chartEl} table={tableEl} />}
       </div>
     </div>
   );
@@ -1175,11 +1103,16 @@ function IdeatradePoint({ onChartFlipClick }) {
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: "16px 20px" }}>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+
+          {/* ── Row 1: ToolHint + Search + History ── */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
-              <ToolHint onViewDetails={() => { window.scrollTo({ top: 0 }); }}>
-                Ideatradepoint
+
+              {/* ToolHint อยู่แถวเดียวกับ Search */}
+              <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
+                Ideatrade Point — real-time buy and sell flow rankings with live charts across SET100, NON-SET100, MAI, and Warrant. Click a row to highlight, Ctrl+click to compare up to 5 symbols.
               </ToolHint>
+
               <div style={{ position: "relative", flex: 1, maxWidth: 300 }}>
                 <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "#64748b", pointerEvents: "none" }}>
                   <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1210,6 +1143,7 @@ function IdeatradePoint({ onChartFlipClick }) {
             </button>
           </div>
 
+          {/* ── Row 2: Category filter tabs ── */}
           <div className="custom-scrollbar-x" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {CATEGORIES.map(cat => {
               const isActive = activeCategory === cat;
@@ -1221,7 +1155,7 @@ function IdeatradePoint({ onChartFlipClick }) {
                   color: isActive ? "#fff" : "#cbd5e1",
                   transition: "all 0.15s", fontFamily: "inherit",
                   boxShadow: isActive ? "0 0 0 1px rgba(59,130,246,0.4)" : "none",
-                  whiteSpace: "nowrap", letterSpacing: "0.02em", flexShrink: 0
+                  whiteSpace: "nowrap", letterSpacing: "0.02em", flexShrink: 0,
                 }}>{cat}</button>
               );
             })}
@@ -1235,9 +1169,7 @@ function IdeatradePoint({ onChartFlipClick }) {
               return (
                 <SectionCard
                   key={`${category}-${type}`}
-                  category={category}
-                  type={type}
-                  seed={seed}
+                  category={category} type={type} seed={seed}
                   onChartFlipClick={onChartFlipClick}
                   chartRefs={chartRefs}
                   globalLogical={globalLogical}

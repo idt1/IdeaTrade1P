@@ -688,7 +688,9 @@ export default function DWViewCharts() {
           <div style={{ background: "#1e293b", borderBottom: `1px solid rgba(100,116,139,0.3)`, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 12, flexShrink: 0 }}>
             {/* Top row */}
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>DW CHARTS</ToolHint>
+              <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
+                DW flow charts — underlying price, net flow, call and put flow for a selected symbol and timeframe. Select a DW to overlay individual warrant data.
+              </ToolHint>
               <div style={{ flex: 1 }}><SymbolInput value={symbol} onChange={v=>{setSymbol(v);setSubmitted(false);}} onEnter={doEnter}/></div>
               <button onMouseDown={e=>{e.preventDefault();doReset();}} disabled={!hasData||loading} style={{display:"flex",alignItems:"center",justifyContent:"center",width:34,height:34,borderRadius:8,background:"rgba(255,255,255,0.04)",border:`1px solid rgba(100,116,139,0.3)`,cursor:hasData?"pointer":"not-allowed",color:hasData?C.mutedText:C.dimText,flexShrink:0,transition:"all .15s"}}> 
                 <RefreshIcon fontSize="small" className={loading ? "animate-spin" : ""} /> 
@@ -720,7 +722,9 @@ export default function DWViewCharts() {
         ) : (
           /* Desktop Toolbar */
           <div style={{background:"#1e293b",borderBottom:`1px solid rgba(100,116,139,0.3)`,padding:"10px 14px",flexShrink:0,display:"flex",alignItems:"center",gap:10,flexWrap:"nowrap",minWidth:0}}>
-            <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>DW CHARTS</ToolHint>
+            <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
+              DW flow charts — underlying price, net flow, call and put flow for a selected symbol and timeframe. Select a DW to overlay individual warrant data.
+            </ToolHint>
             <button onMouseDown={e=>{e.preventDefault();doReset();}} disabled={!hasData||loading} style={{display:"flex",alignItems:"center",justifyContent:"center",width:34,height:34,borderRadius:8,background:"rgba(255,255,255,0.04)",border:`1px solid rgba(100,116,139,0.3)`,cursor:hasData?"pointer":"not-allowed",color:hasData?C.mutedText:C.dimText,flexShrink:0,transition:"all .15s"}} onMouseEnter={e=>{if(hasData){e.currentTarget.style.color=C.white;}}} onMouseLeave={e=>{e.currentTarget.style.color=hasData?C.mutedText:C.dimText;}}>
               <RefreshIcon fontSize="small" className={loading ? "animate-spin" : ""} />
             </button>
