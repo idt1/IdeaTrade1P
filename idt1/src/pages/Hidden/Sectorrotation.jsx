@@ -790,7 +790,7 @@ function MobileTopbar({
       {/* Row 1: ToolHint + FIRST DATA + LAST DATA */}
       <div style={{ display:"flex", alignItems:"center", gap:8 }}>
         <ToolHint onViewDetails={() => { window.scrollTo({ top: 0 }); }}>
-          Sectorrotation
+          Sector Rotation — Browse SET and MAI industry sectors with historical price charts and Flow signals. Select a market and sector to compare
         </ToolHint>
         <div style={{ flex:1 }}/>
         {dataBtn("FIRST DATA", handleGoToFirst)}
@@ -906,7 +906,6 @@ function SectorRotation() {
     handleMarketChange, setMarketFilter, setMarketChosen,
     setSelectedSectors,
     marketChosen, availableSectors, selectedSectors,
-    "setSelectedSectors": setSelectedSectors,
     subMarketFilter, setSubMarketFilter,
     layoutMode, handleLayoutChange,
     handleGoToFirst, handleGoToLast,
@@ -955,7 +954,7 @@ function SectorRotation() {
         <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
             <ToolHint onViewDetails={() => { window.scrollTo({ top:0 }); }}>
-              Sectorrotation
+              Sector Rotation — Browse SET and MAI industry sectors with historical price charts and Flow signals. Select a market and sector to compare
             </ToolHint>
             <MarketDropdown
               marketFilter={marketFilter}
