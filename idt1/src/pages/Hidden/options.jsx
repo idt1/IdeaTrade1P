@@ -460,7 +460,7 @@ export default function Options() {
       <div style={styles.topBar}>
         <div style={styles.topGroup}>
           <div style={{ flexShrink:0 }}>
-            <ToolHint onViewDetails={() => { window.scrollTo({ top:0 }); }}>S50 Options Dashboard</ToolHint>
+            <ToolHint onViewDetails={() => { window.scrollTo({ top:0 }); }}>S50 Options Dashboard — View accumulated Call-Put volume and Open Interest alongside S50 futures price. Select a contract series and year to compare</ToolHint>
           </div>
           <VDivider />
           <DatePicker label="Select Date..." value={selectedDate} onChange={setSelectedDate} />
