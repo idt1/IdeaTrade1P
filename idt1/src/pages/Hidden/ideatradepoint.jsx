@@ -1102,49 +1102,32 @@ function IdeatradePoint({ onChartFlipClick }) {
 
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: "16px 20px" }}>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+        {/* ── Single Row: ToolHint + Search + Categories + History ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
 
-          {/* ── Row 1: ToolHint + Search + History ── */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+          <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
+            Ideatrade Point — real-time buy and sell flow rankings with live charts across SET100, NON-SET100, MAI, and Warrant. Click a row to highlight, Ctrl+click to compare up to 5 symbols.
+          </ToolHint>
 
-              {/* ToolHint อยู่แถวเดียวกับ Search */}
-              <ToolHint onViewDetails={() => window.scrollTo({ top: 0 })}>
-                Ideatrade Point — real-time buy and sell flow rankings with live charts across SET100, NON-SET100, MAI, and Warrant. Click a row to highlight, Ctrl+click to compare up to 5 symbols.
-              </ToolHint>
-
-              <div style={{ position: "relative", flex: 1, maxWidth: 300 }}>
-                <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "#64748b", pointerEvents: "none" }}>
-                  <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </span>
-                <input
-                  type="text" placeholder="Search..." value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  style={{ background: "#0f1c2e", borderRadius: 8, padding: "8px 26px 8px 32px", fontSize: 13, color: "#e2e8f0", border: "1px solid rgba(255,255,255,0.2)", outline: "none", width: "100%", fontFamily: "inherit" }}
-                />
-                {searchQuery && (
-                  <button onClick={() => setSearchQuery("")} style={{ position: "absolute", right: 7, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 11 }}>✕</button>
-                )}
-              </div>
-            </div>
-
-            <button onClick={() => navigate("/hisideatradepoint")} style={{
-              display: "flex", alignItems: "center", gap: 5,
-              padding: "8px 12px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-              background: "transparent", border: "1px solid rgba(255,255,255,0.25)",
-              color: "#cbd5e1", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
-            }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          <div style={{ position: "relative", width: 180, flexShrink: 0 }}>
+            <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "#64748b", pointerEvents: "none" }}>
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              History
-            </button>
+            </span>
+            <input
+              type="text" placeholder="Search..." value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{ background: "#0f1c2e", borderRadius: 8, padding: "8px 26px 8px 32px", fontSize: 13, color: "#e2e8f0", border: "1px solid rgba(255,255,255,0.2)", outline: "none", width: "100%", fontFamily: "inherit" }}
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} style={{ position: "absolute", right: 7, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 11 }}>✕</button>
+            )}
           </div>
 
-          {/* ── Row 2: Category filter tabs ── */}
-          <div className="custom-scrollbar-x" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", msOverflowStyle: "none" }}>
+          <div style={{ width: 1, height: 22, background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
+
+          <div className="custom-scrollbar-x" style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {CATEGORIES.map(cat => {
               const isActive = activeCategory === cat;
               return (
@@ -1160,6 +1143,21 @@ function IdeatradePoint({ onChartFlipClick }) {
               );
             })}
           </div>
+
+          <div style={{ width: 1, height: 22, background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
+
+          <button onClick={() => navigate("/hisideatradepoint")} style={{
+            display: "flex", alignItems: "center", gap: 5,
+            padding: "8px 12px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+            background: "transparent", border: "1px solid rgba(255,255,255,0.25)",
+            color: "#cbd5e1", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            History
+          </button>
+
         </div>
 
         <div>
