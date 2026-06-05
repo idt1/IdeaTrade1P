@@ -662,8 +662,8 @@ export default function S50OutstandingShort() {
         <div className="flex flex-row items-end gap-2 w-full md:w-auto overflow-x-auto no-scrollbar pt-0 pb-1 md:pb-0">
           <div className="shrink-0 mb-1">
             <ToolHint onViewDetails={() => { window.scrollTo({ top:0 }); }}>
-              S50 Outstanding Short
-            </ToolHint>
+  S50 Outstanding Short — Track outstanding short selling positions for SET50 stocks alongside price movement. Select a date range using the date picker or quick range buttons (1M–MAX). Click Show All to compare all symbols at once.
+</ToolHint>
           </div>
           <DatePicker
             label="Start Date"
