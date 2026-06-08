@@ -36,6 +36,7 @@ import SectorRotation from "@/pages/Hidden/Sectorrotation";
 import S50OutstandingShort from "@/pages/Hidden/S50OutstandingShort";
 import StockDataTable from "@/pages/Hidden/StockDataTable"; 
 import Options from "@/pages/Hidden/options";
+import YTD from "@/pages/Hidden/ytd";
 
 /* ================= CONSTANTS ================= */
 const CHART_IMAGE_URL = "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1964&auto=format&fit=crop";
@@ -90,6 +91,7 @@ const TOOL_CONFIG = {
   "stock-data-table": { component: StockDataTable, id: "stock-data-table", name: "Stock Data Table", isPremium: false },
 
   "options": { component: Options, id: "options", name: "Options Analysis", isPremium: false },
+  "ytd": { component: YTD, id: "ytd", name: "YTD Performance", isPremium: false },
 };
 
 const FULL_WIDTH_PAGES = []; 
@@ -177,6 +179,7 @@ export default function Dashboard({ initialPage }) {
       else if (path === "s50outstandingshort") setActivePage("s50outstandingshort");
       else if (path === "stock-data-table") setActivePage("stock-data-table");
       else if (path === "options") setActivePage("options");
+      else if (path === "ytd") setActivePage("ytd");
 
 
       else setActivePage("preview-projects"); 

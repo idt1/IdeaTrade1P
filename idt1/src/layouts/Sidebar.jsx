@@ -66,6 +66,7 @@ const sidebarIcons = {
   s50outstandingshort: { default: s50outIcon, active: s50outIcon },
   "stock-data-table": { default: form59Icon, active: form59Icon },
   options: { default: optionsIcon, active: optionsIcon },
+  ytd: { default: s50outIcon, active: s50outIcon },
 };
 
 const getIcon = (key, active) => {
@@ -684,6 +685,33 @@ const SidebarContent = ({
               }
             />
             {!isCollapsed && <span>Options</span>}
+          </div>
+        </button>
+
+        {/* YTD Button */}
+        <button
+          onClick={() => handleNavigation("ytd")}
+          onMouseEnter={(e) => handleMouseEnter(e, "YTD Performance")}
+          onMouseLeave={handleMouseLeave}
+          className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
+          ${activePage === "ytd" ? "bg-slate-800" : "hover:bg-white/5"}
+          ${isCollapsed ? "w-10 h-10 justify-center" : "w-full h-11 px-4 justify-between"}`}
+        >
+          <div className={`flex items-center gap-3 font-medium transition-colors pointer-events-none
+            ${activePage === "ytd" ? "text-white" : "text-gray-400"}
+            ${isCollapsed ? "justify-center w-full" : ""}`}
+          >
+            <img
+              src={s50outIcon}
+              className="w-5"
+              alt="YTD Performance"
+              style={
+                activePage === "ytd"
+                  ? { filter: "brightness(0) invert(1)" }
+                  : { filter: "brightness(0) invert(1) opacity(0.4)" }
+              }
+            />
+            {!isCollapsed && <span>YTD Performance</span>}
           </div>
         </button>
 
