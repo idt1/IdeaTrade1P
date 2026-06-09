@@ -90,23 +90,65 @@ function getSeriesData(year, month) {
 }
 
 const CalendarIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="3" width="12" height="11" rx="2" /><path d="M5 1v3M11 1v3M2 7h12" />
-  </svg>
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="12" height="11" rx="2" /><path d="M5 1v3M11 1v3M2 7h12" /></svg>
 );
 const TrendIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M1 12l4-4 3 3 5-6" /><path d="M11 5h3v3" />
-  </svg>
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12l4-4 3 3 5-6" /><path d="M11 5h3v3" /></svg>
 );
 const YearIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="3" width="12" height="11" rx="2" /><path d="M5 1v3M11 1v3M2 7h12" />
-  </svg>
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="12" height="11" rx="2" /><path d="M5 1v3M11 1v3M2 7h12" /></svg>
 );
 
 function VDivider() {
   return <div style={{ width:1, height:16, background:"rgba(255,255,255,0.1)", flexShrink:0, marginLeft:6, marginRight:6 }} />;
+}
+
+function FsDropdown({ label, value, options, onChange }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+  
+  useEffect(() => {
+    const handler = (e) => { if (!wrapRef.current?.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={wrapRef} style={{ position:"relative", marginTop: 4 }}>
+      <div onClick={() => setOpen(!open)} style={{
+        display:"flex", alignItems:"center", justifyContent:"space-between",
+        padding:"0 12px", height:34, cursor:"pointer",
+        minWidth:120, boxSizing:"border-box",
+        border:"1px solid rgba(255,255,255,0.15)",
+        borderRadius:6, background:"transparent",
+        transition:"border-color 0.15s",
+      }}
+        onMouseEnter={(e) => { if (!open) e.currentTarget.style.borderColor="rgba(90,159,212,0.4)"; }}
+        onMouseLeave={(e) => { if (!open) e.currentTarget.style.borderColor="rgba(255,255,255,0.15)"; }}
+      >
+        <span style={{
+          position:"absolute", top:-7, left:8,
+          background:"#111827", 
+          padding:"0 4px", fontSize:11, color:"#5a7a9a", lineHeight:1
+        }}>{label}</span>
+        
+        <span style={{ fontSize:13, color:"#c8d8e8", whiteSpace:"nowrap" }}>{value}</span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#5a7a9a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ transform:open?"rotate(180deg)":"rotate(0deg)", transition:"transform 0.15s", marginLeft:12 }}><path d="M1 3l4 4 4-4"/></svg>
+      </div>
+
+      {open && (
+        <div style={{ position:"absolute", top:"100%", left:0, marginTop:4, width:"100%", background:"#151e30", border:"1px solid #2a4060", borderRadius:8, zIndex:99999, overflow:"hidden", boxShadow:"0 8px 24px rgba(0,0,0,0.5)" }}>
+          {options.map(opt => (
+            <div key={opt} onMouseDown={(e) => { e.preventDefault(); onChange(opt); setOpen(false); }}
+              style={{ padding:"8px 12px", fontSize:12, cursor:"pointer", color:opt===value?"#5a9fd4":"#c8d8e8", background:opt===value?"rgba(90,159,212,0.08)":"transparent" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background="rgba(90,159,212,0.12)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background=opt===value?"rgba(90,159,212,0.08)":"transparent")}
+            >{opt}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function DatePicker({ label, value, onChange }) {
@@ -118,9 +160,7 @@ function DatePicker({ label, value, onChange }) {
   const [pickerPos, setPickerPos] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
-    const handler = (e) => {
-      if (!wrapRef.current?.contains(e.target) && !pickerRef.current?.contains(e.target)) setOpen(false);
-    };
+    const handler = (e) => { if (!wrapRef.current?.contains(e.target) && !pickerRef.current?.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
@@ -136,27 +176,19 @@ function DatePicker({ label, value, onChange }) {
 
   const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const DAY_NAMES = ["Su","Mo","Tu","We","Th","Fr","Sa"];
-  const daysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
-  const firstDayOfMonth = (y, m) => new Date(y, m, 1).getDay();
   const prevMonth = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); } else setViewMonth(m => m - 1); };
   const nextMonth = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); } else setViewMonth(m => m + 1); };
   const handleSelect = (day) => { onChange(`${String(day).padStart(2,"0")}/${String(viewMonth+1).padStart(2,"0")}/${viewYear}`); setOpen(false); };
 
-  const selectedDay = value ? (() => {
-    const [d, m, y] = value.split("/");
-    return parseInt(y) === viewYear && parseInt(m) - 1 === viewMonth ? parseInt(d) : null;
-  })() : null;
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const startDay = new Date(viewYear, viewMonth, 1).getDay();
+  const selectedDay = value ? (() => { const [d, m, y] = value.split("/"); return parseInt(y) === viewYear && parseInt(m) - 1 === viewMonth ? parseInt(d) : null; })() : null;
+  const today = new Date(); const isToday = (day) => today.getDate() === day && today.getMonth() === viewMonth && today.getFullYear() === viewYear;
 
-  const today = new Date();
-  const isToday = (day) => today.getDate() === day && today.getMonth() === viewMonth && today.getFullYear() === viewYear;
-  const totalDays = daysInMonth(viewYear, viewMonth);
-  const startDay = firstDayOfMonth(viewYear, viewMonth);
-  const cells = [];
-  for (let i = 0; i < startDay; i++) cells.push(null);
-  for (let i = 1; i <= totalDays; i++) cells.push(i);
+  const cells = Array(startDay).fill(null).concat(Array.from({length: daysInMonth}, (_, i) => i + 1));
 
   const picker = open && createPortal(
-    <div ref={pickerRef} style={{ position:"fixed", top:pickerPos.top, left:pickerPos.left, background:"#111827", border:"1px solid rgba(90,159,212,0.25)", borderRadius:12, zIndex:99999, padding:14, width:240, boxShadow:"0 12px 40px rgba(0,0,0,0.6)", fontFamily:"'Inter',sans-serif" }}>
+    <div ref={pickerRef} style={{ position:"fixed", top:pickerPos.top, left:pickerPos.left, background:"#111827", border:"1px solid rgba(90,159,212,0.25)", borderRadius:12, zIndex:99999, padding:14, width:240, boxShadow:"0 12px 40px rgba(0,0,0,0.6)" }}>
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
         <button onClick={prevMonth} style={calBtnStyle}><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M8 2L4 6l4 4"/></svg></button>
         <span style={{ color:"#c8d8e8", fontSize:13, fontWeight:600 }}>{MONTH_NAMES[viewMonth]} {viewYear}</span>
@@ -171,38 +203,21 @@ function DatePicker({ label, value, onChange }) {
           const isSel = day === selectedDay, isTod = isToday(day);
           return (
             <div key={day} onMouseDown={(e) => { e.preventDefault(); handleSelect(day); }}
-              style={{ textAlign:"center", fontSize:12, padding:"5px 0", borderRadius:6, cursor:"pointer", color:isSel?"#fff":isTod?"#5a9fd4":"#c8d8e8", background:isSel?"#2563eb":"transparent", fontWeight:isSel||isTod?600:400, border:isTod&&!isSel?"1px solid rgba(90,159,212,0.4)":"1px solid transparent", transition:"background 0.1s" }}
-              onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background="rgba(90,159,212,0.15)"; }}
-              onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background="transparent"; }}
+              style={{ textAlign:"center", fontSize:12, padding:"5px 0", borderRadius:6, cursor:"pointer", color:isSel?"#fff":isTod?"#5a9fd4":"#c8d8e8", background:isSel?"#2563eb":"transparent", fontWeight:isSel||isTod?600:400, border:isTod&&!isSel?"1px solid rgba(90,159,212,0.4)":"1px solid transparent" }}
             >{day}</div>
           );
         })}
       </div>
-      {value && (
-        <div style={{ marginTop:10, borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8, textAlign:"center" }}>
-          <button onMouseDown={(e) => { e.preventDefault(); onChange(""); setOpen(false); }} style={{ background:"none", border:"none", color:"#5a7a9a", fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>Clear</button>
-        </div>
-      )}
+      {value && <div style={{ marginTop:10, borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:8, textAlign:"center" }}><button onMouseDown={(e) => { e.preventDefault(); onChange(""); setOpen(false); }} style={{ background:"none", border:"none", color:"#5a7a9a", fontSize:12, cursor:"pointer" }}>Clear</button></div>}
     </div>,
     document.body
   );
 
   return (
     <div ref={wrapRef} style={{ position:"relative" }}>
-      <div onClick={openPicker} style={{
-        display:"flex", alignItems:"center", gap:5,
-        padding:"0 8px", height:32, cursor:"pointer",
-        minWidth:110, boxSizing:"border-box",
-        border:"1px solid rgba(255,255,255,0.12)",
-        borderRadius:6,
-        transition:"border-color 0.15s",
-      }}
-        onMouseEnter={(e) => e.currentTarget.style.borderColor="rgba(90,159,212,0.4)"}
-        onMouseLeave={(e) => e.currentTarget.style.borderColor="rgba(255,255,255,0.12)"}
-      >
-        <span style={{ color:"#5a7a9a", display:"flex", alignItems:"center" }}><CalendarIcon /></span>
-        <span style={{ fontSize:12, color:value?"#c8d8e8":"#5a7a9a", whiteSpace:"nowrap" }}>{value || label}</span>
-        <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="#5a7a9a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0, marginLeft:"auto", transform:open?"rotate(180deg)":"rotate(0deg)", transition:"transform 0.15s" }}><path d="M1 3l4 4 4-4"/></svg>
+      <div onClick={openPicker} style={{ display:"flex", alignItems:"center", gap:5, padding:"0 8px", height:32, cursor:"pointer", minWidth:110, border:"1px solid rgba(255,255,255,0.12)", borderRadius:6 }}>
+        <span style={{ color:"#5a7a9a", display:"flex" }}><CalendarIcon /></span>
+        <span style={{ fontSize:12, color:value?"#c8d8e8":"#5a7a9a" }}>{value || label}</span>
       </div>
       {picker}
     </div>
@@ -213,83 +228,44 @@ const calBtnStyle = { background:"transparent", border:"none", color:"#5a7a9a", 
 
 function Dropdown({ label, value, options, onChange, icon }) {
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [triggerWidth, setTriggerWidth] = useState(0);
   const wrapRef = useRef(null);
-  const inputRef = useRef(null);
-  const menuRef = useRef(null);
-  const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
-
-  const filtered = options.filter(o => o.toLowerCase().includes(query.toLowerCase()));
-
+  
   useEffect(() => {
-    const handler = (e) => { if (!wrapRef.current?.contains(e.target) && !menuRef.current?.contains(e.target)) setOpen(false); };
+    const handler = (e) => { if (!wrapRef.current?.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const openMenu = () => {
-    if (wrapRef.current) {
-      const rect = wrapRef.current.getBoundingClientRect();
-      setTriggerWidth(rect.width);
-      setMenuPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
-    }
-    setQuery(""); setOpen(true); setTimeout(() => inputRef.current?.focus(), 0);
-  };
-
-  const menu = open && createPortal(
-    <div ref={menuRef} style={{ position:"fixed", top:menuPos.top, left:menuPos.left, width:menuPos.width, background:"#151e30", border:"1px solid #2a4060", borderRadius:8, zIndex:99999, overflow:"hidden", boxShadow:"0 8px 24px rgba(0,0,0,0.5)" }}>
-      {filtered.length === 0 && <div style={{ padding:"10px 14px", fontSize:12, color:"#5a7a9a" }}>ไม่พบ</div>}
-      {filtered.map(opt => (
-        <div key={opt} onMouseDown={(e) => { e.preventDefault(); onChange(opt); setOpen(false); }}
-          style={{ padding:"8px 12px", fontSize:12, cursor:"pointer", color:opt===value?"#5a9fd4":"#c8d8e8", fontWeight:opt===value?500:400, background:opt===value?"rgba(90,159,212,0.08)":"transparent", transition:"background 0.1s" }}
-          onMouseEnter={(e) => (e.currentTarget.style.background="rgba(90,159,212,0.12)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background=opt===value?"rgba(90,159,212,0.08)":"transparent")}
-        >{opt}</div>
-      ))}
-    </div>,
-    document.body
-  );
-
   return (
     <div ref={wrapRef} style={{ position:"relative" }}>
-      <div onClick={openMenu} style={{
-        display:"flex", alignItems:"center", gap:5,
-        padding:"0 8px", height:32, cursor:"pointer",
-        minWidth:120,
-        width: open ? triggerWidth : "auto",
-        boxSizing:"border-box",
-        border:"1px solid rgba(255,255,255,0.12)",
-        borderRadius:6,
-        transition:"border-color 0.15s",
-      }}
-        onMouseEnter={(e) => { if (!open) e.currentTarget.style.borderColor="rgba(90,159,212,0.4)"; }}
-        onMouseLeave={(e) => { if (!open) e.currentTarget.style.borderColor="rgba(255,255,255,0.12)"; }}
-      >
-        <span style={{ color:"#5a7a9a", flexShrink:0, display:"flex", alignItems:"center" }}>{icon}</span>
-        {open ? (
-          <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} onClick={(e) => e.stopPropagation()} placeholder={label}
-            style={{ flex:1, background:"transparent", border:"none", outline:"none", color:"#d0dff0", fontSize:12, fontFamily:"inherit", caretColor:"#5a9fd4", minWidth:0, width:0 }} />
-        ) : (
-          <span style={{ flex:1, fontSize:12, color:value?"#c8d8e8":"#5a7a9a", whiteSpace:"nowrap" }}>{value || label}</span>
-        )}
-        <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="#5a7a9a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0, transform:open?"rotate(180deg)":"rotate(0deg)", transition:"transform 0.15s" }}><path d="M1 3l4 4 4-4"/></svg>
+      <div onClick={() => setOpen(!open)} style={{ display:"flex", alignItems:"center", gap:5, padding:"0 8px", height:32, cursor:"pointer", minWidth:120, border:"1px solid rgba(255,255,255,0.12)", borderRadius:6 }}>
+        <span style={{ color:"#5a7a9a", display:"flex" }}>{icon}</span>
+        <span style={{ flex:1, fontSize:12, color:value?"#c8d8e8":"#5a7a9a" }}>{value || label}</span>
+        <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="#5a7a9a" strokeWidth="1.8" strokeLinecap="round" style={{ transform:open?"rotate(180deg)":"rotate(0deg)" }}><path d="M1 3l4 4 4-4"/></svg>
       </div>
-      {menu}
+      {open && (
+        <div style={{ position:"absolute", top:"100%", left:0, marginTop:4, width:"100%", background:"#151e30", border:"1px solid #2a4060", borderRadius:8, zIndex:99999, overflow:"hidden" }}>
+          {options.map(opt => (
+            <div key={opt} onMouseDown={(e) => { e.preventDefault(); onChange(opt); setOpen(false); }}
+              style={{ padding:"8px 12px", fontSize:12, cursor:"pointer", color:opt===value?"#5a9fd4":"#c8d8e8", background:opt===value?"rgba(90,159,212,0.08)":"transparent" }}
+            >{opt}</div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 function LegendDot({ color, label, dashed }) {
   return (
-    <span style={styles.legendItem}>
+    <span style={{ display:"inline-flex", alignItems:"center" }}>
       <span style={{ display:"inline-block", width:22, height:2.5, background:dashed?"transparent":color, borderTop:dashed?`2px dashed ${color}`:"none", verticalAlign:"middle", marginRight:5, flexShrink:0 }} />
       <span style={{ color:"#8aa8c8", fontSize:12 }}>{label}</span>
     </span>
   );
 }
 
-function DualChart({ title, dates, leftData, rightData, leftColor, rightColor, legendLeft, legendRight, cardLabel, currentYear, currentMonth, dataKey, onFullscreen }) {
+function DualChart({ cardLabel, dates, leftData, rightData, leftColor, rightColor, legendLeft, legendRight, currentYear, currentMonth, dataKey, onFullscreen }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
   const leftSeriesRef = useRef(null);
@@ -330,7 +306,7 @@ function DualChart({ title, dates, leftData, rightData, leftColor, rightColor, l
     const timer = setTimeout(() => {
       if (containerRef.current && chartRef.current) {
         const w = containerRef.current.clientWidth;
-        const h = containerRef.current.clientHeight || (window.innerHeight - 48);
+        const h = containerRef.current.clientHeight || (window.innerHeight - 56);
         chartRef.current.applyOptions({ width: w, height: h });
         chartRef.current.timeScale().fitContent();
       }
@@ -360,10 +336,7 @@ function DualChart({ title, dates, leftData, rightData, leftColor, rightColor, l
 
     const ro = new ResizeObserver(() => {
       if (containerRef.current) {
-        chart.applyOptions({
-          width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight || 240,
-        });
+        chart.applyOptions({ width: containerRef.current.clientWidth, height: containerRef.current.clientHeight || 240 });
       }
     });
     ro.observe(containerRef.current);
@@ -381,46 +354,103 @@ function DualChart({ title, dates, leftData, rightData, leftColor, rightColor, l
 
   if (isFullscreen) {
     return (
-      <div style={{ position:"fixed", inset:0, zIndex:1000, background:"#060e1a", display:"flex", flexDirection:"column" }}>
-        <div style={{ minHeight:48, background:"#07111c", borderBottom:"1px solid rgba(255,255,255,0.07)", display:"flex", alignItems:"center", padding:"6px 14px", flexShrink:0, position:"relative", gap:8 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:6, zIndex:2, flexShrink:0 }}>
-            <button onClick={() => setIsFullscreen(false)} style={{ display:"flex", alignItems:"center", gap:5, background:"transparent", border:"1px solid rgba(255,255,255,0.12)", borderRadius:6, padding:"4px 10px", color:"#94a3b8", cursor:"pointer", fontSize:12, fontFamily:"inherit", transition:"all 0.15s" }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor="#64748b"; e.currentTarget.style.color="#e2e8f0"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor="rgba(255,255,255,0.12)"; e.currentTarget.style.color="#94a3b8"; }}>
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3L5 8l5 5"/></svg>
-              back
+      <div style={{ position:"fixed", inset:0, zIndex:1000, background:"#0b101e", display:"flex", flexDirection:"column" }}>
+        {/* ── Fullscreen Toolbar ── */}
+        <div style={{
+          height:60, background:"#111827", 
+          borderBottom:"1px solid rgba(255,255,255,0.05)",
+          display:"flex", alignItems:"center",
+          padding:"0 16px", flexShrink:0, gap:16,
+        }}>
+          {/* ซ้าย: ?, Back, Dropdowns */}
+          <div style={{ display:"flex", alignItems:"center", gap:12, flex:1 }}>
+            
+            {/* ส่ง onViewDetails เป็นฟังก์ชันเปล่าเพื่อป้องกันปุ่มพัง */}
+            <div style={{
+              width:34, height:34, borderRadius:6, 
+              background:"rgba(255,255,255,0.04)",
+              border:"1px solid rgba(255,255,255,0.08)",
+              display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0
+            }}>
+              <ToolHint onViewDetails={() => {}}>
+                {cardLabel === "Volume"
+                  ? "Fullscreen Volume Chart — Monitor accumulated Call and Put option transaction volumes alongside the underlying S50 Futures price tracking line."
+                  : "Fullscreen Open Interest Chart — Analyze accumulated Open Interest (OI) metrics correlated with historical S50 Futures price movements."}
+              </ToolHint>
+            </div>
+
+            {/* ปุ่ม Back */}
+            <button
+              onClick={() => setIsFullscreen(false)}
+              style={{
+                display:"flex", alignItems:"center", gap:6,
+                background:"rgba(255,255,255,0.04)",
+                border:"1px solid rgba(255,255,255,0.08)",
+                borderRadius:6, padding:"0 12px", height:34,
+                color:"#94a3b8", cursor:"pointer",
+                fontSize:12, fontWeight:500, fontFamily:"inherit",
+                transition:"all 0.15s", whiteSpace:"nowrap", flexShrink:0,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background="rgba(255,255,255,0.08)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background="rgba(255,255,255,0.04)"; }}
+            >
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 3L5 8l5 5"/>
+              </svg>
+              Back
             </button>
-            <button onClick={handleReset} style={{ width:30, height:30, borderRadius:6, border:"1px solid rgba(255,255,255,0.12)", background:"transparent", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:"#64748b", fontSize:15, transition:"all 0.15s" }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor="#64748b"; e.currentTarget.style.color="#e2e8f0"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor="rgba(255,255,255,0.12)"; e.currentTarget.style.color="#64748b"; }}>
+
+            {/* Floating Dropdowns */}
+            <FsDropdown label="Series" value={fsSeriesLabel} options={fsSeriesOptions} onChange={handleFsSeriesChange} />
+            <FsDropdown label="Select Year" value={String(fsYear)} options={AVAILABLE_YEARS.map(String)} onChange={handleFsYearChange} />
+          </div>
+
+          {/* ตรงกลาง: VOLUME / OI */}
+          <div style={{
+            position:"absolute", left:"50%", transform:"translateX(-50%)",
+            fontSize:18, fontWeight:700, color:"#fff", letterSpacing:"0.05em", whiteSpace:"nowrap"
+          }}>
+            {cardLabel.toUpperCase()}
+          </div>
+
+          {/* ขวา: Legends + Refresh */}
+          <div style={{ display:"flex", alignItems:"center", gap:16, flexShrink:0 }}>
+            <LegendDot color={rightColor} label={legendRight} />
+            <LegendDot color={leftColor} label={legendLeft} />
+            
+            <button
+              onClick={handleReset}
+              style={{
+                width:34, height:34, borderRadius:"50%",
+                border:"1px solid rgba(255,255,255,0.15)",
+                background:"transparent", cursor:"pointer",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                color:"#94a3b8", fontSize:14, transition:"all 0.15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor="#64748b"; e.currentTarget.style.color="#fff"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor="rgba(255,255,255,0.15)"; e.currentTarget.style.color="#94a3b8"; }}
+            >
               <span style={{ display:"inline-block", transition:"transform 0.6s ease", transform:spinning?"rotate(360deg)":"rotate(0deg)" }}>⟳</span>
             </button>
           </div>
-          <div style={{ position:"absolute", left:"50%", top:"50%", transform:"translate(-50%,-50%)", display:"flex", alignItems:"center", gap:10, pointerEvents:"none", zIndex:1 }}>
-            <span style={{ fontSize:11, fontWeight:700, padding:"2px 10px", borderRadius:99, background:"rgba(90,159,212,0.12)", color:"#5a9fd4", border:"1px solid rgba(90,159,212,0.3)", letterSpacing:"0.08em", textTransform:"uppercase", pointerEvents:"auto", whiteSpace:"nowrap" }}>{cardLabel}</span>
-            <div style={{ display:"flex", alignItems:"center", gap:8, pointerEvents:"auto" }}>
-              <Dropdown label="Select Year" value={String(fsYear)} options={AVAILABLE_YEARS.map(String)} onChange={handleFsYearChange} icon={<YearIcon />} />
-              <Dropdown label="Series" value={fsSeriesLabel} options={fsSeriesOptions} onChange={handleFsSeriesChange} icon={<TrendIcon />} />
-            </div>
-            <VDivider />
-            <LegendDot color={rightColor} label={legendRight} />
-            <LegendDot color={leftColor} label={legendLeft} dashed />
-          </div>
         </div>
-        <div style={{ flex:1, position:"relative", minHeight:0, height:"100%" }}>
+
+        {/* Chart Area */}
+        <div style={{ flex:1, position:"relative", minHeight:0 }}>
           <div ref={containerRef} style={{ width:"100%", height:"100%" }} />
         </div>
       </div>
     );
   }
 
+  // ── หน้าปกติ ──
   return (
     <div style={styles.cardWrap}>
       <div style={styles.cardHeader}>
         <span style={styles.cardLabel}>{cardLabel}</span>
         <div style={styles.legendRow}>
           <LegendDot color={rightColor} label={legendRight} />
-          <LegendDot color={leftColor} label={legendLeft} dashed />
+          <LegendDot color={leftColor} label={legendLeft} />
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:5, marginLeft:"auto", flexShrink:0 }}>
           <button onClick={() => { setIsFullscreen(true); onFullscreen(); }} style={styles.iconBtn} title="Fullscreen">
@@ -451,17 +481,18 @@ export default function Options() {
   const handleYearChange = (val) => { setSelectedYear(Number(val)); setSelectedMonth("H"); setSelectedDate(""); };
   const handleSeriesChange = (val) => setSelectedMonth(val[3]);
 
+  const handleFullscreenTrigger = () => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+    if (isMobile) { setShowRotateModal(true); }
+  };
+
   return (
     <div style={styles.pageWrap}>
-      <style>{`
-        .tv-lightweight-charts a, .tv-lightweight-charts a * { display: none !important; }
-      `}</style>
+      <style>{`.tv-lightweight-charts a, .tv-lightweight-charts a * { display: none !important; }`}</style>
       {showRotateModal && <RotateModal onClose={() => setShowRotateModal(false)} />}
       <div style={styles.topBar}>
         <div style={styles.topGroup}>
-          <div style={{ flexShrink:0 }}>
-            <ToolHint onViewDetails={() => { window.scrollTo({ top:0 }); }}>S50 Options Dashboard — View accumulated Call-Put volume and Open Interest alongside S50 futures price. Select a contract series and year to compare</ToolHint>
-          </div>
+          <ToolHint onViewDetails={() => { window.scrollTo({ top:0 }); }}>S50 Options Dashboard — View accumulated Call-Put volume and Open Interest alongside S50 futures price. Select a contract series and year to compare</ToolHint>
           <VDivider />
           <DatePicker label="Select Date..." value={selectedDate} onChange={setSelectedDate} />
           <VDivider />
@@ -471,8 +502,8 @@ export default function Options() {
           <Dropdown label="Select Year..." value={String(selectedYear)} options={AVAILABLE_YEARS.map(String)} onChange={handleYearChange} icon={<YearIcon />} />
         </div>
       </div>
-      <DualChart cardLabel="Volume" title={selectedSeriesLabel} dates={data.dates} leftData={data.prices} rightData={data.callPut} leftColor="#e84040" rightColor="#00cc55" legendLeft="Futures Price" legendRight="Call-Put (Accumulated)" currentYear={selectedYear} currentMonth={selectedMonth} dataKey="callPut" onFullscreen={() => setShowRotateModal(true)} />
-      <DualChart cardLabel="OI" title={selectedSeriesLabel} dates={data.dates} leftData={data.prices} rightData={data.oi} leftColor="#e84040" rightColor="#f5c842" legendLeft="Futures Price" legendRight="Open Interest (Accumulated)" currentYear={selectedYear} currentMonth={selectedMonth} dataKey="oi" onFullscreen={() => setShowRotateModal(true)} />
+      <DualChart cardLabel="Volume" dates={data.dates} leftData={data.prices} rightData={data.callPut} leftColor="#e84040" rightColor="#00cc55" legendLeft="Futures Price" legendRight="Call-Put (Accumulated)" currentYear={selectedYear} currentMonth={selectedMonth} dataKey="callPut" onFullscreen={handleFullscreenTrigger} />
+      <DualChart cardLabel="OI" dates={data.dates} leftData={data.prices} rightData={data.oi} leftColor="#e84040" rightColor="#f5c842" legendLeft="Futures Price" legendRight="Open Interest (Accumulated)" currentYear={selectedYear} currentMonth={selectedMonth} dataKey="oi" onFullscreen={handleFullscreenTrigger} />
     </div>
   );
 }
@@ -485,6 +516,5 @@ const styles = {
   cardHeader: { display:"flex", alignItems:"center", gap:10, padding:"8px 12px", borderBottom:"1px solid rgba(255,255,255,0.06)" },
   cardLabel: { color:"#c8d8e8", fontSize:12, fontWeight:700, letterSpacing:0.5, flexShrink:0 },
   legendRow: { display:"flex", gap:12, alignItems:"center", flex:1, flexWrap:"wrap" },
-  legendItem: { display:"inline-flex", alignItems:"center" },
   iconBtn: { background:"transparent", color:"#5a7a9a", border:"1px solid rgba(255,255,255,0.1)", borderRadius:5, padding:"3px 6px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s" },
 };
