@@ -715,6 +715,33 @@ const SidebarContent = ({
           </div>
         </button>
 
+        {/* Volume Profile Button */}
+        <button
+          onClick={() => handleNavigation("volumeprofile")}
+          onMouseEnter={(e) => handleMouseEnter(e, "Volume Profile")}
+          onMouseLeave={handleMouseLeave}
+          className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
+          ${activePage === "volumeprofile" ? "bg-slate-800" : "hover:bg-white/5"}
+          ${isCollapsed ? "w-10 h-10 justify-center" : "w-full h-11 px-4 justify-between"}`}
+        >
+          <div className={`flex items-center gap-3 font-medium transition-colors pointer-events-none
+            ${activePage === "volumeprofile" ? "text-white" : "text-gray-400"}
+            ${isCollapsed ? "justify-center w-full" : ""}`}
+          >
+            <img
+              src={form59Icon}
+              className="w-5"
+              alt="Volume Profile"
+              style={
+                activePage === "volumeprofile"
+                  ? { filter: "brightness(0) invert(1)" }
+                  : { filter: "brightness(0) invert(1) opacity(0.4)" }
+              }
+            />
+            {!isCollapsed && <span>Volume Profile</span>}
+          </div>
+        </button>
+
         {/* ACCOUNT SECTION */}
         {isCollapsed
           ? <div className="w-8 h-[1px] bg-white/10 my-1 shrink-0" />
