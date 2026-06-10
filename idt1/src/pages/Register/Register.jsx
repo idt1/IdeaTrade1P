@@ -114,40 +114,42 @@ export default function Register() {
   const yearlyCount = selectedTools.filter(t => t.billing === "yearly").length;
   const hasSelectedService = selectedTools.length > 0;
 
-  const panelWidth = "w-full lg:w-[500px] xl:w-[540px]"; 
+  const panelWidth = "w-full lg:flex-1 lg:max-w-[480px] xl:max-w-[540px] min-w-0"; 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-700 p-4 font-sans overflow-x-hidden relative text-white">
+    <div className="min-h-screen flex items-center justify-center bg-neutral-700 py-10 px-4 font-sans overflow-x-hidden relative text-white">
       
-      <div className="flex flex-col lg:flex-row items-center lg:items-stretch justify-center transition-all duration-500 ease-in-out w-full max-w-[1800px] max-h-[650px] mx-auto">
+      <div className="flex flex-col lg:flex-row items-center lg:items-stretch justify-center transition-all duration-500 ease-in-out w-full max-w-[1800px] lg:max-h-[min(90vh,900px)] mx-auto gap-4">
         
         {/* PANEL 1: REGISTRATION */}
-        <div className={`${panelWidth} shrink-0 p-6 sm:p-8 md:p-10 lg:p-12 from-slate-900 to-slate-800 bg-gradient-to-br rounded-2xl md:rounded-[2rem] m-1 flex flex-col items-center`}>
+        <div className={`${panelWidth} p-6 sm:p-8 md:p-10 lg:p-12 from-slate-900 to-slate-800 bg-gradient-to-br rounded-2xl md:rounded-[2rem] flex flex-col items-center`}>
           <h2 className="text-3xl font-bold text-blue-500 mb-8 text-center shrink-0">Registration</h2>
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-5 flex-1 flex flex-col w-full">
-            <div className="flex flex-col md:flex-row gap-4 shrink-0">
-              <div className="relative w-full">
-                <input type="text" name="firstName" placeholder="First name" value={formData.firstName} onChange={handleChange} className={`w-full bg-slate-700/50 text-white border px-4 py-3 rounded-lg ${errorField === "firstName" ? "border-orange-400" : "border-slate-600"}`} />
-                {errorField === "firstName" && <ErrorPopup />}
+          <form onSubmit={(e) => e.preventDefault()} className="flex-1 flex flex-col w-full min-h-0">
+            <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-5">
+              <div className="flex flex-col md:flex-row gap-4 shrink-0">
+                <div className="relative w-full">
+                  <input type="text" name="firstName" placeholder="First name" value={formData.firstName} onChange={handleChange} className={`w-full bg-slate-700/50 text-white border px-4 py-3 rounded-lg ${errorField === "firstName" ? "border-orange-400" : "border-slate-600"}`} />
+                  {errorField === "firstName" && <ErrorPopup />}
+                </div>
+                <div className="relative w-full">
+                  <input type="text" name="lastName" placeholder="Last name" value={formData.lastName} onChange={handleChange} className={`w-full bg-slate-700/50 text-white border px-4 py-3 rounded-lg ${errorField === "lastName" ? "border-orange-400" : "border-slate-600"}`} />
+                  {errorField === "lastName" && <ErrorPopup />}
+                </div>
               </div>
-              <div className="relative w-full">
-                <input type="text" name="lastName" placeholder="Last name" value={formData.lastName} onChange={handleChange} className={`w-full bg-slate-700/50 text-white border px-4 py-3 rounded-lg ${errorField === "lastName" ? "border-orange-400" : "border-slate-600"}`} />
-                {errorField === "lastName" && <ErrorPopup />}
+              <div className="relative shrink-0">
+                <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} className={`w-full bg-slate-700/50 text-white border px-4 py-3 rounded-lg ${errorField === "email" ? "border-orange-400" : "border-slate-600"}`} />
+                {errorField === "email" && <ErrorPopup />}
+              </div>
+              <div className="relative shrink-0">
+                <input type="tel" name="phone" placeholder="Phone number" value={formData.phone} onChange={handleChange} className={`w-full bg-slate-700/50 text-white border px-4 py-3 rounded-lg ${errorField === "phone" ? "border-orange-400" : "border-slate-600"}`} />
+                {errorField === "phone" && <ErrorPopup />}
               </div>
             </div>
-            <div className="relative shrink-0">
-              <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} className={`w-full bg-slate-700/50 text-white border px-4 py-3 rounded-lg ${errorField === "email" ? "border-orange-400" : "border-slate-600"}`} />
-              {errorField === "email" && <ErrorPopup />}
-            </div>
-            <div className="relative shrink-0">
-              <input type="tel" name="phone" placeholder="Phone number" value={formData.phone} onChange={handleChange} className={`w-full bg-slate-700/50 text-white border px-4 py-3 rounded-lg ${errorField === "phone" ? "border-orange-400" : "border-slate-600"}`} />
-              {errorField === "phone" && <ErrorPopup />}
-            </div>
-            <div className="relative flex items-center gap-2 mt-auto pt-4 shrink-0">
+            <div className="relative flex items-center gap-2 mt-4 pt-4 shrink-0">
               <input type="checkbox" name="agree" checked={formData.agree} onChange={handleChange} className="w-4 h-4 shrink-0" />
               <span className="text-sm text-gray-400">I accept all <span className="underline hover:text-white cursor-pointer">Terms & Privacy</span> <span className="text-red-500">*</span></span>
             </div>
-            <div className="grid grid-cols-2 gap-4 pt-2 shrink-0">
+            <div className="grid grid-cols-2 gap-4 pt-4 shrink-0">
               <button type="button" onClick={() => navigate("/")} className="py-3 rounded-lg bg-gray-600 text-gray-200 hover:bg-gray-500 transition">Cancel</button>
               <button type="button" onClick={handleCompleteRegistration} className="py-3 rounded-lg text-white transition bg-sky-600 hover:bg-sky-500">Create account</button>
             </div>
@@ -155,7 +157,7 @@ export default function Register() {
         </div>
 
         {/* PANEL 2: SUBSCRIPTION */}
-        <div className={`${panelWidth} shrink-0 py-6 sm:py-8 md:py-10 lg:py-12 px-6 from-slate-900 to-slate-800 bg-gradient-to-br rounded-2xl md:rounded-[2rem] m-1 flex flex-col`}>
+        <div className={`${panelWidth} py-6 sm:py-8 md:py-10 lg:py-12 px-6 from-slate-900 to-slate-800 bg-gradient-to-br rounded-2xl md:rounded-[2rem] flex flex-col`}>
             <div className="font-bold text-2xl shrink-0">Subscription & Checkout</div>
             <div className="text-xs text-slate-400 pt-1 shrink-0">charged annually, Cancel anytime</div>
             
@@ -216,26 +218,28 @@ export default function Register() {
                 <div className="font-bold">{">"}</div>
             </button>
     
-            <div className="grid grid-cols-2 gap-2 min-h-0 overflow-y-auto pr-1">
-                {SERVICES.map((tool) => {
-                  const active = selectedTools.some((t) => t.id === tool.id && t.billing === billingCycle);
-                  return (
-                    <button key={tool.id} type="button" onClick={() => toggleTool(tool.id)} className={`rounded-lg py-3 px-3 transition-all border ${active ? "bg-[#102B46] border-[#0E6BA8]" : "bg-[#13233A] border-[#1F3354] hover:border-[#0E6BA8]/50"}`}>
-                        <div className="flex flex-col items-start">
-                            <span className="text-[0.9rem] font-medium text-white">{tool.name}</span> 
-                            <span className="text-[0.7rem] text-slate-400">
-                              {billingCycle === "monthly" ? `${tool.monthly}฿/m` : `${tool.yearly}฿/y`}
-                            </span> 
-                        </div>
-                    </button>
-                  );
-                })}
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {SERVICES.map((tool) => {
+                      const active = selectedTools.some((t) => t.id === tool.id && t.billing === billingCycle);
+                      return (
+                        <button key={tool.id} type="button" onClick={() => toggleTool(tool.id)} className={`rounded-lg py-3 px-3 transition-all border ${active ? "bg-[#102B46] border-[#0E6BA8]" : "bg-[#13233A] border-[#1F3354] hover:border-[#0E6BA8]/50"}`}>
+                            <div className="flex flex-col items-start">
+                                <span className="text-[0.9rem] font-medium text-white">{tool.name}</span> 
+                                <span className="text-[0.7rem] text-slate-400">
+                                  {billingCycle === "monthly" ? `${tool.monthly}฿/m` : `${tool.yearly}฿/y`}
+                                </span> 
+                            </div>
+                        </button>
+                      );
+                    })}
+                </div>
             </div>
         </div>
 
         {/* PANEL 3: PAYMENT & SUMMARY */}
-        <div className={`overflow-hidden transition-all duration-500 ease-in-out flex h-auto ${hasSelectedService ? "max-w-[100vw] lg:max-w-[500px] xl:max-w-[540px] opacity-100 m-1" : "max-w-0 opacity-0 m-0"}`}>
-          <div className="w-[100vw] lg:w-[500px] xl:w-[540px] shrink-0 flex flex-col gap-2 h-full"> 
+        <div className={`overflow-hidden transition-all duration-500 ease-in-out flex h-auto ${hasSelectedService ? "max-w-full lg:flex-1 lg:max-w-[480px] xl:max-w-[540px] opacity-100" : "max-w-0 opacity-0"}`}>
+          <div className="w-full shrink-0 flex flex-col gap-4 h-full"> 
             
             <div className="py-6 sm:py-8 px-6 from-slate-900 to-slate-800 bg-gradient-to-br rounded-2xl md:rounded-[2rem] flex flex-col">
               <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
@@ -302,14 +306,14 @@ export default function Register() {
                 )}
               </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-700">
+              <div className="mt-6 pt-4 border-t border-slate-700 shrink-0">
                 <p className="text-sm font-semibold text-[#9FB3C8] mb-1">TOTAL AMOUNT</p>
                 <div className="flex items-end justify-between">
                   <span className="text-3xl font-bold text-blue-500">{totalPrice.toLocaleString()} ฿</span>
                 </div>
               </div>
               
-              <button disabled={!selectedPayment || selectedTools.length === 0} onClick={() => setShowModal(true)} className="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-700 disabled:text-slate-500 transition-colors py-3 mt-5 w-full rounded-lg font-bold">
+              <button disabled={!selectedPayment || selectedTools.length === 0} onClick={() => setShowModal(true)} className="bg-sky-600 hover:bg-sky-500 disabled:bg-slate-700 disabled:text-slate-500 transition-colors py-3 mt-5 w-full rounded-lg font-bold shrink-0">
                 Complete Registration
               </button>
             </div>
