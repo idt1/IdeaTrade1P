@@ -257,6 +257,185 @@ function GroupedHistogram({ data = [], height: fixedHeight }) {
     );
 }
 
+/* ================= FLIP TIMELINE ================= */
+function FlipTimeline({ flips }) {
+    const [hoveredFlip, setHoveredFlip] = useState(null);
+    const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+    const containerRef = useRef(null);
+
+    // Parse "HH:MM.SSS" → decimal minutes from midnight
+    const parseTime = (t) => {
+        if (!t) return 0;
+        const [hm, s] = t.split(".");
+        const [h, m] = hm.split(":").map(Number);
+        return h * 60 + m + (s ? Number(s) / 1000 / 60 : 0);
+    };
+
+    const SESSION_START = 9 * 60 + 30;   // 09:30
+    const SESSION_END   = 16 * 60 + 0;   // 16:00
+    const SESSION_TOTAL = SESSION_END - SESSION_START;
+
+    const toPercent = (t) =>
+        Math.max(0, Math.min(100, ((parseTime(t) - SESSION_START) / SESSION_TOTAL) * 100));
+
+    const isNegStr = (s) => s && s.replace(/,/g, "").trim().startsWith("-");
+
+    // Build continuous segments
+    const segments = useMemo(() => {
+        if (!flips || flips.length === 0) return [];
+        const segs = [];
+
+        // Segment before first flip
+        segs.push({
+            start: 0,
+            end: toPercent(flips[0].time),
+            isNeg: isNegStr(flips[0].from),
+            flip: null,
+        });
+
+        // Segments between flips
+        for (let i = 0; i < flips.length; i++) {
+            const flip = flips[i];
+            const next = flips[i + 1];
+            segs.push({
+                start: toPercent(flip.time),
+                end: next ? toPercent(next.time) : 100,
+                isNeg: isNegStr(flip.to),
+                flip,
+            });
+        }
+        return segs;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [flips]);
+
+    // Axis tick labels every ~60 min
+    const axisLabels = useMemo(() => {
+        const labels = [];
+        for (let min = SESSION_START; min <= SESSION_END; min += 60) {
+            const h = Math.floor(min / 60);
+            const m = min % 60;
+            const pct = ((min - SESSION_START) / SESSION_TOTAL) * 100;
+            labels.push({ label: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`, pct });
+        }
+        return labels;
+    }, []);
+
+    const handleMouseMove = (e, flip) => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+        setHoveredFlip(flip);
+    };
+
+    return (
+        <div
+            ref={containerRef}
+            className="px-3 pt-3 pb-2 border-b border-slate-700/50 bg-[#111827]"
+            style={{ position: "relative", userSelect: "none" }}
+            onMouseLeave={() => setHoveredFlip(null)}
+        >
+            {/* ── Continuous color bar ── */}
+            <div
+                className="relative w-full rounded overflow-hidden flex"
+                style={{ height: 20, marginBottom: 6 }}
+            >
+                {segments.map((seg, i) => {
+                    const width = seg.end - seg.start;
+                    if (width <= 0) return null;
+                    return (
+                        <div
+                            key={i}
+                            className="h-full transition-opacity duration-150"
+                            style={{
+                                width: `${width}%`,
+                                background: seg.isNeg ? "#ef4444" : "#22c55e",
+                                opacity: hoveredFlip && seg.flip && seg.flip.id !== hoveredFlip.id ? 0.45 : 1,
+                                cursor: seg.flip ? "pointer" : "default",
+                            }}
+                            onMouseMove={seg.flip ? (e) => handleMouseMove(e, seg.flip) : undefined}
+                            onMouseEnter={seg.flip ? (e) => handleMouseMove(e, seg.flip) : undefined}
+                            onMouseLeave={() => setHoveredFlip(null)}
+                        />
+                    );
+                })}
+
+                {/* Flip divider lines */}
+                {flips.map((flip) => (
+                    <div
+                        key={flip.id}
+                        className="absolute top-0 h-full z-10 cursor-pointer"
+                        style={{
+                            left: `${toPercent(flip.time)}%`,
+                            width: 2,
+                            transform: "translateX(-50%)",
+                            background: "#111827",
+                        }}
+                        onMouseMove={(e) => handleMouseMove(e, flip)}
+                        onMouseEnter={(e) => handleMouseMove(e, flip)}
+                        onMouseLeave={() => setHoveredFlip(null)}
+                    />
+                ))}
+            </div>
+
+            {/* ── Time axis ── */}
+            <div className="relative w-full" style={{ height: 14 }}>
+                {axisLabels.map(({ label, pct }) => (
+                    <span
+                        key={label}
+                        className="absolute text-[9px] text-slate-500 font-mono"
+                        style={{
+                            left: `${pct}%`,
+                            transform: "translateX(-50%)",
+                            whiteSpace: "nowrap",
+                        }}
+                    >
+                        {label}
+                    </span>
+                ))}
+            </div>
+
+            {/* ── Tooltip ── */}
+            {hoveredFlip && (
+                <div
+                    className="pointer-events-none absolute z-50"
+                    style={{
+                        top: -90,
+                        left: Math.min(Math.max(tooltipPos.x - 70, 0), 220),
+                        background: "#0d1a2e",
+                        border: "1px solid #1e3a5f",
+                        borderRadius: 6,
+                        padding: "7px 11px",
+                        fontFamily: "monospace",
+                        fontSize: 11,
+                        lineHeight: 1.75,
+                        color: "#e2e8f0",
+                        whiteSpace: "nowrap",
+                    }}
+                >
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#60a5fa", marginBottom: 3 }}>
+                        Flip #{hoveredFlip.id}
+                    </div>
+                    <div style={{ color: "#94a3b8" }}>Time: {hoveredFlip.time}</div>
+                    <div style={{ borderTop: "1px solid #1e3a5f", marginTop: 4, paddingTop: 4 }}>
+                        <div>
+                            From:{" "}
+                            <span style={{ color: isNegStr(hoveredFlip.from) ? "#f87171" : "#4ade80" }}>
+                                {hoveredFlip.from}
+                            </span>
+                        </div>
+                        <div>
+                            To: &nbsp;{" "}
+                            <span style={{ color: isNegStr(hoveredFlip.to) ? "#f87171" : "#4ade80" }}>
+                                {hoveredFlip.to}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 const features = [
     { title: "Net Accumulated Volume", desc: "Track global gold prices with an intelligent filtering system designed to eliminate market noise." },
     { title: "Flip Signal", desc: "Instantly detect the moment capital flow reverses direction from bullish to bearish." },
@@ -893,7 +1072,6 @@ function FullscreenSymbolInput({ value, onChange }) {
             </div>
             {open && (
                 <div className="absolute left-0 top-full mt-2 w-56 bg-[#0d1526] border border-slate-600/60 rounded-xl shadow-2xl z-[200] overflow-hidden">
-                    {/* ใช้ custom-scrollbar แทน scrollbarHideStyle */}
                     <div className="custom-scrollbar max-h-64 overflow-y-auto">
                         {filtered.length === 0 ? (
                             <div className="px-3 py-3 text-slate-600 text-[11px] text-center">ไม่พบ — กด Enter เพื่อใช้ "{query}"</div>
@@ -1250,10 +1428,10 @@ export default function TickMatch() {
                         <div className="rounded overflow-hidden border border-slate-800/50 bg-[#0B1221]">
                             <div className="bg-[#1f2937] grid grid-cols-5 text-slate-400 text-[10px] font-medium border-b border-slate-800 sticky top-0 z-10">
                                 <div className="p-2 text-center">Time</div>
-                                <div className="p-2 text-right">Last</div>
-                                <div className="p-2 text-right">Vol</div>
+                                <div className="p-2 text-center">Last</div>
+                                <div className="p-2 text-center">Vol</div>
                                 <div className="p-2 text-center">Type</div>
-                                <div className="p-2 text-right">Sum</div>
+                                <div className="p-2 text-center">Value</div>
                             </div>
                             <div className="custom-scrollbar overflow-y-auto max-h-[200px] touch-pan-y overscroll-none">
                                 {filteredTicks.length > 0 ? filteredTicks.map((row, idx) => (
@@ -1272,53 +1450,56 @@ export default function TickMatch() {
                             </div>
                         </div>
 
-                        {/* Flip Section */}
+                        {/* ── Flip Signal Section (NEW) ── */}
                         {hasSearched && (
                             <div className="bg-[#0B1221] border border-slate-800/50 rounded overflow-hidden">
-                                <div onClick={() => setIsFlipOpen(!isFlipOpen)} className="bg-[#374151] p-3 flex justify-between items-center cursor-pointer hover:bg-[#414b5c] transition">
-                                    <div className="flex items-center gap-4">
-                                        <span className="text-sm font-bold text-white">Total Flip Count: {data.flips.length}</span>
-                                        <div className="flex items-center gap-3 text-xs">
-                                            <div className="flex items-center gap-1.5"><div className="w-4 h-3 bg-red-500 rounded-sm"></div><span className="text-slate-300">Net Vol {'<'} 0</span></div>
-                                            <div className="flex items-center gap-1.5"><div className="w-4 h-3 bg-green-500 rounded-sm"></div><span className="text-slate-300">Net Vol {'>'} 0</span></div>
+                                {/* Header */}
+                                <div
+                                    onClick={() => setIsFlipOpen(!isFlipOpen)}
+                                    className="bg-[#374151] p-3 flex justify-between items-center cursor-pointer hover:bg-[#414b5c] transition"
+                                >
+                                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                        <span className="text-sm font-bold text-white whitespace-nowrap">
+                                            Flip Signal
+                                        </span>
+                                        <span className="bg-cyan-500 text-black text-xs font-bold px-2 py-0.5 rounded-full leading-none">
+                                            {data.flips.length}
+                                        </span>
+                                        <div className="flex items-center gap-3 text-xs flex-wrap">
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-4 h-3 bg-red-500 rounded-sm flex-shrink-0"></div>
+                                                <span className="text-slate-300 whitespace-nowrap">Vol &lt; 0</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-4 h-3 bg-green-500 rounded-sm flex-shrink-0"></div>
+                                                <span className="text-slate-300 whitespace-nowrap">Vol &gt; 0</span>
+                                            </div>
                                         </div>
                                     </div>
-                                    <ExpandMoreIcon sx={{ fontSize: 20, transition: 'transform 0.3s ease', transform: isFlipOpen ? 'rotate(0deg)' : 'rotate(-90deg)', color: '#e2e8f0' }} />
+                                    <ExpandMoreIcon sx={{
+                                        fontSize: 20,
+                                        transition: "transform 0.3s ease",
+                                        transform: isFlipOpen ? "rotate(0deg)" : "rotate(-90deg)",
+                                        color: "#e2e8f0",
+                                        flexShrink: 0,
+                                    }} />
                                 </div>
 
                                 {isFlipOpen && (
                                     <>
-                                        <div className="p-3 border-b border-slate-700/50 bg-[#111827]">
-                                            <div className="relative w-full h-2 bg-slate-700 rounded-full mb-6">
-                                                {data.flips.map((flip, idx) => {
-                                                    const position = data.flips.length > 1 ? (idx / (data.flips.length - 1)) * 100 : 50;
-                                                    const isNegative = flip.to.includes('-');
-                                                    return (
-                                                        <div key={idx} className="absolute top-0 group/marker" style={{ left: `${position}%` }}>
-                                                            <div className={`w-1 h-2 transition-all hover:h-3 hover:-translate-y-0.5 cursor-pointer ${isNegative ? 'bg-red-500' : 'bg-green-500'}`} />
-                                                            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover/marker:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
-                                                                <div className="bg-slate-900 border border-slate-700 text-white text-[10px] px-3 py-2 rounded shadow-xl">
-                                                                    <div className="font-bold mb-1">ครั้งที่ {flip.id}</div>
-                                                                    <div className="text-slate-400">Time: {flip.time}</div>
-                                                                    <div className="mt-1 pt-1 border-t border-slate-700">
-                                                                        <div>From: <span className={flip.from.includes('-') ? 'text-red-400' : 'text-green-400'}>{flip.from}</span></div>
-                                                                        <div>To: <span className={flip.to.includes('-') ? 'text-red-400' : 'text-green-400'}>{flip.to}</span></div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                            <div className="flex justify-between text-[9px] text-slate-400 -mt-2">
-                                                <span>10:12</span><span>10:42</span><span>12:20</span><span>14:00</span><span>14:30</span><span>15:01</span>
-                                            </div>
-                                        </div>
+                                        {/* Continuous color bar timeline */}
+                                        <FlipTimeline flips={data.flips} />
 
+                                        {/* Flip table */}
                                         <div className="custom-scrollbar overflow-y-auto max-h-[180px] touch-pan-y overscroll-none">
                                             <table className="w-full text-center border-collapse">
                                                 <thead className="bg-[#1f2937] text-slate-400 text-[10px] font-medium sticky top-0 z-10">
-                                                    <tr><th className="p-1.5">ครั้งที่</th><th className="p-1.5">Time</th><th className="p-1.5">From Acc. Vol</th><th className="p-1.5">To Acc. Vol</th></tr>
+                                                    <tr>
+                                                        <th className="p-1.5">ครั้งที่</th>
+                                                        <th className="p-1.5">Time</th>
+                                                        <th className="p-1.5">From Acc. Vol</th>
+                                                        <th className="p-1.5">To Acc. Vol</th>
+                                                    </tr>
                                                 </thead>
                                                 <tbody className="text-xs">
                                                     {data.flips.length > 0 ? data.flips.map((flip) => (
