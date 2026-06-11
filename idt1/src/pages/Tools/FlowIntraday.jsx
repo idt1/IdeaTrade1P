@@ -948,6 +948,15 @@ export default function FlowIntraday() {
     await deleteDoc(doc(db, "users", uid, "watchlists", id));
   }, [currentUser?.uid]);
 
+    const updateWatchlistSymbols = useCallback(async (id, syms) => {
+  const uid = currentUser?.uid; if (!uid) return;
+  await setDoc(
+    doc(db, "users", uid, "watchlists", id),
+    { symbols: syms },
+    { merge: true } 
+  );
+  }, [currentUser?.uid]);
+
   // ══════════════════════════════════════════════════════════════════════════
   // ─── FIRESTORE: HLine Alerts
   // ══════════════════════════════════════════════════════════════════════════
@@ -1323,7 +1332,20 @@ export default function FlowIntraday() {
                                 <span className="text-sm font-semibold text-white truncate max-w-[120px] sm:max-w-[140px]">{wl.name}</span>
                                 <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded-full">{wl.symbols.length}</span>
                               </div>
-                              <button onClick={e => { e.stopPropagation(); handleDeleteWatchlist(wl.id); }} className="text-slate-600 hover:text-red-400 transition text-sm px-1">🗑</button>
+                              <div className="flex items-center gap-1">
+              <button
+                onClick={e => {
+                  e.stopPropagation();
+                  if (selectedSymbols.length === 0) return;
+                  updateWatchlistSymbols(wl.id, selectedSymbols);
+                }}
+                title="Save current grid to this watchlist"
+                className={`transition text-sm px-1 ${selectedSymbols.length === 0 ? "opacity-20 cursor-not-allowed text-slate-600" : "text-slate-500 hover:text-cyan-400"}`}
+              >💾</button>
+              <button onClick={e => { e.stopPropagation(); handleDeleteWatchlist(wl.id); }}
+                className="text-slate-600 hover:text-red-400 transition text-sm px-1">🗑</button>
+            </div>
+
                             </div>
                             {activeWatchlist === wl.id && (
                               <div className="bg-[#0b1220] px-4 py-2 flex flex-col gap-2">
