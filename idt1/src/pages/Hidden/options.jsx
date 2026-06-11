@@ -461,8 +461,8 @@ function DualChart({ cardLabel, dates, leftData, rightData, leftColor, rightColo
           </button>
         </div>
       </div>
-      <div style={{ position:"relative" }}>
-        <div ref={containerRef} style={{ width:"100%", height:240 }} />
+      <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
+        <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
       </div>
     </div>
   );
@@ -509,11 +509,29 @@ export default function Options() {
 }
 
 const styles = {
-  pageWrap: { background:"#0d0f1a", minHeight:"100vh", padding:16, fontFamily:"'Inter',sans-serif", display:"flex", flexDirection:"column", gap:16 },
-  topBar: { display:"flex", gap:10, alignItems:"center", flexWrap:"wrap", width:"100%" },
+pageWrap: {
+  background: "#0d0f1a",
+  height: "100vh",      
+  padding: 16,
+  fontFamily: "'Inter',sans-serif",
+  display: "flex",
+  flexDirection: "column",
+  gap: 16,
+  overflow: "hidden",      
+  boxSizing: "border-box", 
+},  topBar: { display:"flex", gap:10, alignItems:"center", flexWrap:"wrap", width:"100%" },
   topGroup: { display:"flex", alignItems:"center", gap:6, background:"#151c2c", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, padding:"0 8px", height:50, boxSizing:"border-box" },
-  cardWrap: { background:"#151c2c", border:"1px solid rgba(255,255,255,0.08)", borderRadius:16, overflow:"hidden", boxShadow:"0 4px 24px rgba(0,0,0,0.3)" },
-  cardHeader: { display:"flex", alignItems:"center", gap:10, padding:"8px 12px", borderBottom:"1px solid rgba(255,255,255,0.06)" },
+cardWrap: {
+  background: "#151c2c",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 16,
+  overflow: "hidden",
+  boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
+  flex: 1,
+  display: "flex",   
+  flexDirection: "column",  
+  minHeight: 0,     
+},  cardHeader: { display:"flex", alignItems:"center", gap:10, padding:"8px 12px", borderBottom:"1px solid rgba(255,255,255,0.06)" },
   cardLabel: { color:"#c8d8e8", fontSize:12, fontWeight:700, letterSpacing:0.5, flexShrink:0 },
   legendRow: { display:"flex", gap:12, alignItems:"center", flex:1, flexWrap:"wrap" },
   iconBtn: { background:"transparent", color:"#5a7a9a", border:"1px solid rgba(255,255,255,0.1)", borderRadius:5, padding:"3px 6px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s" },
