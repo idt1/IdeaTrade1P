@@ -66,7 +66,7 @@ const LWC_THEME = {
 };
 
 // ─── Deterministic data generator ────────────────────────────────────────────
-function generateSeriesData(seed = 1, totalPoints = 150) {
+function generateSeriesData(seed = 1, totalPoints = 1000) {
   const now  = Math.floor(Date.now() / 1000);
   const snap = now - (now % 86400); // daily snaps
   const data = [];
@@ -106,7 +106,7 @@ function ChartCard({
   const seriesRef     = useRef(null);
   const isSyncingRef  = useRef(false);
 
-  const seriesData = useMemo(() => generateSeriesData(seed, 150), [seed, refreshKey]); // eslint-disable-line
+  const seriesData = useMemo(() => generateSeriesData(seed, 1000), [seed, refreshKey]);
 
   // ── Mount chart ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -144,8 +144,10 @@ function ChartCard({
     });
 
     requestAnimationFrame(() => {
-      chart.timeScale().fitContent();
-    });
+      const last = seriesData[seriesData.length - 1].time;
+  const from = seriesData[seriesData.length - 200].time;
+  chart.timeScale().setVisibleRange({ from, to: last });
+});
 
     const ro = new ResizeObserver(([e]) => {
       if (e.contentRect.width > 0 && e.contentRect.height > 0)
@@ -382,10 +384,10 @@ export default function S50() {
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
   const CHARTS = [
-    { id:"chart1", title:"1. Last (Volume Flow)",      seed:1 },
-    { id:"chart2", title:"2. Confirm Up/Down S50",     seed:2 },
+    { id:"chart1", title:"1. Last",      seed:1 },
+    { id:"chart2", title:"2. Confirm ",     seed:2 },
     { id:"chart3", title:"3. Trend (Volume Flow)",     seed:3 },
-    { id:"chart4", title:"4. Mid-Trend (SET Context)", seed:4 },
+    { id:"chart4", title:"4. Mid-Trend ", seed:4 },
   ];
 
   return (
