@@ -1,25 +1,39 @@
 // src/pages/tools/StockFortuneTeller.jsx
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-// 🟢 1. เปลี่ยนมาใช้ AuthContext เป็นศูนย์กลางตรวจสอบสิทธิ์
-import { useAuth } from "@/context/AuthContext"; 
+import { useAuth } from "@/context/AuthContext";
 import ToolHint from "@/components/ToolHint.jsx";
-
 import StockFortuneTellerDashboard from "./components/StockFortuneTellerDashboard.jsx";
 import SearchIcon from "@mui/icons-material/Search";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import FastForwardIcon from "@mui/icons-material/FastForward";
 import CloseIcon from "@mui/icons-material/Close";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
+import Papa from "papaparse";
 
-const scrollbarHideStyle = {
-  msOverflowStyle: "none",
-  scrollbarWidth: "none",
-};
+// ────────────────────────────────────────────────────────────────
+// TradingView Lightweight Charts — loaded via CDN script tag
+// ────────────────────────────────────────────────────────────────
+let _tvReady = null;
+function loadTVCharts() {
+  if (_tvReady) return _tvReady;
+  _tvReady = new Promise((resolve) => {
+    if (window.LightweightCharts) {
+      resolve(window.LightweightCharts);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src =
+      "https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js";
+    script.async = true;
+    script.onload = () => resolve(window.LightweightCharts);
+    document.head.appendChild(script);
+  });
+  return _tvReady;
+}
+
+const scrollbarHideStyle = { msOverflowStyle: "none", scrollbarWidth: "none" };
 
 // ====================================================
 // Toast System
@@ -38,11 +52,8 @@ function ToastContainer({ toasts }) {
                 : toast.type === "error"
                 ? "bg-[#0a1628]/90 border-red-500/40 text-red-300 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
                 : "bg-[#0a1628]/90 border-slate-500/40 text-slate-300"
-            }
-          `}
-          style={{
-            animation: "toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
-          }}
+            }`}
+          style={{ animation: "toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards" }}
         >
           {toast.type === "success" && (
             <CheckCircleOutlineIcon fontSize="small" className="text-cyan-400 flex-shrink-0" />
@@ -51,31 +62,12 @@ function ToastContainer({ toasts }) {
             <ErrorOutlineIcon fontSize="small" className="text-red-400 flex-shrink-0" />
           )}
           <span>{toast.message}</span>
-          <div
-            className={`absolute bottom-0 left-0 h-[2px] rounded-b-xl
-              ${
-                toast.type === "success"
-                  ? "bg-cyan-500"
-                  : toast.type === "error"
-                  ? "bg-red-500"
-                  : "bg-slate-500"
-              }
-            `}
-            style={{
-              animation: `toastProgress ${toast.duration}ms linear forwards`,
-              width: "100%",
-            }}
-          />
         </div>
       ))}
       <style>{`
         @keyframes toastIn {
           from { opacity: 0; transform: translateY(12px) scale(0.95); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes toastProgress {
-          from { width: 100%; }
-          to   { width: 0%; }
         }
       `}</style>
     </div>
@@ -84,15 +76,11 @@ function ToastContainer({ toasts }) {
 
 function useToast() {
   const [toasts, setToasts] = useState([]);
-
   const showToast = (message, type = "success", duration = 3000) => {
     const id = Date.now() + Math.random();
     setToasts((prev) => [...prev, { id, message, type, duration }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, duration);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), duration);
   };
-
   return { toasts, showToast };
 }
 
@@ -102,37 +90,26 @@ function useToast() {
 function ScaledDashboardPreview({ dashboardWidth = 1400, dashboardHeight = 850 }) {
   const outerRef = useRef(null);
   const innerRef = useRef(null);
-
   useEffect(() => {
     const outer = outerRef.current;
     const inner = innerRef.current;
     if (!outer || !inner) return;
-
     const applyScale = () => {
       const w = outer.getBoundingClientRect().width;
       const s = w / dashboardWidth;
       inner.style.transform = `scale(${s})`;
       outer.style.height = `${dashboardHeight * s}px`;
     };
-
     applyScale();
     const ro = new ResizeObserver(applyScale);
     ro.observe(outer);
     return () => ro.disconnect();
   }, [dashboardWidth, dashboardHeight]);
-
   return (
     <div ref={outerRef} className="w-full bg-[#0b1221]" style={{ overflow: "hidden", position: "relative" }}>
       <div
         ref={innerRef}
-        style={{
-          width: dashboardWidth,
-          height: dashboardHeight,
-          transformOrigin: "top left",
-          position: "absolute",
-          top: 0,
-          left: 0,
-        }}
+        style={{ width: dashboardWidth, height: dashboardHeight, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}
       >
         <StockFortuneTellerDashboard />
       </div>
@@ -146,7 +123,6 @@ function ScaledDashboardPreview({ dashboardWidth = 1400, dashboardHeight = 850 }
 function symbolToSeed(sym) {
   return sym.split("").reduce((acc, c, i) => acc + c.charCodeAt(0) * (i + 1) * 31, 0);
 }
-
 function createRng(seed) {
   let s = seed | 0;
   return () => {
@@ -156,181 +132,117 @@ function createRng(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-
 const MOCK_CACHE = {};
-
 function generateMockData(symbol) {
   if (!symbol) return null;
   if (MOCK_CACHE[symbol]) return MOCK_CACHE[symbol];
-
   const seed = symbolToSeed(symbol);
   const rng = createRng(seed);
-  const n = 20;
+  const n = 60;
 
-  const priceBase = 5 + rng() * 95;
-  const priceTrend = (rng() - 0.48) * 0.15;
-  const priceVol = priceBase * (0.015 + rng() * 0.025);
+  const baseTime = Math.floor(new Date("2025-01-02").getTime() / 1000);
+  const DAY = 86400;
+  const times = [];
+  let t = baseTime;
+  while (times.length < n) {
+    const d = new Date(t * 1000);
+    const dow = d.getUTCDay();
+    if (dow !== 0 && dow !== 6) times.push(t);
+    t += DAY;
+  }
+
+  const priceBase = 20 + rng() * 180;
+  const priceTrend = (rng() - 0.48) * 0.12;
+  const priceVol = priceBase * (0.012 + rng() * 0.02);
   let pv = priceBase;
-  const Last = Array.from({ length: n }, () => {
+
+  const candles = times.map((time) => {
+    const open = pv;
     pv += (rng() - 0.5) * priceVol * 2 + priceTrend;
-    pv = Math.max(priceBase * 0.4, Math.min(priceBase * 2.2, pv));
-    return parseFloat(pv.toFixed(2));
+    pv = Math.max(priceBase * 0.4, Math.min(priceBase * 2.4, pv));
+    const close = pv;
+    const high = Math.max(open, close) + rng() * priceVol;
+    const low = Math.min(open, close) - rng() * priceVol;
+    const volume = Math.floor(500000 + rng() * 4000000);
+    return { time, open: +open.toFixed(2), high: +high.toFixed(2), low: +low.toFixed(2), close: +close.toFixed(2), value: volume };
   });
 
   const shortBase = 10 + rng() * 15;
   const shortTrend = (rng() - 0.5) * 0.3;
-  let saVal = shortBase;
-  let sbVal = shortBase + rng() * 4 - 2;
-  const ShortA = Array.from({ length: n }, () => {
+  let saVal = shortBase, sbVal = shortBase + rng() * 4 - 2;
+  const shortA = times.map((time) => {
     saVal += (rng() - 0.5) * 2.5 + shortTrend;
     saVal = Math.max(5, Math.min(35, saVal));
-    return parseFloat(saVal.toFixed(2));
+    return { time, value: +saVal.toFixed(2) };
   });
-  const ShortB = Array.from({ length: n }, () => {
+  const shortB = times.map((time) => {
     sbVal += (rng() - 0.5) * 2.0 + shortTrend * 0.8;
     sbVal = Math.max(4, Math.min(32, sbVal));
-    return parseFloat(sbVal.toFixed(2));
+    return { time, value: +sbVal.toFixed(2) };
   });
 
   const ptBase = 20 + rng() * 15;
   const ptTrend = (rng() - 0.4) * 0.5;
   let ptVal = ptBase;
-  const PredictTrend = Array.from({ length: n }, () => {
+  const predictTrend = times.map((time) => {
     const surge = rng() < 0.15 ? (rng() - 0.3) * 4 : 0;
     ptVal += (rng() - 0.5) * 2.5 + ptTrend + surge;
     ptVal = Math.max(ptBase * 0.5, Math.min(ptBase * 2.5, ptVal));
-    return parseFloat(ptVal.toFixed(2));
+    return { time, value: +ptVal.toFixed(2) };
   });
 
   const peakBase = 4 + rng() * 4;
-  const Peak = Array.from({ length: n }, () => {
+  const peak = times.map((time) => {
     const isSpike = rng() < 0.2;
-    if (isSpike) return parseFloat((peakBase + rng() * 14).toFixed(2));
-    return parseFloat((peakBase + rng() * 3).toFixed(2));
+    const value = isSpike ? +(peakBase + rng() * 14).toFixed(2) : +(peakBase + rng() * 3).toFixed(2);
+    return { time, value, color: value > peakBase + 8 ? "#f59e0b" : value > peakBase + 4 ? "#fb923c" : "#1d4ed8" };
   });
 
   const shBase = 8 + rng() * 5;
-  const shLevels = [
-    parseFloat(shBase.toFixed(2)),
-    parseFloat((shBase + 0.01 + rng() * 0.05).toFixed(2)),
-    parseFloat((shBase + 0.1 + rng() * 0.1).toFixed(2)),
-  ];
-  let shIdx = 0;
-  let shCounter = 0;
+  const shLevels = [+shBase.toFixed(2), +(shBase + 0.01 + rng() * 0.05).toFixed(2), +(shBase + 0.1 + rng() * 0.1).toFixed(2)];
+  let shIdx = 0, shCounter = 0;
   const shHold = Math.floor(5 + rng() * 6);
-  const Shareholder = Array.from({ length: n }, () => {
+  const shareholder = times.map((time) => {
     shCounter++;
-    if (shCounter >= shHold && shIdx < shLevels.length - 1) {
-      if (rng() < 0.4) {
-        shIdx++;
-        shCounter = 0;
-      }
-    }
-    return shLevels[shIdx];
+    if (shCounter >= shHold && shIdx < shLevels.length - 1 && rng() < 0.4) { shIdx++; shCounter = 0; }
+    return { time, value: shLevels[shIdx] };
   });
 
-  const managerBases = [
-    +(2 + rng() * 4).toFixed(2),
-    +(0.5 + rng() * 2).toFixed(2),
-    +((rng() - 0.5) * 1.5).toFixed(2),
-    -(1 + rng() * 4).toFixed(2),
-    -(4 + rng() * 6).toFixed(2),
-  ];
-  const Manager = managerBases.map((base, mi) => {
+  const managerBases = [+(2 + rng() * 4).toFixed(2), +(0.5 + rng() * 2).toFixed(2), +((rng() - 0.5) * 1.5).toFixed(2), -(1 + rng() * 4).toFixed(2), -(4 + rng() * 6).toFixed(2)];
+  const manager = managerBases.map((base, mi) => {
     const rngM = createRng(seed + mi * 997 + 1);
     const shift1 = Math.floor(rngM() * (n - 4)) + 2;
     const delta1 = (rngM() - 0.5) * Math.abs(base) * 0.3;
-    return Array.from({ length: n }, (_, i) => {
-      const val = i < shift1 ? base : parseFloat((base + delta1).toFixed(2));
-      return val;
-    });
+    return times.map((time, i) => ({ time, value: i < shift1 ? base : +(base + delta1).toFixed(2) }));
   });
 
-  const result = {
-    Last,
-    "%ShortA": ShortA,
-    "%ShortB": ShortB,
-    PredictTrend,
-    Peak,
-    Shareholder,
-    Manager,
-    _lastPrice: Last[Last.length - 1],
-    _prevPrice: Last[Last.length - 2],
-    _high: parseFloat(Math.max(...Last).toFixed(2)),
-    _low: parseFloat(Math.min(...Last).toFixed(2)),
-    _volume: parseFloat((50 + rng() * 950).toFixed(1)),
-  };
-
+  const result = { candles, shortA, shortB, predictTrend, peak, shareholder, manager, times };
   MOCK_CACHE[symbol] = result;
   return result;
 }
 
 // ============================================================
-// CHART CONSTANTS
+// CONSTANTS
 // ============================================================
-const CHART_CONFIG = {
-  height: 170,
-  paddingLeft: 15,
-  paddingRight: 60,
-  paddingTop: 15,
-  paddingBottom: 10,
-  pointGap: 40,
-  minWidth: 620,
-};
-
 const MANAGER_COLORS = ["#f97316", "#22c55e", "#3b82f6", "#0ea5e9", "#eab308"];
+const CHART_TYPES = ["Last", "%Short", "PredictTrend", "Peak", "Shareholder", "Manger"];
 
-// ============================================================
-// MOCK NAMES
-// ============================================================
 const SHAREHOLDER_NAMES = {
-  BANPU: "บ้านปู จำกัด (มหาชน)",
-  BGRIM: "บี.กริม เพาเวอร์",
-  EGCO: "ผลิตไฟฟ้า จำกัด (มหาชน)",
-  GPSC: "โกลบอล เพาเวอร์ ซินเนอร์ยี่",
-  GULF: "กัลฟ์ เอ็นเนอร์จี ดีเวลลอปเมนท์",
-  OR: "ปตท. น้ำมันและการค้าปลีก",
-  PTT: "ปตท. จำกัด (มหาชน)",
-  PTTEP: "ปตท.สผ. จำกัด (มหาชน)",
-  PTTGC: "พีทีที โกลบอล เคมิคอล",
-  RATCH: "ราช กรุ๊ป จำกัด (มหาชน)",
-  TOP: "ไทยออยล์ จำกัด (มหาชน)",
-  IVL: "อินโดรามา เวนเจอร์ส",
-  BBL: "ธนาคารกรุงเทพ",
-  KBANK: "ธนาคารกสิกรไทย",
-  KTB: "ธนาคารกรุงไทย",
-  SCB: "ธนาคารไทยพาณิชย์",
-  TISCO: "ทิสโก้ไฟแนนเชียลกรุ๊ป",
-  TTB: "ธนาคารทหารไทยธนชาต",
-  KTC: "บัตรกรุงไทย จำกัด (มหาชน)",
-  SAWAD: "ศรีสวัสดิ์ คอร์ปอเรชั่น",
-  MTC: "เมืองไทย แคปปิตอล",
-  TLI: "ไทยประกันชีวิต",
-  ADVANC: "แอดวานซ์ อินโฟร์ เซอร์วิส",
-  DELTA: "เดลต้า อีเลคโทรนิคส์",
-  COM7: "คอม เซเว่น จำกัด (มหาชน)",
-  CCET: "ช ทวี จำกัด (มหาชน)",
-  TRUE: "ทรู คอร์ปอเรชั่น",
-  CPALL: "ซีพี ออลล์ จำกัด (มหาชน)",
-  CPF: "เจริญโภคภัณฑ์อาหาร",
-  CBG: "คาราบาวกรุ๊ป",
-  OSP: "โอสถสภา จำกัด (มหาชน)",
-  GLOBAL: "สยามโกลบอลเฮ้าส์",
-  HMPRO: "โฮม โปรดักส์ เซ็นเตอร์",
-  BJC: "เบอร์ลี่ ยุคเกอร์ จำกัด (มหาชน)",
-  CRC: "เซ็นทรัล รีเทล คอร์ปอเรชั่น",
-  ITC: "อิตาเลียนไทย ดีเวล๊อปเมนต์",
-  TU: "ไทยยูเนี่ยน กรุ๊ป",
-  AOT: "ท่าอากาศยานไทย",
-  AWC: "แอสเสท เวิรด์ คอร์ป",
-  BDMS: "กรุงเทพดุสิตเวชการ",
-  BH: "โรงพยาบาลบำรุงราษฎร์",
-  BEM: "ทางด่วนและรถไฟฟ้ากรุงเทพ",
-  BTS: "บีทีเอส กรุ๊ป โฮลดิ้งส์",
-  CPN: "เซ็นทรัลพัฒนา",
-  LH: "แลนด์ แอนด์ เฮ้าส์",
-  MINT: "ไมเนอร์ อินเตอร์เนชั่นแนล",
-  SCGP: "เอสซีจี แพคเกจจิ้ง",
+  BANPU: "บ้านปู จำกัด (มหาชน)", BGRIM: "บี.กริม เพาเวอร์", EGCO: "ผลิตไฟฟ้า จำกัด (มหาชน)",
+  GPSC: "โกลบอล เพาเวอร์ ซินเนอร์ยี่", GULF: "กัลฟ์ เอ็นเนอร์จี ดีเวลลอปเมนท์", OR: "ปตท. น้ำมันและการค้าปลีก",
+  PTT: "ปตท. จำกัด (มหาชน)", PTTEP: "ปตท.สผ. จำกัด (มหาชน)", PTTGC: "พีทีที โกลบอล เคมิคอล",
+  RATCH: "ราช กรุ๊ป จำกัด (มหาชน)", TOP: "ไทยออยล์ จำกัด (มหาชน)", IVL: "อินโดรามา เวนเจอร์ส",
+  BBL: "ธนาคารกรุงเทพ", KBANK: "ธนาคารกสิกรไทย", KTB: "ธนาคารกรุงไทย", SCB: "ธนาคารไทยพาณิชย์",
+  TISCO: "ทิสโก้ไฟแนนเชียลกรุ๊ป", TTB: "ธนาคารทหารไทยธนชาต", KTC: "บัตรกรุงไทย จำกัด (มหาชน)",
+  SAWAD: "ศรีสวัสดิ์ คอร์ปอเรชั่น", MTC: "เมืองไทย แคปปิตอล", TLI: "ไทยประกันชีวิต",
+  ADVANC: "แอดวานซ์ อินโฟร์ เซอร์วิส", DELTA: "เดลต้า อีเลคโทรนิคส์", COM7: "คอม เซเว่น จำกัด (มหาชน)",
+  CCET: "ช ทวี จำกัด (มหาชน)", TRUE: "ทรู คอร์ปอเรชั่น", CPALL: "ซีพี ออลล์ จำกัด (มหาชน)",
+  CPF: "เจริญโภคภัณฑ์อาหาร", CBG: "คาราบาวกรุ๊ป", OSP: "โอสถสภา จำกัด (มหาชน)",
+  GLOBAL: "สยามโกลบอลเฮ้าส์", HMPRO: "โฮม โปรดักส์ เซ็นเตอร์", BJC: "เบอร์ลี่ ยุคเกอร์ จำกัด (มหาชน)",
+  CRC: "เซ็นทรัล รีเทล คอร์ปอเรชั่น", ITC: "อิตาเลียนไทย ดีเวล๊อปเมนต์", TU: "ไทยยูเนี่ยน กรุ๊ป",
+  AOT: "ท่าอากาศยานไทย", AWC: "แอสเสท เวิรด์ คอร์ป", BDMS: "กรุงเทพดุสิตเวชการ",
+  BH: "โรงพยาบาลบำรุงราษฎร์", BEM: "ทางด่วนและรถไฟฟ้ากรุงเทพ", BTS: "บีทีเอส กรุ๊ป โฮลดิ้งส์",
+  CPN: "เซ็นทรัลพัฒนา", LH: "แลนด์ แอนด์ เฮ้าส์", MINT: "ไมเนอร์ อินเตอร์เนชั่นแนล", SCGP: "เอสซีจี แพคเกจจิ้ง",
 };
 
 const MANAGER_NAMES_BY_SYMBOL = {
@@ -342,74 +254,222 @@ const MANAGER_NAMES_BY_SYMBOL = {
   DEFAULT: ["กลุ่มผู้ก่อตั้ง", "กบข.", "กองทุนรวมในประเทศ", "กองทุนต่างประเทศ", "กองทุน ThaiNVDR"],
 };
 
-const LABELS = Array.from({ length: 20 }, (_, i) => {
-  const d = new Date("2025-01-01");
-  d.setDate(d.getDate() + i * 7);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yy = String(d.getFullYear()).slice(2);
-  return `${dd}/${mm}/${yy}`;
-});
-
 // ============================================================
-// CHART PURE HELPERS
+// TV CHART COMMON OPTIONS
 // ============================================================
-function getPrimaryData(type, data) {
-  if (type === "%Short") return data["%ShortA"];
-  if (type === "Manager") return data.Manager[0];
-  return data[type] ?? data.Last;
-}
-
-function getAllDataForScale(type, data) {
-  if (type === "%Short") return [...data["%ShortA"], ...data["%ShortB"]];
-  if (type === "Manager") return data.Manager.flat();
-  return getPrimaryData(type, data);
-}
-
-function calcYScale(data) {
-  const rawMax = Math.max(...data);
-  const rawMin = Math.min(...data);
-  const range = rawMax - rawMin || 1;
-  return { max: rawMax + range * 0.15, min: rawMin - range * 0.15 };
-}
-
-function makeNormalizeY({ height, paddingTop, paddingBottom }, { max, min }) {
-  return (value) =>
-    height - paddingBottom - ((value - min) / (max - min)) * (height - paddingTop - paddingBottom);
-}
-
-function buildCurvePath(dataset, normalizeY, paddingLeft, pointGap) {
-  return dataset.reduce((path, value, i) => {
-    const x = paddingLeft + i * pointGap;
-    const y = normalizeY(value);
-    if (i === 0) return `M ${x},${y}`;
-    const prevX = paddingLeft + (i - 1) * pointGap;
-    const prevY = normalizeY(dataset[i - 1]);
-    const cp1x = prevX + (x - prevX) / 3;
-    const cp2x = prevX + (x - prevX) * (2 / 3);
-    return `${path} C ${cp1x},${prevY} ${cp2x},${y} ${x},${y}`;
-  }, "");
-}
-
-function buildStepPath(dataset, normalizeY, paddingLeft, pointGap) {
-  return dataset.reduce((path, value, i) => {
-    const x = paddingLeft + i * pointGap;
-    const y = normalizeY(value);
-    if (i === 0) return `M ${x},${y}`;
-    const prevX = paddingLeft + (i - 1) * pointGap;
-    const prevY = normalizeY(dataset[i - 1]);
-    return `${path} L ${x},${prevY} L ${x},${y}`;
-  }, "");
-}
-
-function getLineColor(type) {
-  const colorMap = {
-    Last: "#3b82f6",
-    PredictTrend: "#f59e0b",
-    Peak: "#eab308",
-    Shareholder: "#ef4444",
+function getTVChartOptions(container) {
+  const { width, height } = container.getBoundingClientRect();
+  return {
+    width: width || 400,
+    height: height || 230,
+    layout: {
+      background: { color: "#0f172a" },
+      textColor: "#64748b",
+      fontSize: 10,
+    },
+    grid: {
+      vertLines: { color: "#1e293b" },
+      horzLines: { color: "#1e293b" },
+    },
+    crosshair: {
+      vertLine: { color: "#475569", width: 1, style: 2, labelBackgroundColor: "#1e293b" },
+      horzLine: { color: "#475569", width: 1, style: 2, labelBackgroundColor: "#1e293b" },
+    },
+    rightPriceScale: {
+      borderColor: "#1e293b",
+      textColor: "#64748b",
+      scaleMargins: { top: 0.08, bottom: 0.08 },
+    },
+    timeScale: {
+      borderColor: "#1e293b",
+      timeVisible: true,
+      secondsVisible: false,
+      tickMarkFormatter: (time) => {
+        const d = new Date(time * 1000);
+        return `${String(d.getUTCDate()).padStart(2,"0")}/${String(d.getUTCMonth()+1).padStart(2,"0")}`;
+      },
+    },
+    handleScroll: true,
+    handleScale: true,
+    watermark: { visible: false },
+    attributionLogo: { visible: false },
   };
-  return colorMap[type] ?? "#38bdf8";
+}
+
+// ============================================================
+// TVChartCard
+// ============================================================
+function TVChartCard({ title, type, onChange, selectedSymbol, dataVersion, managerVisibility, onToggleManagerLines }) {
+  const containerRef = useRef(null);
+  const chartRef = useRef(null);
+  const seriesRefs = useRef([]);
+  const resizeObserverRef = useRef(null);
+
+  const data = useMemo(() => generateMockData(selectedSymbol), [selectedSymbol, dataVersion]);
+
+  // Apply visibility changes to manager series without rebuilding chart
+  useEffect(() => {
+    if (type !== "Manger" || !seriesRefs.current.length || !managerVisibility) return;
+    seriesRefs.current.forEach((s, i) => {
+      if (!s) return;
+      try {
+        s.applyOptions({ visible: managerVisibility[i] !== false });
+      } catch (_) {}
+    });
+  }, [managerVisibility, type]);
+
+  useEffect(() => {
+    if (!containerRef.current || !data) return;
+
+    let destroyed = false;
+
+    loadTVCharts().then((LW) => {
+      if (destroyed || !containerRef.current) return;
+
+      if (chartRef.current) {
+        try { chartRef.current.remove(); } catch (_) {}
+        chartRef.current = null;
+        seriesRefs.current = [];
+      }
+
+      const chart = LW.createChart(containerRef.current, getTVChartOptions(containerRef.current));
+      chartRef.current = chart;
+
+      setTimeout(() => {
+        if (!containerRef.current) return;
+        const links = containerRef.current.querySelectorAll('a[href*="tradingview"]');
+        links.forEach((el) => { el.style.display = "none"; });
+        const imgs = containerRef.current.querySelectorAll('img[src*="tradingview"]');
+        imgs.forEach((el) => { el.style.display = "none"; });
+        const divs = containerRef.current.querySelectorAll("div[style*='z-index']");
+        divs.forEach((el) => {
+          if (el.innerHTML && el.innerHTML.toLowerCase().includes("tradingview")) {
+            el.style.display = "none";
+          }
+        });
+      }, 300);
+
+      if (type === "Last") {
+        const candleSeries = chart.addCandlestickSeries({
+          upColor: "#22c55e", downColor: "#ef4444",
+          borderUpColor: "#22c55e", borderDownColor: "#ef4444",
+          wickUpColor: "#22c55e", wickDownColor: "#ef4444",
+        });
+        candleSeries.setData(data.candles);
+
+        const volSeries = chart.addHistogramSeries({
+          priceFormat: { type: "volume" },
+          priceScaleId: "vol",
+          color: "#1d4ed8",
+          scaleMargins: { top: 0.8, bottom: 0 },
+        });
+        chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+        volSeries.setData(data.candles.map((c) => ({
+          time: c.time,
+          value: c.value,
+          color: c.close >= c.open ? "#16a34a55" : "#dc262655",
+        })));
+        seriesRefs.current = [candleSeries, volSeries];
+
+      } else if (type === "%Short") {
+        const sA = chart.addAreaSeries({ lineColor: "#0ea5e9", topColor: "#0ea5e920", bottomColor: "#0ea5e900", lineWidth: 2, title: "%Short A" });
+        const sB = chart.addAreaSeries({ lineColor: "#f97316", topColor: "#f9731620", bottomColor: "#f9731600", lineWidth: 2, title: "%Short B" });
+        sA.setData(data.shortA);
+        sB.setData(data.shortB);
+        seriesRefs.current = [sA, sB];
+
+      } else if (type === "PredictTrend") {
+        const s = chart.addAreaSeries({ lineColor: "#f59e0b", topColor: "#f59e0b25", bottomColor: "#f59e0b00", lineWidth: 2.5, title: "PredictTrend" });
+        s.setData(data.predictTrend);
+        seriesRefs.current = [s];
+
+      } else if (type === "Peak") {
+        const s = chart.addHistogramSeries({ color: "#1d4ed8", title: "Peak" });
+        s.setData(data.peak);
+        seriesRefs.current = [s];
+
+      } else if (type === "Shareholder") {
+        const s = chart.addLineSeries({ color: "#ef4444", lineWidth: 2.5, lineType: 1, title: "Shareholder" });
+        s.setData(data.shareholder);
+        seriesRefs.current = [s];
+
+      } else if (type === "Manger") {
+        const names = MANAGER_NAMES_BY_SYMBOL[selectedSymbol] || MANAGER_NAMES_BY_SYMBOL.DEFAULT;
+        const series = MANAGER_COLORS.map((color, i) => {
+          const s = chart.addLineSeries({
+            color,
+            lineWidth: 1.8,
+            lineType: 1,
+            title: names[i],
+            visible: managerVisibility ? managerVisibility[i] !== false : true,
+          });
+          s.setData(data.manager[i]);
+          return s;
+        });
+        seriesRefs.current = series;
+      }
+
+      chart.timeScale().fitContent();
+
+      if (resizeObserverRef.current) resizeObserverRef.current.disconnect();
+      resizeObserverRef.current = new ResizeObserver(() => {
+        if (chartRef.current && containerRef.current) {
+          const { width, height } = containerRef.current.getBoundingClientRect();
+          chartRef.current.applyOptions({ width, height });
+        }
+      });
+      resizeObserverRef.current.observe(containerRef.current);
+    });
+
+    return () => {
+      destroyed = true;
+      if (resizeObserverRef.current) resizeObserverRef.current.disconnect();
+      if (chartRef.current) {
+        try { chartRef.current.remove(); } catch (_) {}
+        chartRef.current = null;
+      }
+    };
+  }, [type, selectedSymbol, dataVersion, data]);
+
+  const isManager = type === "Manger";
+
+  return (
+    <div className="bg-[#111827] rounded-xl border border-slate-700 p-3 flex flex-col" style={{ height: 290 }}>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-2 flex-shrink-0">
+        <div className="relative inline-block">
+          <select
+            value={type}
+            onChange={(e) => onChange(e.target.value)}
+            className="appearance-none bg-[#1f2937] text-xs border border-slate-600 rounded-md px-2 py-1 pr-6 focus:outline-none focus:border-cyan-500 text-white"
+          >
+            {CHART_TYPES.map((o) => <option key={o}>{o}</option>)}
+          </select>
+          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-white text-xs">▾</span>
+        </div>
+        {isManager ? (
+          <span
+            className="text-xs text-cyan-400 cursor-pointer hover:text-cyan-300 hover:underline transition-colors"
+            onClick={() => onToggleManagerLines?.()}
+          >
+            Show/Hide All
+          </span>
+        ) : (
+          <span className="text-xs text-slate-400">{title}</span>
+        )}
+      </div>
+
+      {/* Chart container */}
+      <div className="relative flex-1 rounded-lg overflow-hidden bg-[#0f172a]" style={{ minHeight: 0 }}>
+        <div ref={containerRef} className="w-full h-full" />
+        {!selectedSymbol && (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#0f172a]/90 rounded-lg">
+            <span className="text-slate-400 text-sm font-medium">Please select symbol</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ============================================================
@@ -417,12 +477,9 @@ function getLineColor(type) {
 // ============================================================
 function WaveSkeleton({ delay = 0 }) {
   return (
-    <div className="w-full h-[210px] bg-[#0f172a] rounded-lg overflow-hidden relative">
+    <div className="w-full h-[240px] bg-[#0f172a] rounded-lg overflow-hidden relative">
       <style>{`
-        @keyframes shimmer {
-          0%   { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
+        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
       `}</style>
       <div className="absolute inset-0 flex flex-col justify-between p-3">
         <div className="flex gap-2">
@@ -431,16 +488,13 @@ function WaveSkeleton({ delay = 0 }) {
         </div>
         <div className="flex-1 my-3 rounded bg-slate-800/60" />
         <div className="flex gap-3 justify-between">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-2 rounded-full bg-slate-800 flex-1" />
-          ))}
+          {[...Array(5)].map((_, i) => <div key={i} className="h-2 rounded-full bg-slate-800 flex-1" />)}
         </div>
       </div>
       <div
         className="absolute inset-0"
         style={{
-          background:
-            "linear-gradient(90deg, transparent 0%, rgba(56,189,248,0.08) 40%, rgba(125,211,252,0.18) 50%, rgba(56,189,248,0.08) 60%, transparent 100%)",
+          background: "linear-gradient(90deg, transparent 0%, rgba(56,189,248,0.08) 40%, rgba(125,211,252,0.18) 50%, rgba(56,189,248,0.08) 60%, transparent 100%)",
           animation: "shimmer 1.8s ease-in-out infinite",
           animationDelay: `${delay}s`,
         }}
@@ -449,983 +503,365 @@ function WaveSkeleton({ delay = 0 }) {
   );
 }
 
-function SeriesLegend({ names, colors, hiddenSet, isolatedIdx, allHidden, onToggleAll, onClickItem }) {
-  return (
-    <div className="flex flex-wrap items-center gap-1.5 px-1">
-      <button
-        onClick={onToggleAll}
-        className={`text-[10px] px-2 py-0.5 rounded border transition-all ${
-          allHidden
-            ? "border-slate-600 text-slate-500 bg-slate-800/50"
-            : "border-slate-600 text-slate-400 hover:text-white hover:border-slate-400"
-        }`}
-      >
-        {allHidden ? "show all" : "hide all"}
-      </button>
-      {names.map((name, idx) => {
-        const isHidden = hiddenSet.has(idx);
-        const isIsolated = isolatedIdx === idx;
-        return (
-          <button
-            key={idx}
-            onClick={() => onClickItem(idx)}
-            className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded border transition-all ${
-              isHidden
-                ? "border-slate-700 text-slate-600 bg-slate-800/30 opacity-50"
-                : isIsolated
-                ? "border-opacity-100 text-white"
-                : "text-slate-300 hover:text-white"
-            }`}
-            style={{
-              borderColor: isHidden ? "transparent" : colors[idx],
-              backgroundColor: isIsolated ? `${colors[idx]}22` : undefined,
-            }}
-          >
-            <span
-              className="w-2 h-2 rounded-full flex-shrink-0"
-              style={{ backgroundColor: isHidden ? "#475569" : colors[idx] }}
-            />
-            {name}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function SelectWithCaret({ value, onChange, className = "" }) {
-  return (
-    <div className="relative inline-block">
-      <select
-        value={value}
-        onChange={onChange}
-        className={`appearance-none pr-8 ${className}`}
-      >
-        <option>Last</option>
-        <option>%Short</option>
-        <option>PredictTrend</option>
-        <option>Peak</option>
-        <option>Shareholder</option>
-        <option>Manager</option>
-      </select>
-
-      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white text-sm leading-none">
-        ▾
-      </span>
-    </div>
-  );
-}
-
-// ============================================================
-// ChartCard
-// ============================================================
-function ChartCard({
-  title,
-  type,
-  onChange,
-  chartId,
-  globalHoverIndex,
-  setGlobalHoverIndex,
-  chartRefs,
-  selectedSymbol,
-}) {
-  const [showLabels, setShowLabels] = useState(false);
-  const [hiddenSet, setHiddenSet] = useState(() => new Set());
-  const [isolatedIdx, setIsolatedIdx] = useState(null);
-  const [allHidden, setAllHidden] = useState(false);
-
-  const seriesCount = type === "Manager" ? 5 : 1;
-  const showToggle = type === "Shareholder" || type === "Manager" || type === "%Short";
-
-  useEffect(() => {
-    setHiddenSet(new Set());
-    setIsolatedIdx(null);
-    setAllHidden(false);
-    setShowLabels(false);
-  }, [type]);
-
-  const handleToggleAll = () => {
-    if (allHidden) {
-      setHiddenSet(new Set());
-      setIsolatedIdx(null);
-      setAllHidden(false);
-    } else {
-      setHiddenSet(new Set([...Array(seriesCount).keys()]));
-      setIsolatedIdx(null);
-      setAllHidden(true);
-    }
-  };
-
-  const handleClickItem = (idx) => {
-    if (hiddenSet.has(idx)) {
-      setHiddenSet((prev) => {
-        const n = new Set(prev);
-        n.delete(idx);
-        return n;
-      });
-      if (allHidden) setAllHidden(false);
-      return;
-    }
-    if (isolatedIdx === idx) setIsolatedIdx(null);
-    else setIsolatedIdx(idx);
-  };
-
-  const cardHeight = 280;
-
-  return (
-    <div className="bg-[#111827] rounded-xl border border-slate-700 p-4 flex flex-col" style={{ height: cardHeight }}>
-      <div className="mb-2 flex justify-between items-center flex-shrink-0 z-10">
-        <SelectWithCaret
-          value={type}
-          onChange={(e) => onChange(e.target.value)}
-          className="bg-[#1f2937] text-xs border border-slate-600 rounded-md px-2 py-1 focus:outline-none focus:border-cyan-500 text-white"
-        />
-        <div className="flex items-center gap-2">
-          {showToggle && (
-            <button
-              onClick={() => setShowLabels((v) => !v)}
-              className={[
-                "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-all duration-200",
-                showLabels
-                  ? "bg-cyan-500/15 border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/25"
-                  : "bg-slate-800/70 border-slate-600/50 text-slate-500 hover:text-slate-300",
-              ].join(" ")}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-3 h-3 flex-shrink-0"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                {showLabels ? (
-                  <>
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                    <line x1="1" y1="1" x2="23" y2="23" />
-                  </>
-                ) : (
-                  <>
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </>
-                )}
-              </svg>
-              <span>{showLabels ? "hide labels" : "show labels"}</span>
-            </button>
-          )}
-          <span className="text-xs text-slate-400">{title}</span>
-        </div>
-      </div>
-
-      <div className="relative flex-1" style={{ minHeight: 0 }}>
-        <div className="absolute inset-0 rounded-lg overflow-hidden bg-[#0f172a]">
-          <ChartRenderer
-            type={type}
-            chartId={chartId}
-            globalHoverIndex={globalHoverIndex}
-            setGlobalHoverIndex={setGlobalHoverIndex}
-            chartRefs={chartRefs}
-            selectedSymbol={selectedSymbol}
-            showLabels={showLabels}
-            hiddenSet={hiddenSet}
-            isolatedIdx={isolatedIdx}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
-// ChartRenderer
-// ============================================================
-function ChartRenderer({
-  type,
-  chartId,
-  globalHoverIndex,
-  setGlobalHoverIndex,
-  chartRefs,
-  selectedSymbol,
-  showLabels = false,
-  hiddenSet = new Set(),
-  isolatedIdx = null,
-}) {
-  const scrollRef = useRef(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const hasDragged = useRef(false);
-  const [dragStartX, setDragStartX] = useState(0);
-  const [dragScrollLeft, setDragScrollLeft] = useState(0);
-
-  const [visibleLabels, setVisibleLabels] = useState({});
-
-  useEffect(() => {
-    setVisibleLabels({});
-  }, [showLabels, type, selectedSymbol]);
-
-  const toggleLabelName = (id) => {
-    setVisibleLabels((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const currentData = useMemo(() => generateMockData(selectedSymbol), [selectedSymbol]);
-  const primaryData = getPrimaryData(type, currentData);
-  const yScale = calcYScale(getAllDataForScale(type, currentData));
-  const normalizeY = makeNormalizeY(CHART_CONFIG, yScale);
-
-  const { paddingLeft, paddingRight, paddingTop, paddingBottom, pointGap, height, minWidth } = CHART_CONFIG;
-  const chartWidth = Math.max(minWidth, paddingLeft + paddingRight + (primaryData.length - 1) * pointGap);
-  const curve = (d) => buildCurvePath(d, normalizeY, paddingLeft, pointGap);
-  const step = (d) => buildStepPath(d, normalizeY, paddingLeft, pointGap);
-
-  useEffect(() => {
-    if (!scrollRef.current) return;
-    chartRefs.current[chartId] = scrollRef.current;
-    scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
-    return () => {
-      delete chartRefs.current[chartId];
-    };
-  }, [chartId, type, chartRefs]);
-
-  const syncScroll = (src) =>
-    Object.values(chartRefs.current).forEach((n) => {
-      if (n && n !== src && Math.abs(n.scrollLeft - src.scrollLeft) > 1) n.scrollLeft = src.scrollLeft;
-    });
-
-  const handleMouseDown = (e) => {
-    setIsDragging(true);
-    hasDragged.current = false;
-    setDragStartX(e.pageX - scrollRef.current.offsetLeft);
-    setDragScrollLeft(scrollRef.current.scrollLeft);
-    setGlobalHoverIndex(null);
-  };
-
-  const handleMouseMove = (e) => {
-    if (isDragging) {
-      hasDragged.current = true;
-      e.preventDefault();
-      scrollRef.current.scrollLeft =
-        dragScrollLeft - (e.pageX - scrollRef.current.offsetLeft - dragStartX) * 1.5;
-      setGlobalHoverIndex(null);
-      return;
-    }
-    const rect = scrollRef.current.getBoundingClientRect();
-    const idx = Math.max(
-      0,
-      Math.min(
-        Math.round((e.clientX - rect.left + scrollRef.current.scrollLeft - paddingLeft) / pointGap),
-        primaryData.length - 1
-      )
-    );
-    setGlobalHoverIndex(idx);
-  };
-
-  const isHovering = globalHoverIndex !== null && !isDragging;
-  const hoverX = isHovering ? paddingLeft + globalHoverIndex * pointGap : null;
-
-  const mOpacity = (idx) => {
-    if (hiddenSet.has(idx)) return 0;
-    if (isolatedIdx === null) return 1;
-    return isolatedIdx === idx ? 1 : 0.1;
-  };
-
-  return (
-    <div className="relative w-full h-full group bg-[#0f172a] rounded-lg">
-      <div
-        ref={scrollRef}
-        className={`w-full h-full relative overflow-x-auto overflow-y-hidden hide-scrollbar select-none ${
-          isDragging ? "cursor-grabbing" : "cursor-crosshair"
-        }`}
-        style={{ msOverflowStyle: "none", scrollbarWidth: "none" }}
-        onScroll={(e) => syncScroll(e.target)}
-        onMouseDown={handleMouseDown}
-        onMouseLeave={() => {
-          setIsDragging(false);
-          setGlobalHoverIndex(null);
-        }}
-        onMouseUp={() => setIsDragging(false)}
-        onMouseMove={handleMouseMove}
-      >
-        <svg width={chartWidth} height={height} className="overflow-visible pointer-events-none">
-          {[...Array(5)].map((_, i) => {
-            const y = paddingTop + (i * (height - paddingTop - paddingBottom)) / 4;
-            return <line key={i} x1={0} y1={y} x2={chartWidth} y2={y} stroke="#1e293b" strokeWidth="1" />;
-          })}
-          <line
-            x1={0}
-            y1={height - paddingBottom}
-            x2={chartWidth}
-            y2={height - paddingBottom}
-            stroke="#334155"
-            strokeWidth="1.5"
-          />
-
-          {primaryData.map((_, i) => (
-            <text
-              key={i}
-              x={paddingLeft + i * pointGap}
-              y={height - paddingBottom + 14}
-              fill="#475569"
-              fontSize="8"
-              textAnchor="middle"
-            >
-              {LABELS[i]}
-            </text>
-          ))}
-
-          {type === "%Short" && (
-            <>
-              <g>
-                <path d={curve(currentData["%ShortA"])} fill="none" stroke="#0ea5e9" strokeWidth="2" />
-                <path
-                  d={curve(currentData["%ShortA"])}
-                  fill="none"
-                  stroke="transparent"
-                  strokeWidth="24"
-                  style={{ cursor: "pointer", pointerEvents: "stroke" }}
-                  onClick={(e) => {
-                    if (hasDragged.current) return;
-                    e.stopPropagation();
-                    toggleLabelName("short-A");
-                  }}
-                />
-              </g>
-              <g>
-                <path d={curve(currentData["%ShortB"])} fill="none" stroke="#f97316" strokeWidth="2" />
-                <path
-                  d={curve(currentData["%ShortB"])}
-                  fill="none"
-                  stroke="transparent"
-                  strokeWidth="24"
-                  style={{ cursor: "pointer", pointerEvents: "stroke" }}
-                  onClick={(e) => {
-                    if (hasDragged.current) return;
-                    e.stopPropagation();
-                    toggleLabelName("short-B");
-                  }}
-                />
-              </g>
-            </>
-          )}
-
-          {(type === "Last" || type === "Peak") &&
-            (() => {
-              const data = currentData[type];
-              const color = getLineColor(type);
-              const areaId = `area-${type}-${chartId}`;
-              const lx = paddingLeft + (data.length - 1) * pointGap;
-              return (
-                <>
-                  <defs>
-                    <linearGradient id={areaId} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-                      <stop offset="100%" stopColor={color} stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d={`${curve(data)} L ${lx},${height - paddingBottom} L ${paddingLeft},${height - paddingBottom} Z`}
-                    fill={`url(#${areaId})`}
-                  />
-                  <path d={curve(data)} fill="none" stroke={color} strokeWidth="2.5" />
-                </>
-              );
-            })()}
-
-          {type === "PredictTrend" && (
-            <path d={curve(currentData.PredictTrend)} fill="none" stroke={getLineColor(type)} strokeWidth="2.5" />
-          )}
-
-          {type === "Shareholder" && (
-            <g>
-              <path d={step(currentData.Shareholder)} fill="none" stroke={getLineColor(type)} strokeWidth="2.5" />
-              <path
-                d={step(currentData.Shareholder)}
-                fill="none"
-                stroke="transparent"
-                strokeWidth="24"
-                style={{ cursor: "pointer", pointerEvents: "stroke" }}
-                onClick={(e) => {
-                  if (hasDragged.current) return;
-                  e.stopPropagation();
-                  toggleLabelName("sh");
-                }}
-              />
-            </g>
-          )}
-
-          {type === "Manager" &&
-            currentData.Manager.map((data, idx) => {
-              const op = mOpacity(idx);
-              if (op === 0) return null;
-              return (
-                <g key={idx}>
-                  <path
-                    d={step(data)}
-                    fill="none"
-                    stroke={MANAGER_COLORS[idx]}
-                    strokeWidth={isolatedIdx === idx ? 2.5 : 2}
-                    strokeOpacity={op}
-                    style={{ transition: "stroke-opacity 0.2s,stroke-width 0.2s" }}
-                  />
-                  <path
-                    d={step(data)}
-                    fill="none"
-                    stroke="transparent"
-                    strokeWidth="24"
-                    style={{ cursor: "pointer", pointerEvents: "stroke" }}
-                    onClick={(e) => {
-                      if (hasDragged.current) return;
-                      e.stopPropagation();
-                      toggleLabelName(`mgr-${idx}`);
-                    }}
-                  />
-                </g>
-              );
-            })}
-
-          {isHovering && (
-            <g>
-              <line
-                x1={hoverX}
-                y1={paddingTop}
-                x2={hoverX}
-                y2={height - paddingBottom}
-                stroke="#475569"
-                strokeWidth="1"
-                strokeDasharray="4 4"
-              />
-              {type === "%Short" && (
-                <>
-                  <circle
-                    cx={hoverX}
-                    cy={normalizeY(currentData["%ShortA"][globalHoverIndex])}
-                    r="4"
-                    fill="#0ea5e9"
-                    stroke="#0f172a"
-                    strokeWidth="2"
-                  />
-                  <circle
-                    cx={hoverX}
-                    cy={normalizeY(currentData["%ShortB"][globalHoverIndex])}
-                    r="4"
-                    fill="#f97316"
-                    stroke="#0f172a"
-                    strokeWidth="2"
-                  />
-                  <text
-                    x={hoverX}
-                    y={normalizeY(currentData["%ShortA"][globalHoverIndex]) - 9}
-                    fill="#0ea5e9"
-                    fontSize="10"
-                    fontWeight="700"
-                    textAnchor="middle"
-                  >
-                    {currentData["%ShortA"][globalHoverIndex].toFixed(2)}
-                  </text>
-                  <text
-                    x={hoverX}
-                    y={normalizeY(currentData["%ShortB"][globalHoverIndex]) - 9}
-                    fill="#f97316"
-                    fontSize="10"
-                    fontWeight="700"
-                    textAnchor="middle"
-                  >
-                    {currentData["%ShortB"][globalHoverIndex].toFixed(2)}
-                  </text>
-                </>
-              )}
-              {type === "Manager" &&
-                currentData.Manager.map((data, idx) => {
-                  if (mOpacity(idx) === 0) return null;
-                  return (
-                    <g key={idx}>
-                      <circle
-                        cx={hoverX}
-                        cy={normalizeY(data[globalHoverIndex])}
-                        r="3.5"
-                        fill={MANAGER_COLORS[idx]}
-                        stroke="#0f172a"
-                        strokeWidth="1.5"
-                      />
-                      <text
-                        x={hoverX}
-                        y={normalizeY(data[globalHoverIndex]) - 7}
-                        fill={MANAGER_COLORS[idx]}
-                        fontSize="9"
-                        fontWeight="700"
-                        textAnchor="middle"
-                      >
-                        {data[globalHoverIndex] > 0
-                          ? `+${data[globalHoverIndex].toFixed(2)}`
-                          : data[globalHoverIndex].toFixed(2)}
-                      </text>
-                    </g>
-                  );
-                })}
-              {type !== "%Short" && type !== "Manager" && (
-                <g>
-                  <circle
-                    cx={hoverX}
-                    cy={normalizeY(primaryData[globalHoverIndex])}
-                    r="4"
-                    fill={getLineColor(type)}
-                    stroke="#0f172a"
-                    strokeWidth="2"
-                  />
-                  <text
-                    x={hoverX}
-                    y={normalizeY(primaryData[globalHoverIndex]) - 9}
-                    fill={getLineColor(type)}
-                    fontSize="11"
-                    fontWeight="700"
-                    textAnchor="middle"
-                  >
-                    {primaryData[globalHoverIndex].toFixed(2)}
-                  </text>
-                </g>
-              )}
-            </g>
-          )}
-        </svg>
-
-        {isHovering && (
-          <div
-            className="absolute top-2 z-50 flex flex-col items-center min-w-[60px] bg-[#1e293b] border border-slate-600 rounded-md p-1.5 shadow-xl pointer-events-none"
-            style={{
-              left: `${hoverX}px`,
-              transform:
-                globalHoverIndex > primaryData.length - 5
-                  ? "translateX(calc(-100% - 10px))"
-                  : "translateX(10px)",
-            }}
-          >
-            <span className="text-[10px] text-slate-400 font-medium mb-1">{LABELS[globalHoverIndex]}</span>
-            <div className="flex flex-col items-center gap-0.5">
-              {type === "%Short" && (
-                <>
-                  <span className="text-[#0ea5e9] text-[11px] font-bold">
-                    {currentData["%ShortA"][globalHoverIndex].toFixed(2)}
-                  </span>
-                  <span className="text-[#f97316] text-[11px] font-bold">
-                    {currentData["%ShortB"][globalHoverIndex].toFixed(2)}
-                  </span>
-                </>
-              )}
-              {type === "Manager" &&
-                currentData.Manager.map((data, idx) => {
-                  if (mOpacity(idx) === 0) return null;
-                  return (
-                    <span key={idx} style={{ color: MANAGER_COLORS[idx] }} className="text-[11px] font-bold">
-                      {data[globalHoverIndex] > 0
-                        ? `+${data[globalHoverIndex].toFixed(2)}`
-                        : data[globalHoverIndex].toFixed(2)}
-                    </span>
-                  );
-                })}
-              {type !== "%Short" && type !== "Manager" && (
-                <span className="text-white text-[12px] font-bold">
-                  {primaryData[globalHoverIndex].toFixed(2)}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div
-        className="absolute inset-y-0 left-0 right-[55px] bg-gradient-to-t from-[#0f172a]/90 via-transparent to-transparent pointer-events-none"
-        style={{ top: "75%" }}
-      />
-
-      <div className="absolute right-0 top-0 w-[55px] h-full bg-[#0f172a] z-10 border-l border-slate-800/50">
-        <svg className="w-full h-full absolute right-0 top-0 overflow-visible">
-          {[...Array(5)].map((_, i) => {
-            const y = paddingTop + (i * (height - paddingTop - paddingBottom)) / 4;
-            const value = yScale.max - (i * (yScale.max - yScale.min)) / 4;
-            if (type === "%Short") {
-              const lastB = currentData["%ShortB"][currentData["%ShortB"].length - 1];
-              if (Math.abs(normalizeY(lastB) - y) < 12) return null;
-            }
-            if (type === "Manager") {
-              const tooClose = currentData.Manager.some(
-                (data, idx) => mOpacity(idx) > 0 && Math.abs(normalizeY(data[data.length - 1]) - y) < 12
-              );
-              if (tooClose) return null;
-            }
-            return (
-              <text
-                key={i}
-                x="48"
-                y={y}
-                fill="#64748b"
-                fontSize="10"
-                textAnchor="end"
-                dominantBaseline="central"
-                style={{ pointerEvents: "none" }}
-              >
-                {value.toFixed(2)}
-              </text>
-            );
-          })}
-
-          {type === "Shareholder" &&
-            (() => {
-              const lastVal = currentData.Shareholder[currentData.Shareholder.length - 1];
-              const isLabelVisible = showLabels ? visibleLabels["sh"] !== false : !!visibleLabels["sh"];
-              const nameStr = isLabelVisible ? SHAREHOLDER_NAMES[selectedSymbol] ?? selectedSymbol : "";
-              const nameW = nameStr ? nameStr.length * 6 + 15 : 0;
-              const numW = 42;
-              const tagW = nameW + numW;
-              const tx = 6 - (tagW > 42 ? tagW - 42 : 0);
-              return (
-                <g
-                  transform={`translate(${tx},${normalizeY(lastVal)})`}
-                  style={{ cursor: "pointer", pointerEvents: "auto" }}
-                  onClick={(e) => {
-                    if (hasDragged.current) return;
-                    e.stopPropagation();
-                    toggleLabelName("sh");
-                  }}
-                >
-                  <rect x="0" y="-10" width={tagW} height="20" fill="#ef4444" rx="4" />
-                  {nameStr && (
-                    <>
-                      <text
-                        x={nameW / 2}
-                        y="0"
-                        fill="#fff"
-                        fontSize="9"
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        fontWeight="bold"
-                      >
-                        {nameStr}
-                      </text>
-                      <line x1={nameW} y1="-10" x2={nameW} y2="10" stroke="#000" strokeOpacity="0.15" strokeWidth="2" />
-                    </>
-                  )}
-                  <text
-                    x={nameW + numW / 2}
-                    y="0"
-                    fill="#fff"
-                    fontSize="11"
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fontWeight="bold"
-                  >
-                    {lastVal.toFixed(2)}
-                  </text>
-                </g>
-              );
-            })()}
-
-          {type === "Manager" &&
-            (() => {
-              const TAG_H = 20;
-              const MIN_GAP = TAG_H + 2;
-              const tags = currentData.Manager
-                .map((data, idx) => {
-                  if (mOpacity(idx) === 0) return null;
-                  const lastVal = data[data.length - 1];
-                  const isLabelVisible = showLabels
-                    ? visibleLabels[`mgr-${idx}`] !== false
-                    : !!visibleLabels[`mgr-${idx}`];
-                  return {
-                    idx,
-                    idealY: normalizeY(lastVal),
-                    realY: normalizeY(lastVal),
-                    color: MANAGER_COLORS[idx],
-                    numStr: lastVal > 0 ? `+${lastVal.toFixed(2)}` : lastVal.toFixed(2),
-                    nameStr: isLabelVisible
-                      ? (MANAGER_NAMES_BY_SYMBOL[selectedSymbol] ?? MANAGER_NAMES_BY_SYMBOL.DEFAULT)[idx]
-                      : "",
-                    isIsolated: isolatedIdx === idx,
-                  };
-                })
-                .filter(Boolean)
-                .sort((a, b) => a.idealY - b.idealY);
-
-              for (let i = 1; i < tags.length; i++) {
-                if (tags[i].idealY - tags[i - 1].idealY < MIN_GAP) tags[i].idealY = tags[i - 1].idealY + MIN_GAP;
-              }
-
-              return tags.map(({ idx, idealY, realY, color, numStr, nameStr, isIsolated }) => {
-                const shifted = Math.abs(idealY - realY) > 1;
-                const nameW = nameStr ? nameStr.length * 6 + 15 : 0;
-                const numW = 42;
-                const TW = nameW + numW;
-                const tx = 6 - (TW > 42 ? TW - 42 : 0);
-                return (
-                  <g key={idx}>
-                    {shifted && (
-                      <line
-                        x1="5"
-                        y1={realY}
-                        x2="5"
-                        y2={idealY}
-                        stroke={color}
-                        strokeWidth="1"
-                        strokeDasharray="2 2"
-                        opacity="0.5"
-                      />
-                    )}
-                    <g
-                      transform={`translate(${tx},${idealY})`}
-                      style={{ cursor: "pointer", pointerEvents: "auto" }}
-                      onClick={(e) => {
-                        if (hasDragged.current) return;
-                        e.stopPropagation();
-                        toggleLabelName(`mgr-${idx}`);
-                      }}
-                    >
-                      <rect x="-1" y={`${-TAG_H / 2 - 1}`} width={TW + 2} height={TAG_H + 2} fill="black" fillOpacity="0.3" rx="5" />
-                      <rect
-                        x="0"
-                        y={`${-TAG_H / 2}`}
-                        width={TW}
-                        height={TAG_H}
-                        fill={color}
-                        rx="4"
-                        style={{ filter: isIsolated ? `drop-shadow(0 0 4px ${color})` : "none" }}
-                      />
-                      <rect x="0" y={`${-TAG_H / 2}`} width={TW} height={TAG_H / 2} fill="white" fillOpacity="0.08" rx="4" />
-                      {nameStr && (
-                        <>
-                          <text
-                            x={nameW / 2}
-                            y="0"
-                            fill="white"
-                            fontSize="9"
-                            fontWeight="bold"
-                            textAnchor="middle"
-                            dominantBaseline="central"
-                          >
-                            {nameStr}
-                          </text>
-                          <line
-                            x1={nameW}
-                            y1={`${-TAG_H / 2}`}
-                            x2={nameW}
-                            y2={`${TAG_H / 2}`}
-                            stroke="#000"
-                            strokeOpacity="0.15"
-                            strokeWidth="2"
-                          />
-                        </>
-                      )}
-                      <text
-                        x={nameW + numW / 2}
-                        y="0"
-                        fill="white"
-                        fontSize="10.5"
-                        fontWeight="bold"
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        letterSpacing="-0.2"
-                      >
-                        {numStr}
-                      </text>
-                    </g>
-                  </g>
-                );
-              });
-            })()}
-
-          {type === "%Short" &&
-            (() => {
-              const lastB = currentData["%ShortB"][currentData["%ShortB"].length - 1];
-              const isLabelVisible = showLabels ? visibleLabels["short-B"] !== false : !!visibleLabels["short-B"];
-              const nameStr = isLabelVisible ? "%Short B" : "";
-              const numStr = lastB.toFixed(2);
-              const nameW = nameStr ? nameStr.length * 6 + 5 : 0;
-              const numW = 42;
-              const tagW = nameW + numW;
-              const translateX = 6 - (tagW > 42 ? tagW - 42 : 0);
-
-              return (
-                <g
-                  transform={`translate(${translateX},${normalizeY(lastB)})`}
-                  style={{ cursor: "pointer", pointerEvents: "auto" }}
-                  onClick={(e) => {
-                    if (hasDragged.current) return;
-                    e.stopPropagation();
-                    toggleLabelName("short-B");
-                  }}
-                >
-                  <rect x="-1" y="-11" width={tagW + 2} height="22" fill="black" fillOpacity="0.3" rx="5" />
-                  <rect x="0" y="-10" width={tagW} height="20" fill="#f97316" rx="4" />
-                  {nameStr && (
-                    <>
-                      <text
-                        x={nameW / 2}
-                        y="0"
-                        fill="white"
-                        fontSize="9"
-                        fontWeight="bold"
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                      >
-                        {nameStr}
-                      </text>
-                      <line x1={nameW} y1="-10" x2={nameW} y2="10" stroke="#000000" strokeOpacity="0.15" strokeWidth="2" />
-                    </>
-                  )}
-                  <text
-                    x={nameW + numW / 2}
-                    y="0"
-                    fill="white"
-                    fontSize="10.5"
-                    fontWeight="bold"
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                  >
-                    {numStr}
-                  </text>
-                </g>
-              );
-            })()}
-        </svg>
-      </div>
-
-      {type === "%Short" && (
-        <div className="absolute left-0 top-0 w-[55px] h-full bg-[#0f172a] z-10 border-r border-slate-800/50">
-          <svg className="w-full h-full absolute left-0 top-0 overflow-visible">
-            {[...Array(5)].map((_, i) => {
-              const y = paddingTop + (i * (height - paddingTop - paddingBottom)) / 4;
-              const value = yScale.max - (i * (yScale.max - yScale.min)) / 4;
-              const lastA = currentData["%ShortA"][currentData["%ShortA"].length - 1];
-              if (Math.abs(normalizeY(lastA) - y) < 12) return null;
-              return (
-                <text
-                  key={i}
-                  x="48"
-                  y={y}
-                  fill="#64748b"
-                  fontSize="10"
-                  textAnchor="end"
-                  dominantBaseline="central"
-                  style={{ pointerEvents: "none" }}
-                >
-                  {value.toFixed(2)}
-                </text>
-              );
-            })}
-
-            {(() => {
-              const lastA = currentData["%ShortA"][currentData["%ShortA"].length - 1];
-              const isLabelVisible = showLabels ? visibleLabels["short-A"] !== false : !!visibleLabels["short-A"];
-              const nameStr = isLabelVisible ? "%Short A" : "";
-              const numStr = lastA.toFixed(2);
-              const nameW = nameStr ? nameStr.length * 6 + 5 : 0;
-              const numW = 42;
-              const tagW = nameW + numW;
-
-              return (
-                <g
-                  transform={`translate(7,${normalizeY(lastA)})`}
-                  style={{ cursor: "pointer", pointerEvents: "auto" }}
-                  onClick={(e) => {
-                    if (hasDragged.current) return;
-                    e.stopPropagation();
-                    toggleLabelName("short-A");
-                  }}
-                >
-                  <rect x="-1" y="-11" width={tagW + 2} height="22" fill="black" fillOpacity="0.3" rx="5" />
-                  <rect x="0" y="-10" width={tagW} height="20" fill="#0ea5e9" rx="4" />
-                  {nameStr && (
-                    <>
-                      <text
-                        x={nameW / 2}
-                        y="0"
-                        fill="white"
-                        fontSize="9"
-                        fontWeight="bold"
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                      >
-                        {nameStr}
-                      </text>
-                      <line x1={nameW} y1="-10" x2={nameW} y2="10" stroke="#000000" strokeOpacity="0.15" strokeWidth="2" />
-                    </>
-                  )}
-                  <text
-                    x={nameW + numW / 2}
-                    y="0"
-                    fill="white"
-                    fontSize="10.5"
-                    fontWeight="bold"
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                  >
-                    {numStr}
-                  </text>
-                </g>
-              );
-            })()}
-          </svg>
-        </div>
-      )}
-
-      <div
-        className="absolute inset-y-0 left-0 right-[55px] bg-gradient-to-t from-[#0f172a]/90 via-transparent to-transparent pointer-events-none"
-        style={{ top: "75%" }}
-      />
-    </div>
-  );
-}
-
+// Empty placeholder card
 function EmptyChartPanel({ title, value, onChange }) {
+  const isManager = value === "Manger";
   return (
-    <div className="bg-[#1c2024] border border-slate-700/60 rounded-xl p-4 h-[280px] flex flex-col">
-      <div className="mb-3 flex justify-between items-center">
-        <SelectWithCaret
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="bg-[#343a40] text-white text-xs border border-slate-600 rounded-md px-3 py-1.5 focus:outline-none focus:border-cyan-500"
-        />
-
-        {value === "Manager" ? (
-          <span className="text-[10px] text-[#00e676] ml-auto cursor-pointer">Show/Hide All</span>
+    <div className="bg-[#111827] border border-slate-700/60 rounded-xl p-3" style={{ height: 290 }}>
+      <div className="flex justify-between items-center mb-2">
+        <div className="relative inline-block">
+          <select
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="appearance-none bg-[#1f2937] text-xs border border-slate-600 rounded-md px-2 py-1 pr-6 text-white focus:outline-none focus:border-cyan-500"
+          >
+            {CHART_TYPES.map((o) => <option key={o}>{o}</option>)}
+          </select>
+          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-white text-xs">▾</span>
+        </div>
+        {isManager ? (
+          <span className="text-xs text-cyan-400 cursor-pointer hover:text-cyan-300 hover:underline transition-colors">
+            Show/Hide All
+          </span>
         ) : (
           <span className="text-xs text-slate-400">{title}</span>
         )}
       </div>
+      <div className="relative flex-1 rounded-lg bg-[#111418] border border-slate-800 overflow-hidden flex items-center justify-center" style={{ height: 220 }}>
+        <span className="text-white text-base font-medium tracking-wide">Please select symbol</span>
+      </div>
+    </div>
+  );
+}
 
-      <div className="relative flex-1 rounded-lg bg-[#111418] border border-slate-800 overflow-hidden">
-        <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-          {[0.2, 0.4, 0.6, 0.8].map((y, i) => (
-            <line
-              key={`h-${i}`}
-              x1="0"
-              y1={`${y * 100}%`}
-              x2="100%"
-              y2={`${y * 100}%`}
-              stroke="#2a2e39"
-              strokeWidth="1"
-            />
-          ))}
+// ============================================================
+// CSV helpers
+// ============================================================
+const REQUIRED_CSV_COLUMNS = ["Date", "Open", "High", "Low", "Close", "Volume"];
+function normalizeHeader(h) { return String(h || "").trim().toLowerCase(); }
+function parseCsvFile(file) {
+  return new Promise((resolve, reject) => {
+    Papa.parse(file, {
+      header: true, skipEmptyLines: true, dynamicTyping: true,
+      complete: (results) => {
+        const fields = (results.meta.fields || []).map(normalizeHeader);
+        const missing = REQUIRED_CSV_COLUMNS.filter((c) => !fields.includes(c.toLowerCase()));
+        if (missing.length) { reject(new Error(`Missing column${missing.length > 1 ? "s" : ""}: ${missing.join(", ")}`)); return; }
+        const keyMap = {};
+        (results.meta.fields || []).forEach((f) => { keyMap[normalizeHeader(f)] = f; });
+        const rows = results.data.map((row) => {
+          const date = row[keyMap["date"]];
+          const close = Number(row[keyMap["close"]]);
+          if (!date || Number.isNaN(close)) return null;
+          return { date: String(date), open: Number(row[keyMap["open"]]), high: Number(row[keyMap["high"]]), low: Number(row[keyMap["low"]]), close, volume: Number(row[keyMap["volume"]]) };
+        }).filter(Boolean);
+        if (!rows.length) { reject(new Error("No valid data rows found in file")); return; }
+        resolve({ name: file.name, size: file.size, uploadedAt: new Date(), rows });
+      },
+      error: (err) => reject(err),
+    });
+  });
+}
+function formatTimestamp(date) {
+  const dd = String(date.getDate()).padStart(2,"0"), mm = String(date.getMonth()+1).padStart(2,"0");
+  const hh = String(date.getHours()).padStart(2,"0"), min = String(date.getMinutes()).padStart(2,"0");
+  return `${dd}/${mm}/${date.getFullYear()} ${hh}:${min}`;
+}
+function formatSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes/1024).toFixed(1)} KB`;
+  return `${(bytes/1048576).toFixed(1)} MB`;
+}
 
-          {[0.2, 0.4, 0.6, 0.8].map((x, i) => (
-            <line
-              key={`v-${i}`}
-              x1={`${x * 100}%`}
-              y1="0"
-              x2={`${x * 100}%`}
-              y2="100%"
-              stroke="#2a2e39"
-              strokeWidth="1"
-            />
-          ))}
-        </svg>
-
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-white text-base md:text-lg font-medium tracking-wide">
-            Please select symbol
+// ============================================================
+// SelectFilesModal — fixed casing to match screenshot
+// ============================================================
+function SelectFilesModal({ open, onClose, onConfirm, pendingFiles, onAddFiles, onRemoveFile }) {
+  const fileInputRef = useRef(null);
+  if (!open) return null;
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length) onAddFiles(files);
+    e.target.value = "";
+  };
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files || []).filter((f) => f.name.toLowerCase().endsWith(".csv"));
+    if (files.length) onAddFiles(files);
+  };
+  return (
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 px-4">
+      <div className="w-full max-w-md bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl p-6">
+        {/* ── Title: "Select Files" (capital F to match screenshot) ── */}
+        <h2 className="text-base font-semibold text-white mb-1">Select Files</h2>
+        {/* ── Subtitle: lowercase to match screenshot ── */}
+        <p className="text-xs text-slate-400 mb-4">you can select multiple files</p>
+        <div onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}
+          className="border border-dashed border-slate-600 rounded-lg flex flex-col items-center justify-center py-10 bg-[#0b1221]">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-cyan-400 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+            <path d="M12 12v9" /><path d="m16 16-4-4-4 4" />
+          </svg>
+          <button onClick={() => fileInputRef.current?.click()}
+            className="text-xs font-medium px-4 py-1.5 rounded-md border border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/10 transition">
+            Choose File
+          </button>
+          <input ref={fileInputRef} type="file" accept=".csv" multiple className="hidden" onChange={handleFileChange} />
+          <span className="text-[11px] text-slate-500 mt-2">
+            {pendingFiles.length > 0 ? pendingFiles[pendingFiles.length - 1].file.name : "data.csv"}
           </span>
         </div>
+        {pendingFiles.length > 0 && (
+          <div className="mt-4">
+            <div className="flex justify-between items-center mb-2">
+              {/* ── "Selected Files (N)" — capital F to match screenshot ── */}
+              <span className="text-xs font-medium text-cyan-300">Selected Files ({pendingFiles.length})</span>
+              {/* ── "Clear List" — capital L to match screenshot ── */}
+              <button onClick={() => onAddFiles([], true)} className="text-[11px] text-slate-400 hover:text-red-400 transition">Clear List</button>
+            </div>
+            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+              {pendingFiles.map((pf, i) => (
+                <div key={i} className="flex items-center justify-between bg-[#1f2937] rounded-md px-3 py-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-slate-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <path d="M14 2v6h6" />
+                    </svg>
+                    <div className="min-w-0">
+                      <div className="text-xs text-slate-200 truncate">{pf.file.name}</div>
+                      <div className="text-[10px] text-slate-500">{formatTimestamp(pf.addedAt)}</div>
+                    </div>
+                  </div>
+                  <button onClick={() => onRemoveFile(i)} className="text-slate-500 hover:text-red-400 transition flex-shrink-0 ml-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="flex justify-between items-center mt-5 pt-4 border-t border-slate-800">
+          <div className="text-[11px] text-slate-500">
+            <span className="text-cyan-300 font-medium">Example columns: </span>Date, Open, High, Low, Close, Volume
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <button onClick={onClose} className="text-xs font-medium px-4 py-2 rounded-md border border-slate-600 text-slate-300 hover:bg-slate-800 transition">Cancel</button>
+          <button onClick={onConfirm} disabled={pendingFiles.length === 0}
+            className={`text-xs font-medium px-4 py-2 rounded-md transition ${pendingFiles.length === 0 ? "bg-slate-700 text-slate-500 cursor-not-allowed" : "bg-cyan-600 text-white hover:bg-cyan-500"}`}>
+            Select ({pendingFiles.length})
+          </button>
+        </div>
       </div>
+    </div>
+  );
+}
+
+// ============================================================
+// CsvPreviewChart
+// ============================================================
+function CsvPreviewChart({ dataset }) {
+  const containerRef = useRef(null);
+  const chartRef = useRef(null);
+
+  useEffect(() => {
+    if (!dataset || !containerRef.current) return;
+    let destroyed = false;
+
+    loadTVCharts().then((LW) => {
+      if (destroyed || !containerRef.current) return;
+      if (chartRef.current) { try { chartRef.current.remove(); } catch (_) {} chartRef.current = null; }
+
+      const chart = LW.createChart(containerRef.current, {
+        ...getTVChartOptions(containerRef.current),
+        height: 220,
+        watermark: { visible: false },
+        attributionLogo: { visible: false },
+      });
+      chartRef.current = chart;
+
+      setTimeout(() => {
+        if (!containerRef.current) return;
+        containerRef.current.querySelectorAll('a[href*="tradingview"]').forEach((el) => { el.style.display = "none"; });
+      }, 300);
+
+      const candles = dataset.rows
+        .map((r) => {
+          const parts = r.date.split(/[-/]/);
+          let ts;
+          if (parts.length === 3) {
+            const y = parts[0].length === 4 ? parseInt(parts[0]) : parseInt(parts[2]);
+            const m = parts[0].length === 4 ? parseInt(parts[1]) - 1 : parseInt(parts[1]) - 1;
+            const d = parts[0].length === 4 ? parseInt(parts[2]) : parseInt(parts[0]);
+            ts = Math.floor(new Date(Date.UTC(y, m, d)).getTime() / 1000);
+          }
+          if (!ts || isNaN(ts)) return null;
+          return { time: ts, open: r.open, high: r.high, low: r.low, close: r.close, value: r.volume };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.time - b.time);
+
+      if (!candles.length) return;
+
+      const cs = chart.addCandlestickSeries({ upColor: "#22c55e", downColor: "#ef4444", borderUpColor: "#22c55e", borderDownColor: "#ef4444", wickUpColor: "#22c55e", wickDownColor: "#ef4444" });
+      cs.setData(candles);
+
+      const vs = chart.addHistogramSeries({ priceFormat: { type: "volume" }, priceScaleId: "vol", scaleMargins: { top: 0.8, bottom: 0 } });
+      chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+      vs.setData(candles.map((c) => ({ time: c.time, value: c.value, color: c.close >= c.open ? "#16a34a55" : "#dc262655" })));
+      chart.timeScale().fitContent();
+    });
+
+    return () => {
+      destroyed = true;
+      if (chartRef.current) { try { chartRef.current.remove(); } catch (_) {} chartRef.current = null; }
+    };
+  }, [dataset]);
+
+  if (!dataset) return null;
+  return (
+    <div className="bg-[#111827] rounded-xl border border-slate-700 p-4">
+      <div className="flex justify-between items-center mb-3">
+        <div>
+          <h3 className="text-sm font-semibold text-white">{dataset.name}</h3>
+          <p className="text-[11px] text-slate-500">{dataset.rows.length} rows · {formatSize(dataset.size)} · uploaded {formatTimestamp(dataset.uploadedAt)}</p>
+        </div>
+      </div>
+      <div className="rounded-lg overflow-hidden bg-[#0f172a]" style={{ height: 220 }}>
+        <div ref={containerRef} className="w-full h-full" />
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// SymbolDataPanel
+// ============================================================
+function SymbolDataPanel({ symbols = [], onSelectSymbol, selectedSymbol = "" }) {
+  const [searchValue, setSearchValue] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const [recentFiles, setRecentFiles] = useState([]);
+  const [activeDataset, setActiveDataset] = useState(null);
+  const [error, setError] = useState(null);
+  const [parsing, setParsing] = useState(false);
+
+  const filteredSymbols = useMemo(
+    () => symbols.filter((s) => s.toLowerCase().includes(searchValue.toLowerCase())),
+    [symbols, searchValue]
+  );
+
+  const handleAddFiles = (files, clearAll = false) => {
+    if (clearAll) { setPendingFiles([]); return; }
+    const csvFiles = files.filter((f) => f.name.toLowerCase().endsWith(".csv"));
+    setPendingFiles((prev) => [...prev, ...csvFiles.map((f) => ({ file: f, addedAt: new Date() }))]);
+  };
+  const handleRemoveFile = (idx) => setPendingFiles((prev) => prev.filter((_, i) => i !== idx));
+
+  const handleConfirmSelect = async () => {
+    setError(null); setParsing(true);
+    const results = [], errors = [];
+    for (const pf of pendingFiles) {
+      try { results.push(await parseCsvFile(pf.file)); }
+      catch (e) { errors.push(`${pf.file.name}: ${e.message}`); }
+    }
+    setParsing(false); setModalOpen(false); setPendingFiles([]);
+    if (errors.length) setError(errors.join(" · "));
+    if (results.length) {
+      setRecentFiles((prev) => [...results, ...prev].slice(0, 5));
+      setActiveDataset(results[0]);
+    }
+  };
+
+  return (
+    <div className="w-full flex flex-col gap-4">
+      {/* Enter symbol */}
+      <div className="bg-[#111827] rounded-xl border border-slate-700 p-4">
+        <h3 className="text-sm font-semibold text-white mb-3">Enter symbol</h3>
+        <div className="relative">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fontSize="small" />
+          <input
+            type="text" value={searchValue}
+            onChange={(e) => { setSearchValue(e.target.value); setShowDropdown(true); }}
+            onFocus={() => setShowDropdown(true)}
+            onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+            placeholder="Enter symbol..."
+            className="w-full bg-[#0f172a] border border-slate-600 rounded-lg pl-9 pr-8 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+          />
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm leading-none">▾</span>
+          {showDropdown && (
+            <div className="absolute mt-1.5 w-full bg-[#0f172a] border border-slate-700 rounded-lg shadow-2xl max-h-56 overflow-y-auto z-50">
+              {filteredSymbols.length > 0 ? filteredSymbols.map((item) => (
+                <div key={item} onMouseDown={() => { setSearchValue(item); setShowDropdown(false); onSelectSymbol?.(item); }}
+                  className={`px-3 py-2 text-sm cursor-pointer transition ${item === selectedSymbol ? "bg-cyan-500/15 text-cyan-300" : "text-slate-300 hover:bg-cyan-500/10 hover:text-white"}`}>
+                  {item}
+                </div>
+              )) : <div className="px-3 py-2 text-sm text-slate-500">No results</div>}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Choose a file */}
+      <div className="bg-[#111827] rounded-xl border border-slate-700 p-4">
+        <h3 className="text-sm font-semibold text-white mb-1">Choose a file</h3>
+        <p className="text-[11px] text-slate-500 mb-3">Upload CSV files only. Use stock data files in .csv format.</p>
+        <button onClick={() => setModalOpen(true)}
+          className="w-full border border-dashed border-slate-600 rounded-lg flex flex-col items-center justify-center py-6 bg-[#0b1221] hover:border-cyan-500/60 hover:bg-[#0d182c] transition">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-cyan-400 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" /><path d="M12 12v9" /><path d="m16 16-4-4-4 4" />
+          </svg>
+          <span className="text-xs font-medium text-cyan-300 border border-cyan-500/50 rounded-md px-3 py-1">Choose file</span>
+          <span className="text-[11px] text-slate-500 mt-2">{activeDataset ? activeDataset.name : "data.csv"}</span>
+        </button>
+        {parsing && <p className="text-[11px] text-cyan-300 mt-2">Parsing file...</p>}
+        {error && <p className="text-[11px] text-red-400 mt-2">{error}</p>}
+        <div className="mt-3 text-[11px] text-slate-500">
+          <span className="text-cyan-300 font-medium">Example columns: </span>Date, Open, High, Low, Close, Volume
+        </div>
+      </div>
+
+      {/* Recent files */}
+      <div className="bg-[#111827] rounded-xl border border-slate-700 p-4">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-sm font-semibold text-white">Recent files</h3>
+          {recentFiles.length > 0 && <span className="text-[11px] text-cyan-400 cursor-pointer hover:underline">View all</span>}
+        </div>
+        {recentFiles.length === 0 ? (
+          <p className="text-[11px] text-slate-500">No files uploaded yet</p>
+        ) : (
+          <div className="space-y-1.5">
+            {recentFiles.map((f, i) => (
+              <button key={i} onClick={() => setActiveDataset(f)}
+                className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-left transition ${activeDataset === f ? "bg-cyan-500/15 border border-cyan-500/40" : "bg-[#0f172a] border border-slate-700 hover:border-slate-600"}`}>
+                <div className="flex items-center gap-2 min-w-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-slate-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" />
+                  </svg>
+                  <div className="min-w-0">
+                    <div className="text-xs text-slate-200 truncate">{f.name}</div>
+                    <div className="text-[10px] text-slate-500">{formatTimestamp(f.uploadedAt)}</div>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <CsvPreviewChart dataset={activeDataset} />
+
+      <SelectFilesModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setPendingFiles([]); }}
+        onConfirm={handleConfirmSelect}
+        pendingFiles={pendingFiles}
+        onAddFiles={handleAddFiles}
+        onRemoveFile={handleRemoveFile}
+      />
     </div>
   );
 }
@@ -1433,9 +869,18 @@ function EmptyChartPanel({ title, value, onChange }) {
 // ============================================================
 // MAIN EXPORT
 // ============================================================
+const SYMBOLS = [
+  "BANPU","BGRIM","EGCO","GPSC","GULF","OR","PTT","PTTEP","PTTGC","RATCH","TOP","IVL",
+  "BBL","KBANK","KTB","SCB","TISCO","TTB","KTC","SAWAD","MTC","TLI","ADVANC","DELTA",
+  "COM7","CCET","TRUE","CPALL","CPF","CBG","OSP","GLOBAL","HMPRO","BJC","CRC","ITC",
+  "TU","AOT","AWC","BDMS","BH","BEM","BTS","CPN","LH","MINT","SCGP",
+];
+
+// Initial 5 visible + 1 hidden for manager lines (all visible by default)
+const DEFAULT_MANAGER_VISIBILITY = [true, true, true, true, true];
+
 export default function StockFortuneTeller() {
   const navigate = useNavigate();
-
   const scrollContainerRef = useRef(null);
   const scrollDirection = useRef(1);
   const isPaused = useRef(false);
@@ -1446,98 +891,63 @@ export default function StockFortuneTeller() {
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(true);
 
+  // Manager line visibility state (5 lines)
+  const [managerVisibility, setManagerVisibility] = useState(DEFAULT_MANAGER_VISIBILITY);
+  // Right panel collapsed state
+  const [panelOpen, setPanelOpen] = useState(true);
+  // Track whether all lines are currently shown or hidden (for toggle)
+  const managerAllVisible = managerVisibility.every(Boolean);
+
   const defaultFilters = {
-    chart1: "Last",
-    chart2: "%Short",
-    chart3: "PredictTrend",
-    chart4: "Peak",
-    chart5: "Shareholder",
-    chart6: "Manager",
+    chart1: "Last", chart2: "%Short", chart3: "PredictTrend",
+    chart4: "Peak", chart5: "Shareholder", chart6: "Manger",
   };
 
   const [filters, setFilters] = useState(() => {
-    const savedFilters = localStorage.getItem("stockFortuneFilters");
-    if (savedFilters) {
-      try {
-        return JSON.parse(savedFilters);
-      } catch (e) {
-        console.error("Failed to parse saved filters", e);
-      }
-    }
-    return defaultFilters;
+    try {
+      const saved = localStorage.getItem("stockFortuneFilters");
+      return saved ? JSON.parse(saved) : defaultFilters;
+    } catch { return defaultFilters; }
   });
 
   const [refreshing, setRefreshing] = useState(false);
   const [symbol, setSymbol] = useState("");
   const [selectedSymbol, setSelectedSymbol] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-  const [globalHoverIndex, setGlobalHoverIndex] = useState(null);
   const [dataVersion, setDataVersion] = useState(0);
-  const chartRefs = useRef({});
 
   const { toasts, showToast } = useToast();
-
-  // 🟢 2. ดึงข้อมูลผู้ใช้ วันหมดอายุ และ สถานะการโหลด ผ่าน useAuth()
   const { userData, currentUser, loading } = useAuth();
 
-  const symbols = [
-    "BANPU", "BGRIM", "EGCO", "GPSC", "GULF", "OR", "PTT", "PTTEP",
-    "PTTGC", "RATCH", "TOP", "IVL", "BBL", "KBANK", "KTB", "SCB",
-    "TISCO", "TTB", "KTC", "SAWAD", "MTC", "TLI", "ADVANC", "DELTA",
-    "COM7", "CCET", "TRUE", "CPALL", "CPF", "CBG", "OSP", "GLOBAL",
-    "HMPRO", "BJC", "CRC", "ITC", "TU", "AOT", "AWC", "BDMS",
-    "BH", "BEM", "BTS", "CPN", "LH", "MINT", "SCGP",
-  ];
-  const filteredSymbols = symbols.filter((s) => s.toLowerCase().includes(symbol.toLowerCase()));
+  const filteredSymbols = SYMBOLS.filter((s) => s.toLowerCase().includes(symbol.toLowerCase()));
 
-  // 🟢 3. ตรวจสอบสิทธิ์ด้วย userData.subscriptions จาก Firestore
+  // Auth check
   useEffect(() => {
     if (loading) return;
-
-    const toolId = "fortune"; // ไอดีของเครื่องมือ
-
-    if (userData && userData.subscriptions && userData.subscriptions[toolId]) {
-      const expireTimestamp = userData.subscriptions[toolId];
+    const toolId = "fortune";
+    if (userData?.subscriptions?.[toolId]) {
+      const ts = userData.subscriptions[toolId];
       let expireDate;
-
-      try {
-        if (typeof expireTimestamp.toDate === "function") {
-          expireDate = expireTimestamp.toDate();
-        } else {
-          expireDate = new Date(expireTimestamp);
-        }
-      } catch (e) {
-        expireDate = new Date(0);
-      }
-
-      // ถ้าวันหมดยังมากกว่าเวลาปัจจุบัน = มีสิทธิ์เข้าถึง!
-      if (expireDate.getTime() > new Date().getTime()) {
-        setIsMember(true);
-      } else {
-        setIsMember(false);
-      }
+      try { expireDate = typeof ts.toDate === "function" ? ts.toDate() : new Date(ts); }
+      catch { expireDate = new Date(0); }
+      setIsMember(expireDate.getTime() > Date.now());
     } else {
-      // กรณีหาใน Firestore ไม่เจอ หรือไม่ได้ล็อกอิน (เผื่อให้สิทธิ์ผ่าน localStorage ได้)
-      const saved = localStorage.getItem("userProfile");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          setIsMember(parsed.role === "member" || parsed.role === "membership");
-        } catch (error) {
-          setIsMember(false);
+      try {
+        const saved = localStorage.getItem("userProfile");
+        if (saved) {
+          const p = JSON.parse(saved);
+          setIsMember(p.role === "member" || p.role === "membership");
         }
-      } else {
-        setIsMember(false);
-      }
+      } catch { setIsMember(false); }
     }
   }, [userData, loading]);
 
-  const checkScroll = () => {
+  const checkScroll = useCallback(() => {
     const el = scrollContainerRef.current;
     if (!el) return;
     setShowLeft(el.scrollLeft > 1);
     setShowRight(Math.ceil(el.scrollLeft + el.clientWidth) < el.scrollWidth - 2);
-  };
+  }, []);
 
   const scroll = (direction) => {
     const el = scrollContainerRef.current;
@@ -1546,17 +956,7 @@ export default function StockFortuneTeller() {
     el.scrollBy({ left: direction === "left" ? -350 : 350, behavior: "smooth" });
     scrollDirection.current = direction === "left" ? -1 : 1;
     setTimeout(checkScroll, 300);
-    setTimeout(() => {
-      isPaused.current = false;
-    }, 500);
-  };
-
-  const scrollToLatest = () => {
-    Object.values(chartRefs.current).forEach((node) => {
-      if (node) {
-        node.scrollTo({ left: node.scrollWidth, behavior: "smooth" });
-      }
-    });
+    setTimeout(() => { isPaused.current = false; }, 500);
   };
 
   useEffect(() => {
@@ -1570,42 +970,49 @@ export default function StockFortuneTeller() {
       checkScroll();
     }, 15);
     return () => clearInterval(id);
-  }, [isMember, enteredTool]);
+  }, [isMember, enteredTool, checkScroll]);
 
   useEffect(() => {
     checkScroll();
     window.addEventListener("resize", checkScroll);
     return () => window.removeEventListener("resize", checkScroll);
-  }, []);
+  }, [checkScroll]);
 
   const handleSaveLayout = () => {
-    try {
-      localStorage.setItem("stockFortuneFilters", JSON.stringify(filters));
-      showToast("Layout saved successfully!");
-    } catch (e) {
-      console.error("Failed to save layout", e);
-    }
+    try { localStorage.setItem("stockFortuneFilters", JSON.stringify(filters)); showToast("Layout saved successfully!"); }
+    catch { /* noop */ }
   };
 
   const resolveFilters = (currentFilters, changedKey, newValue) => {
-    const allOptions = ["Last", "%Short", "PredictTrend", "Peak", "Shareholder", "Manager"];
+    const allOptions = [...CHART_TYPES];
     const updated = { ...currentFilters, [changedKey]: newValue };
-
     const conflictKey = Object.entries(updated).find(([k, v]) => k !== changedKey && v === newValue)?.[0];
-
     if (conflictKey) {
       const usedValues = Object.values(updated);
       const unused = allOptions.find((opt) => !usedValues.includes(opt));
-      if (unused) {
-        updated[conflictKey] = unused;
-      } else {
-        updated[conflictKey] = currentFilters[changedKey];
-      }
+      updated[conflictKey] = unused ?? currentFilters[changedKey];
     }
-
     return updated;
   };
 
+  const handleSymbolSelect = (item) => {
+    setSymbol(item);
+    setShowDropdown(false);
+    setRefreshing(true);
+    setTimeout(() => { setSelectedSymbol(item); setDataVersion((v) => v + 1); setRefreshing(false); }, 700);
+  };
+
+  const handleSymbolFromPanel = (item) => handleSymbolSelect(item);
+
+  // Toggle all manager lines on/off
+  const handleToggleManagerLines = useCallback(() => {
+    setManagerVisibility((prev) => {
+      const allOn = prev.every(Boolean);
+      return prev.map(() => !allOn);
+    });
+  }, []);
+
+  // ── Features list ──────────────────────────────────────────
   const features = [
     { title: "Last", desc: "Stay updated with intuitive, real-time daily price action charts." },
     { title: "PredictTrend", desc: "Visualizes the pulse of the market by tracking real-time capital inflows and outflows." },
@@ -1627,81 +1034,38 @@ export default function StockFortuneTeller() {
 
   const featuresSection = (
     <div className="w-full max-w-5xl mb-12">
-      <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left border-l-4 border-cyan-500 pl-4">
-        6 Main Features
-      </h2>
-      <div
-        className="relative group"
-        onMouseEnter={() => {
-          isPaused.current = true;
-        }}
-        onMouseLeave={() => {
-          isPaused.current = false;
-        }}
-      >
-        <button
-          onClick={() => scroll("left")}
-          aria-label="Scroll Left"
-          className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${
-            showLeft ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
-          }`}
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-          </svg>
+      <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left border-l-4 border-cyan-500 pl-4">6 Main Features</h2>
+      <div className="relative group" onMouseEnter={() => { isPaused.current = true; }} onMouseLeave={() => { isPaused.current = false; }}>
+        <button onClick={() => scroll("left")} aria-label="Scroll Left"
+          className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${showLeft ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
         </button>
-        <div
-          ref={scrollContainerRef}
-          onScroll={checkScroll}
-          className="flex overflow-x-auto gap-6 py-4 px-1 hide-scrollbar"
-          style={scrollbarHideStyle}
-        >
+        <div ref={scrollContainerRef} onScroll={checkScroll} className="flex overflow-x-auto gap-6 py-4 px-1 hide-scrollbar" style={scrollbarHideStyle}>
           {features.map((item, index) => (
-            <div
-              key={index}
-              className="w-[350px] md:w-[400px] flex-shrink-0 group/card bg-[#0f172a]/60 border border-slate-700/50 p-8 rounded-xl hover:bg-[#1e293b]/60 hover:border-cyan-500/30 transition duration-300"
-            >
-              <h3 className="text-xl font-bold text-white mb-3 group-hover/card:text-cyan-400 transition-colors">
-                {item.title}
-              </h3>
+            <div key={index} className="w-[350px] md:w-[400px] flex-shrink-0 group/card bg-[#0f172a]/60 border border-slate-700/50 p-8 rounded-xl hover:bg-[#1e293b]/60 hover:border-cyan-500/30 transition duration-300">
+              <h3 className="text-xl font-bold text-white mb-3 group-hover/card:text-cyan-400 transition-colors">{item.title}</h3>
               <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
             </div>
           ))}
         </div>
-        <button
-          onClick={() => scroll("right")}
-          aria-label="Scroll Right"
-          className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${
-            showRight ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
-          }`}
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-          </svg>
+        <button onClick={() => scroll("right")} aria-label="Scroll Right"
+          className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-20 z-20 w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white hover:bg-cyan-500 hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)] flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95 ${showRight ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}>
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
         </button>
       </div>
     </div>
   );
 
+  // ── NON-MEMBER VIEW ────────────────────────────────────────
   if (!isMember) {
     return (
       <div className="relative w-full min-h-screen text-white overflow-hidden animate-fade-in pb-20">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
-        <style>{`
-          .hide-scrollbar::-webkit-scrollbar { display: none; }
-          select {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            background-image: none;
-          }
-        `}</style>
+        <style>{`.hide-scrollbar::-webkit-scrollbar{display:none;} select{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-image:none;}`}</style>
         <div className="relative z-10 max-w-6xl mx-auto px-4 py-8 flex flex-col items-center">
           <div className="text-center mb-10">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
-              <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">
-                Stock Fortune Teller
-              </span>
+              <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">Stock Fortune Teller</span>
             </h1>
             <p className="text-slate-400 text-lg md:text-xl font-light">Stop guessing, start calculating</p>
           </div>
@@ -1713,25 +1077,12 @@ export default function StockFortuneTeller() {
             </div>
           </div>
           {featuresSection}
-
           <div className="text-center w-full max-w-md mx-auto mt-4">
             <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-              {/* ตรวจสอบล็อกอินจาก currentUser แทน */}
               {!currentUser && (
-                <button
-                  onClick={() => navigate("/welcome")}
-                  className="w-full md:w-auto px-8 py-3 rounded-full bg-slate-800 text-white font-semibold border border-slate-600 hover:bg-slate-700 hover:border-slate-500 transition-all duration-300"
-                >
-                  Sign In
-                </button>
+                <button onClick={() => navigate("/welcome")} className="w-full md:w-auto px-8 py-3 rounded-full bg-slate-800 text-white font-semibold border border-slate-600 hover:bg-slate-700 hover:border-slate-500 transition-all duration-300">Sign In</button>
               )}
-
-              <button
-                onClick={() => navigate("/member-register")}
-                className="w-full md:w-auto px-8 py-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold hover:brightness-110 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300"
-              >
-                Join Membership
-              </button>
+              <button onClick={() => navigate("/member-register")} className="w-full md:w-auto px-8 py-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold hover:brightness-110 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300">Join Membership</button>
             </div>
           </div>
         </div>
@@ -1739,25 +1090,16 @@ export default function StockFortuneTeller() {
     );
   }
 
+  // ── MEMBER LANDING VIEW ────────────────────────────────────
   if (isMember && !enteredTool) {
     return (
       <div className="relative w-full min-h-screen text-white overflow-hidden animate-fade-in pb-20">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
-        <style>{`
-          .hide-scrollbar::-webkit-scrollbar { display: none; }
-          select {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            background-image: none;
-          }
-        `}</style>
+        <style>{`.hide-scrollbar::-webkit-scrollbar{display:none;} select{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-image:none;}`}</style>
         <div className="relative z-10 max-w-6xl mx-auto px-4 py-8 flex flex-col items-center">
           <div className="text-center mb-10">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
-              <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">
-                Stock Fortune Teller
-              </span>
+              <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent drop-shadow-lg">Stock Fortune Teller</span>
             </h1>
             <p className="text-slate-400 text-lg md:text-xl font-light">Stop guessing, start calculating</p>
           </div>
@@ -1769,12 +1111,8 @@ export default function StockFortuneTeller() {
             </div>
           </div>
           {featuresSection}
-          <button
-            onClick={() => {
-              setEnteredTool(true);
-            }}
-            className="group relative inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] hover:scale-105 transition-all duration-300"
-          >
+          <button onClick={() => setEnteredTool(true)}
+            className="group relative inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] hover:scale-105 transition-all duration-300">
             <span className="mr-2">Start Using Tool</span>
             <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -1785,165 +1123,136 @@ export default function StockFortuneTeller() {
     );
   }
 
+  // ── MAIN TOOL VIEW ─────────────────────────────────────────
   if (isMember && enteredTool) {
     return (
       <div className="w-full min-h-screen bg-[#0B1221] text-white px-6 py-6">
         <style>{`
-          .hide-scrollbar::-webkit-scrollbar { display: none; }
-          select {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            background-image: none;
-          }
+          .hide-scrollbar::-webkit-scrollbar{display:none;}
+          select{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-image:none;}
+          a[href*="tradingview"]{display:none!important;}
+          img[src*="tradingview"]{display:none!important;}
         `}</style>
 
-        <div className="flex items-center gap-3 mb-6">
-          <ToolHint
-          detailsVariant="link"
-            onViewDetails={() => {
-              setEnteredTool(false);
-              window.scrollTo({ top: 0 });
-            }}
-          >
-            Predict stock price trends with AI analytics, track short interest levels, monitor peak value milestones,
-            and analyze historical prediction patterns
+        {/* Top bar */}
+        <div className="flex items-center gap-3 mb-6 flex-wrap">
+          <ToolHint detailsVariant="link" onViewDetails={() => { setEnteredTool(false); window.scrollTo({ top: 0 }); }}>
+            Predict stock price trends with AI analytics, track short interest levels, monitor peak value milestones, and analyze historical prediction patterns
           </ToolHint>
 
+          {/* Symbol search */}
           <div className="relative w-80">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fontSize="small" />
             <input
-              ref={searchInputRef}
-              type="text"
-              value={symbol}
-              onChange={(e) => {
-                setSymbol(e.target.value);
-                setShowDropdown(true);
-              }}
+              ref={searchInputRef} type="text" value={symbol}
+              onChange={(e) => { setSymbol(e.target.value); setShowDropdown(true); }}
               onFocus={() => setShowDropdown(true)}
               onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
               placeholder="Type a Symbol..."
               className="w-full bg-[#0f172a] border border-slate-600 rounded-lg pl-10 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
             />
             {symbol && (
-              <button
-                onClick={() => {
-                  setSymbol("");
-                  setSelectedSymbol("");
-                  setShowDropdown(false);
-                }}
-                className="absolute right-3 inset-y-0 flex items-center text-slate-400 hover:text-red-400 transition"
-              >
+              <button onClick={() => { setSymbol(""); setSelectedSymbol(""); setShowDropdown(false); }}
+                className="absolute right-3 inset-y-0 flex items-center text-slate-400 hover:text-red-400 transition">
                 <CloseIcon fontSize="small" />
               </button>
             )}
             {showDropdown && (
               <div className="absolute mt-2 w-full bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl max-h-72 overflow-y-auto z-50">
-                {filteredSymbols.length > 0 ? (
-                  filteredSymbols.map((item, index) => (
-                    <div
-                      key={index}
-                      onMouseDown={() => {
-                        setSymbol(item);
-                        setShowDropdown(false);
-                        setRefreshing(true);
-                        setTimeout(() => {
-                          setSelectedSymbol(item);
-                          setDataVersion((prev) => prev + 1);
-                          setRefreshing(false);
-                        }, 700);
-                      }}
-                      className="px-4 py-2.5 text-sm text-slate-300 hover:bg-cyan-500/20 hover:text-white cursor-pointer transition"
-                    >
+                {filteredSymbols.length > 0
+                  ? filteredSymbols.map((item, index) => (
+                    <div key={index} onMouseDown={() => handleSymbolSelect(item)}
+                      className="px-4 py-2.5 text-sm text-slate-300 hover:bg-cyan-500/20 hover:text-white cursor-pointer transition">
                       {item}
                     </div>
                   ))
-                ) : (
-                  <div className="px-4 py-2 text-sm text-slate-500">No results</div>
-                )}
+                  : <div className="px-4 py-2 text-sm text-slate-500">No results</div>}
               </div>
             )}
           </div>
 
+          {/* Action buttons */}
           <div className="flex gap-2">
-            <button
-              onClick={handleSaveLayout}
-              className="w-10 h-10 bg-[#0f172a] border border-slate-700 rounded-lg flex items-center justify-center hover:border-cyan-500 hover:text-cyan-400 transition"
-              title="Save Layout"
-            >
+            <button onClick={handleSaveLayout} title="Save Layout"
+              className="w-10 h-10 bg-[#0f172a] border border-slate-700 rounded-lg flex items-center justify-center hover:border-cyan-500 hover:text-cyan-400 transition">
               <SaveOutlinedIcon fontSize="small" />
             </button>
-
             <button
               onClick={() => {
                 if (!selectedSymbol) return;
                 setRefreshing(true);
-                setGlobalHoverIndex(null);
-                setTimeout(() => {
-                  setDataVersion((prev) => prev + 1);
-                  setRefreshing(false);
-                }, 700);
+                setTimeout(() => { setDataVersion((v) => v + 1); setRefreshing(false); }, 700);
               }}
-              className="w-10 h-10 bg-[#0f172a] border border-slate-700 rounded-lg flex items-center justify-center hover:border-cyan-500 hover:text-cyan-400 transition"
               title="Refresh"
-            >
+              className="w-10 h-10 bg-[#0f172a] border border-slate-700 rounded-lg flex items-center justify-center hover:border-cyan-500 hover:text-cyan-400 transition">
               <RefreshIcon fontSize="small" className={refreshing ? "animate-spin" : ""} />
-            </button>
-
-            <button
-              onClick={scrollToLatest}
-              className="w-10 h-10 bg-[#0f172a] border border-slate-700 rounded-lg flex items-center justify-center hover:border-cyan-500 hover:text-cyan-400 transition"
-              title="Scroll to latest"
-            >
-              <FastForwardIcon fontSize="small" />
             </button>
           </div>
         </div>
 
-        {refreshing ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(filters).map(([key, value], cardIdx) => (
-              <div key={key} className="bg-[#111827] rounded-xl border border-slate-700/60 p-4 h-[280px]">
-                <div className="mb-3 flex justify-between items-center">
-                  <SelectWithCaret
-                    value={value}
-                    onChange={(e) => setFilters((prev) => resolveFilters(prev, key, e.target.value))}
-                    className="bg-[#1f2937] text-xs border border-slate-600 rounded-md px-2 py-1 focus:outline-none focus:border-cyan-500 text-white"
-                  />
-                  <span className="text-xs text-slate-400">{key}</span>
-                </div>
-                <WaveSkeleton delay={cardIdx * 0.2} />
-              </div>
-            ))}
+        {/* Charts grid + right panel */}
+        <div className={`grid grid-cols-1 gap-4 transition-all duration-300 ${panelOpen ? "lg:grid-cols-[1fr_340px]" : "lg:grid-cols-[1fr]"}`}>
+          <div className="relative grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Toggle panel button — sticks to right edge of chart area */}
+            <button
+              onClick={() => setPanelOpen((v) => !v)}
+              title={panelOpen ? "Hide panel" : "Show panel"}
+              className="absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-5 h-14 bg-[#1e293b] border border-slate-600 rounded-r-lg flex items-center justify-center text-slate-400 hover:text-cyan-400 hover:border-cyan-500 hover:bg-[#0f172a] transition-all duration-200 hidden lg:flex"
+            >
+              <svg className={`w-3 h-3 transition-transform duration-300 ${panelOpen ? "" : "rotate-180"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            {refreshing
+              ? Object.entries(filters).map(([key, value], idx) => {
+                  const isManager = value === "Manger";
+                  return (
+                    <div key={key} className="bg-[#111827] rounded-xl border border-slate-700/60 p-3" style={{ height: 290 }}>
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="relative inline-block">
+                          <select value={value} onChange={(e) => setFilters((prev) => resolveFilters(prev, key, e.target.value))}
+                            className="appearance-none bg-[#1f2937] text-xs border border-slate-600 rounded-md px-2 py-1 pr-6 text-white focus:outline-none">
+                            {CHART_TYPES.map((o) => <option key={o}>{o}</option>)}
+                          </select>
+                          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-white text-xs">▾</span>
+                        </div>
+                        {isManager ? (
+                          <span className="text-xs text-cyan-400 cursor-pointer hover:underline" onClick={handleToggleManagerLines}>
+                            Show/Hide All
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400">{key}</span>
+                        )}
+                      </div>
+                      <WaveSkeleton delay={idx * 0.2} />
+                    </div>
+                  );
+                })
+              : selectedSymbol
+              ? Object.entries(filters).map(([key, value]) => (
+                <TVChartCard
+                  key={`${key}-${value}-${selectedSymbol}-${dataVersion}`}
+                  title={key}
+                  type={value}
+                  selectedSymbol={selectedSymbol}
+                  dataVersion={dataVersion}
+                  managerVisibility={value === "Manger" ? managerVisibility : undefined}
+                  onToggleManagerLines={value === "Manger" ? handleToggleManagerLines : undefined}
+                  onChange={(newValue) => setFilters((prev) => resolveFilters(prev, key, newValue))}
+                />
+              ))
+              : Object.entries(filters).map(([key, value]) => (
+                <EmptyChartPanel key={key} title={key} value={value}
+                  onChange={(newValue) => setFilters((prev) => resolveFilters(prev, key, newValue))} />
+              ))}
           </div>
-        ) : selectedSymbol ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(filters).map(([key, value]) => (
-              <ChartCard
-                key={`${key}-${dataVersion}`}
-                chartId={key}
-                title={key}
-                type={value}
-                globalHoverIndex={globalHoverIndex}
-                setGlobalHoverIndex={setGlobalHoverIndex}
-                chartRefs={chartRefs}
-                selectedSymbol={selectedSymbol}
-                onChange={(newValue) => setFilters((prev) => resolveFilters(prev, key, newValue))}
-              />
-            ))}
+
+          <div
+            className={`overflow-hidden transition-all duration-300 ${panelOpen ? "opacity-100 w-full" : "opacity-0 w-0 pointer-events-none"}`}
+          >
+            <SymbolDataPanel symbols={SYMBOLS} selectedSymbol={selectedSymbol} onSelectSymbol={handleSymbolFromPanel} />
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(filters).map(([key, value]) => (
-              <EmptyChartPanel
-                key={key}
-                title={key}
-                value={value}
-                onChange={(newValue) => setFilters((prev) => resolveFilters(prev, key, newValue))}
-              />
-            ))}
-          </div>
-        )}
+        </div>
 
         <ToastContainer toasts={toasts} />
       </div>
