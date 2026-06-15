@@ -45,6 +45,8 @@ import sectorrotation from "@/assets/icons/sector.svg";
 import form59Icon from "@/assets/icons/52.svg";
 import s50outIcon from "@/assets/icons/s50out.svg";
 import optionsIcon from "@/assets/icons/options.svg";
+import multibidaskIcon from "@/assets/icons/multibidask.svg";
+import amultibidaskIcon from "@/assets/icons/amultibidask.svg";
 
 /* ================= ICON MAP ================= */
 const sidebarIcons = {
@@ -66,6 +68,7 @@ const sidebarIcons = {
   s50outstandingshort: { default: s50outIcon, active: s50outIcon },
   "stock-data-table": { default: form59Icon, active: form59Icon },
   options: { default: optionsIcon, active: optionsIcon },
+  multibidask: { default: multibidaskIcon, active: amultibidaskIcon },
   ytd: { default: s50outIcon, active: s50outIcon },
 };
 
@@ -84,7 +87,7 @@ const projects = [
   { id: "s50",       name: "S50",                  iconKey: "s50"       },
   { id: "gold",      name: "Gold",                 iconKey: "gold"      },
   { id: "bidask",    name: "BidAsk",               iconKey: "bidask"    },
-  { id: "multibidask", name: "Multi BidAsk",       iconKey: "bidask"    },
+  { id: "multibidask", name: "Multi BidAsk",       iconKey: "multibidask" },
   { id: "tickmatch", name: "TickMatch",            iconKey: "tickmatch" },
   { id: "dr",        name: "DR",                   iconKey: "dr"        },
 ];
