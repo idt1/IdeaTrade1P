@@ -84,6 +84,7 @@ const projects = [
   { id: "s50",       name: "S50",                  iconKey: "s50"       },
   { id: "gold",      name: "Gold",                 iconKey: "gold"      },
   { id: "bidask",    name: "BidAsk",               iconKey: "bidask"    },
+  { id: "multibidask", name: "Multi BidAsk",       iconKey: "bidask"    },
   { id: "tickmatch", name: "TickMatch",            iconKey: "tickmatch" },
   { id: "dr",        name: "DR",                   iconKey: "dr"        },
 ];
@@ -96,6 +97,7 @@ const PROJECT_PREVIEWS = {
   s50:       "S50",
   gold:      "Gold",
   bidask:    "BidAsk",
+  multibidask: "multibidask",
   tickmatch: "TickMatch",
   dr:        "DRInsight",
 };
