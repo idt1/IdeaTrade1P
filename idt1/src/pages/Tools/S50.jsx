@@ -79,23 +79,90 @@ function generateSeriesData(seed = 1, totalPoints = 1000) {
   return data;
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-function ChartBodySkeleton() {
+// ─── Skeleton (สมจริงแบบมีแกนราคาและแกนเวลา) ──────────────────────────
+function ChartBodySkeleton({ delay = 0 }) {
   return (
-    <div className="relative flex-1 bg-[#0f172a] min-h-0 animate-pulse">
-      <div className="absolute inset-0 px-4 py-4">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="absolute left-4 right-16 h-px bg-slate-800" style={{ top:`${30 + i * 45}px` }} />
-        ))}
-        <div className="absolute left-4 right-16 top-8 bottom-10 rounded-xl bg-gradient-to-r from-slate-800 via-slate-700/60 to-slate-800 opacity-80" />
+    <div className="relative flex-1 bg-[#0f172a] min-h-0 overflow-hidden rounded-b-xl flex flex-col">
+      <style>{`
+        @keyframes shimmer-s50 { 
+          0% { transform: translateX(-100%); } 
+          100% { transform: translateX(100%); } 
+        }
+      `}</style>
+
+      {/* 🟢 ส่วนที่ 1: พื้นที่กราฟหลัก + แกนราคา (Y-Axis) */}
+      <div className="flex-1 flex min-h-0 relative">
+        
+        {/* พื้นที่กราฟ (Chart Area) */}
+        <div className="flex-1 relative overflow-hidden">
+          {/* เส้นตาราง (Grid Lines) */}
+          <div className="absolute inset-0 flex flex-col justify-between py-5 opacity-[0.15] pointer-events-none z-0">
+            {[...Array(5)].map((_, i) => <div key={`h-${i}`} className="w-full h-px bg-slate-500" />)}
+          </div>
+          <div className="absolute inset-0 flex justify-between px-10 opacity-[0.15] pointer-events-none z-0">
+            {[...Array(6)].map((_, i) => <div key={`v-${i}`} className="h-full w-px bg-slate-500" />)}
+          </div>
+
+          {/* SVG กราฟเส้น (Line & Area) */}
+          <div className="absolute inset-0 flex items-center justify-center pt-4 opacity-30 z-10">
+            <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100">
+              <path 
+                d="M0,80 L10,70 L25,75 L40,40 L55,50 L75,20 L85,35 L100,15" 
+                fill="none" 
+                stroke="#475569" 
+                strokeWidth="1.5" 
+                strokeLinejoin="round" 
+              />
+              <path 
+                d="M0,80 L10,70 L25,75 L40,40 L55,50 L75,20 L85,35 L100,15 L100,100 L0,100 Z" 
+                fill="url(#gradient-real)" 
+                stroke="none" 
+              />
+              <defs>
+                <linearGradient id="gradient-real" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#475569" stopOpacity="0.4" />
+                  <stop offset="100%" stopColor="#475569" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
+
+        {/* 🟢 แกนราคาด้านขวา (Right Price Scale) */}
+        <div className="w-[45px] sm:w-[55px] border-l border-slate-700/50 flex flex-col justify-between items-center py-5 bg-[#0a0f18] z-10 relative">
+          {[...Array(5)].map((_, i) => (
+            <div key={`y-${i}`} className="h-[6px] sm:h-2 w-6 sm:w-8 bg-slate-700/30 rounded-[2px]" />
+          ))}
+        </div>
       </div>
+
+      {/* 🟢 ส่วนที่ 2: แกนเวลาด้านล่าง (Bottom Time Scale) */}
+      <div className="h-[24px] sm:h-[28px] border-t border-slate-700/50 flex bg-[#0a0f18] z-10 relative shrink-0">
+        <div className="flex-1 flex justify-between items-center px-10">
+          {[...Array(6)].map((_, i) => (
+            <div key={`x-${i}`} className="h-[6px] sm:h-2 w-10 sm:w-14 bg-slate-700/30 rounded-[2px]" />
+          ))}
+        </div>
+        {/* มุมขวาล่าง (Corner Space) ทิ้งว่างไว้เหมือนของ TradingView */}
+        <div className="w-[45px] sm:w-[55px] border-l border-slate-700/50" />
+      </div>
+
+      {/* 3. Sweeping Shimmer Effect (แสงสแกนวิ่งคลุมทั้งหมด) */}
+      <div
+        className="absolute inset-0 z-20 pointer-events-none"
+        style={{
+          background: "linear-gradient(90deg, transparent 0%, rgba(6,182,212,0.03) 30%, rgba(6,182,212,0.12) 50%, rgba(6,182,212,0.03) 70%, transparent 100%)",
+          animation: "shimmer-s50 1.5s ease-in-out infinite",
+          animationDelay: `${delay}s`,
+        }}
+      />
     </div>
   );
 }
 
 // ─── LWC Chart Card ───────────────────────────────────────────────────────────
 function ChartCard({
-  title, chartId, seed,
+  title, chartId, seed, index, // 🟢 รับ index เพื่อตั้ง delay ให้ skeleton
   onCrosshairMove, externalTime,
   chartInstanceRefs,
   refreshKey, isRefreshing, onRefresh,
@@ -197,8 +264,8 @@ function ChartCard({
 
       {/* Chart body */}
       {isRefreshing
-        ? <ChartBodySkeleton />
-        : <div ref={containerRef} className="flex-1 min-h-0 bg-[#0f172a]" />
+        ? <ChartBodySkeleton delay={index * 0.2} /> // 🟢 ใส่ดีเลย์ให้แสงสแกนแต่ละกล่องเหลื่อมกัน
+        : <div ref={containerRef} className="flex-1 min-h-0 bg-[#0f172a] rounded-b-xl" />
       }
     </div>
   );
@@ -397,6 +464,7 @@ export default function S50() {
           {CHARTS.map(({ id, title, seed }, i) => (
             <ChartCard
               key={id}
+              index={i} // 🟢 ส่ง index ลงไปเพื่อให้แสงสแกน (shimmer) เหลื่อมจังหวะกันสวยงาม
               title={title}
               chartId={id}
               seed={seed}
