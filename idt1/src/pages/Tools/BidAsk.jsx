@@ -76,14 +76,14 @@ export default function BidAsk() {
         setTimeout(() => { isPaused.current = false; }, 500);
     };
 
-    // 🟢 แก้ไข 2: ใช้ requestAnimationFrame + Delta time เพื่อการเลื่อนที่สมูทขั้นสุด (60fps/120fps)
+    // 🟢 ใช้ requestAnimationFrame + Delta time เพื่อการเลื่อนที่สมูทขั้นสุด
     useEffect(() => {
         const container = scrollContainerRef.current;
         if (!container) return;
 
         let animationFrameId;
         let lastTime = performance.now();
-        const speed = 0.05; // ความเร็ว 0.05 px ต่อ ms (ปรับให้ลื่นไหลพอดี)
+        const speed = 0.05;
 
         const scrollLoop = (time) => {
             if (!isPaused.current && container) {
@@ -134,7 +134,7 @@ export default function BidAsk() {
         </div>
     );
 
-const dashboardPreviewJSX = ( 
+    const dashboardPreviewJSX = ( 
         <div className="relative group w-full max-w-5xl mb-12 md:mb-16">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-700" />
             <div className="relative bg-[#0B1221] border border-slate-700/50 rounded-2xl overflow-hidden shadow-2xl">
@@ -155,69 +155,69 @@ const dashboardPreviewJSX = (
         </div>
     );
 
-  const featuresSectionJSX = (
-    <div className="w-full max-w-5xl mb-12">
-      <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left border-l-4 border-cyan-500 pl-4">
-        4 Main Features
-      </h2>
-      <div 
-        className="relative group" 
-        onMouseEnter={() => { isPaused.current = true; }} 
-        onMouseLeave={() => { isPaused.current = false; }}
-      >
-        <button
-          onClick={() => scroll("left")}
-          aria-label="Scroll Left"
-          className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20
-                      w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white
-                      hover:bg-cyan-500 hover:border-cyan-400 hover:text-white
-                      hover:shadow-[0_0_15px_rgba(6,182,212,0.5)]
-                      flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95
-                      ${showLeft ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-
-        <div 
-          ref={scrollContainerRef} 
-          onScroll={checkScroll} 
-          className="flex overflow-x-auto gap-6 py-4 px-1 hide-scrollbar" 
-          style={scrollbarHideStyle}
-        >
-          {features.map((item, index) => (
+    const featuresSectionJSX = (
+        <div className="w-full max-w-5xl mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold mb-8 text-left border-l-4 border-cyan-500 pl-4">
+                4 Main Features
+            </h2>
             <div 
-              key={index} 
-              className="w-[350px] md:w-[400px] flex-shrink-0 group/card bg-[#0f172a]/60 border border-slate-700/50 p-8 rounded-xl hover:bg-[#1e293b]/60 hover:border-cyan-500/30 transition duration-300"
+                className="relative group" 
+                onMouseEnter={() => { isPaused.current = true; }} 
+                onMouseLeave={() => { isPaused.current = false; }}
             >
-              <h3 className="text-xl font-bold text-white mb-3 group-hover/card:text-cyan-400 transition-colors">
-                {item.title}
-              </h3>
-              <p className="text-slate-400 text-sm leading-relaxed">
-                {item.desc}
-              </p>
-            </div>
-          ))}
-        </div>
+                <button
+                    onClick={() => scroll("left")}
+                    aria-label="Scroll Left"
+                    className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-8 md:-translate-x-20 z-20
+                                w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white
+                                hover:bg-cyan-500 hover:border-cyan-400 hover:text-white
+                                hover:shadow-[0_0_15px_rgba(6,182,212,0.5)]
+                                flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95
+                                ${showLeft ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
+                >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
 
-        <button
-          onClick={() => scroll("right")}
-          aria-label="Scroll Right"
-          className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-20 z-20
-                      w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white
-                      hover:bg-cyan-500 hover:border-cyan-400 hover:text-white
-                      hover:shadow-[0_0_15px_rgba(6,182,212,0.5)]
-                      flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95
-                      ${showRight ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
+                <div 
+                    ref={scrollContainerRef} 
+                    onScroll={checkScroll} 
+                    className="flex overflow-x-auto gap-6 py-4 px-1 hide-scrollbar" 
+                    style={scrollbarHideStyle}
+                >
+                    {features.map((item, index) => (
+                        <div 
+                            key={index} 
+                            className="w-[350px] md:w-[400px] flex-shrink-0 group/card bg-[#0f172a]/60 border border-slate-700/50 p-8 rounded-xl hover:bg-[#1e293b]/60 hover:border-cyan-500/30 transition duration-300"
+                        >
+                            <h3 className="text-xl font-bold text-white mb-3 group-hover/card:text-cyan-400 transition-colors">
+                                {item.title}
+                            </h3>
+                            <p className="text-slate-400 text-sm leading-relaxed">
+                                {item.desc}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+
+                <button
+                    onClick={() => scroll("right")}
+                    aria-label="Scroll Right"
+                    className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-8 md:translate-x-20 z-20
+                                w-12 h-12 rounded-2xl bg-[#0f172a]/90 border border-slate-600 text-white
+                                hover:bg-cyan-500 hover:border-cyan-400 hover:text-white
+                                hover:shadow-[0_0_15px_rgba(6,182,212,0.5)]
+                                flex items-center justify-center transition-all duration-300 backdrop-blur-sm active:scale-95
+                                ${showRight ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
+                >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    );
 
     /* ==========================================================
        CASE 1 : PREVIEW VERSION (Not Member)
@@ -305,6 +305,9 @@ export function ReplayPanel({ toolHint }) {
     const [speed, setSpeed] = useState(1);
     const [symbolHistory, setSymbolHistory] = useState(["PTT", "TOP", "DELTA", "AOT", "ADVANC", "SCB", "KBANK", "CPALL"]);
 
+    // 🟢 State สำหรับ Loading Skeleton
+    const [isLoading, setIsLoading] = useState(false);
+
     const filteredSymbols = useMemo(() => {
         if (!symbol) return symbolHistory.slice(0, 8);
         return symbolHistory.filter(s => s.toLowerCase().includes(symbol.toLowerCase()));
@@ -334,7 +337,7 @@ export function ReplayPanel({ toolHint }) {
                 if (prev >= 100) { setIsPlaying(false); return 100; }
                 return prev + speed;
             });
-        }, 100);
+        }, 500);
         return () => clearInterval(interval);
     }, [isPlaying, speed]);
 
@@ -360,7 +363,6 @@ export function ReplayPanel({ toolHint }) {
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
             `}</style>
             
-            {/* 🟢 แก้ไข 3: ปรับ z-index ให้อยู่ระดับ 10 เพื่อไม่ให้ทะลุ Sidebar (ซึ่งปกติอยู่ > 40) */}
             {toolHint && <div className="absolute -top-2 -left-2 sm:-top-3 sm:-left-3 z-40">{toolHint}</div>}
             
             <div className="p-2 sm:p-3 md:p-4 border-b border-slate-700 bg-[#0f172a] shrink-0 relative">
@@ -445,17 +447,47 @@ export function ReplayPanel({ toolHint }) {
                         <label className="absolute left-2 -top-2 text-[9px] sm:text-[10px] px-1 bg-[#0f172a] text-slate-300">Speed</label>
                     </div>
 
-                    <button onClick={() => { if (symbol) setIsSearched(true); setIsPlaying(true); }} className="flex-[1.5] min-w-[80px] sm:min-w-[100px] bg-indigo-600 hover:bg-indigo-500 rounded-md h-[34px] sm:h-[38px] text-[10px] sm:text-xs font-bold text-white transition-colors">SEARCH</button>
+                    {/* 🟢 อัปเดตการทำงานปุ่ม SEARCH เพื่อโชว์ Loading */}
+                    <button 
+                        onClick={() => { 
+                            if (symbol) {
+                                setIsLoading(true);
+                                setTimeout(() => {
+                                    setIsLoading(false);
+                                    setIsSearched(true); 
+                                    setIsPlaying(true); 
+                                }, 1500);
+                            }
+                        }} 
+                        disabled={isLoading}
+                        className="flex-[1.5] min-w-[80px] sm:min-w-[100px] bg-indigo-600 hover:bg-indigo-500 rounded-md h-[34px] sm:h-[38px] text-[10px] sm:text-xs font-bold text-white transition-colors"
+                    >
+                        {isLoading ? "LOADING..." : "SEARCH"}
+                    </button>
                 </div>
                 <div className="mt-2 bg-black text-yellow-400 font-mono text-center py-1 sm:py-1.5 rounded text-[9px] sm:text-[10px]">10:00:00</div>
             </div>
 
             <div className="flex-1 min-h-0 flex flex-col bg-[#0b111a]">
-                <div className="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
-                    {orderBook.map((row, i) => (
-                        <OrderRow key={i} bidVol={row.bidVol.toLocaleString()} bid={row.bid} ask={row.ask} askVol={row.askVol.toLocaleString()} />
-                    ))}
+                {/* 🟢 Header แบบ Grid 4 คอลัมน์ จัดกึ่งกลางทั้งหมด */}
+                <div className="grid grid-cols-4 items-center text-[9px] md:text-[10px] font-semibold text-slate-500 bg-[#0f172a] h-7 sm:h-8 border-b border-slate-700 uppercase tracking-widest shrink-0 text-center">
+                    <div>Vol BID</div>
+                    <div>BID</div>
+                    <div>ASK</div>
+                    <div>Vol ASK</div>
                 </div>
+
+                <div className="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
+                    {/* 🟢 สลับโชว์ Skeleton ระหว่างโหลด */}
+                    {isLoading ? (
+                        <OrderBookSkeleton />
+                    ) : (
+                        orderBook.map((row, i) => (
+                            <OrderRow key={i} bidVol={row.bidVol.toLocaleString()} bid={row.bid} ask={row.ask} askVol={row.askVol.toLocaleString()} />
+                        ))
+                    )}
+                </div>
+
                 <div className="shrink-0 grid grid-cols-4 items-center border-t border-slate-700 bg-[#111827] text-[9px] xl:text-xs h-8 sm:h-10 px-1 sm:px-0">
                     <div className="flex items-center justify-end pr-1 sm:pr-3 font-bold text-blue-400 whitespace-nowrap overflow-hidden text-ellipsis">
                         <span className="hidden xl:inline">Total:&nbsp;</span>{totalBid.toLocaleString()}
@@ -491,22 +523,50 @@ export function ReplayPanel({ toolHint }) {
 }
 
 function OrderRow({ bidVol, bid, ask, askVol }) {
-    const bidWidth = (parseInt(bidVol.replace(/,/g, "")) / 600000) * 100;
-    const askWidth = (parseInt(askVol.replace(/,/g, "")) / 600000) * 100;
-    return (
-        <div className="grid grid-cols-4 items-center text-[9px] sm:text-[10px] md:text-xs flex-1 min-h-[20px] sm:min-h-[24px] border-b border-slate-800 relative">
-            <div className="relative text-right pr-2 sm:pr-3 text-slate-300 overflow-hidden h-full flex items-center justify-end">
-                <div className="absolute right-0 top-0 h-full bg-blue-900/40" style={{ width: `${bidWidth}%` }} />
-                <span className="relative z-10">{bidVol === "0" ? "-" : bidVol}</span>
-            </div>
-            <div className="text-center text-green-400 font-bold">{bid}</div>
-            <div className="text-center text-red-400 font-bold">{ask}</div>
-            <div className="relative text-left pl-2 sm:pl-3 text-slate-300 overflow-hidden h-full flex items-center justify-start">
-                <div className="absolute left-0 top-0 h-full bg-red-900/40" style={{ width: `${askWidth}%` }} />
-                <span className="relative z-10">{askVol === "0" ? "-" : askVol}</span>
-            </div>
-        </div>
-    );
+  const bidRaw = parseInt(bidVol.replace(/,/g, "")) || 0;
+  const askRaw = parseInt(askVol.replace(/,/g, "")) || 0;
+
+  // สี Default ของ Volume เป็นสีเทา เพื่อให้ราคา (Price) ตรงกลางเด่นที่สุด
+  let bidVolClass = "text-slate-500"; 
+  let askVolClass = "text-slate-500"; 
+
+  // ใส่ Effect "เรืองแสง" (Glow) เมื่อ Volume ฝั่งใดฝั่งหนึ่งมากกว่า 1.5 เท่า
+  if (bidRaw > askRaw * 1.5) {
+    bidVolClass = "text-green-400 font-bold drop-shadow-[0_0_6px_rgba(74,222,128,0.5)]"; 
+  } else if (askRaw > bidRaw * 1.5) {
+    askVolClass = "text-red-400 font-bold drop-shadow-[0_0_6px_rgba(248,113,113,0.5)]"; 
+  }
+
+  return (
+    // ใช้ Grid 4 คอลัมน์ เพื่อดึงทุกอย่างเข้าตรงกลาง ไม่ถ่างชิดขอบจอ
+    <div className="grid grid-cols-4 items-center text-[10px] sm:text-[11px] md:text-xs min-h-[26px] md:min-h-[30px] border-b border-slate-800/40 bg-[#0B1221] hover:bg-[#111827] transition-colors font-mono cursor-default">
+      
+      {/* 🟢 VOL BID - อยู่ในคอลัมน์ของตัวเอง ดึงตัวเลขมาเรียงชิดขวาให้ตรงกัน */}
+      <div className="flex justify-center">
+        <span className={`w-16 sm:w-20 text-right transition-all duration-300 ${bidVolClass}`}>
+          {bidVol === "0" ? "-" : bidVol}
+        </span>
+      </div>
+
+      {/* 🟢 BID PRICE - จัดกึ่งกลาง */}
+      <div className="text-center font-semibold text-white tracking-wider">
+        {bid}
+      </div>
+
+      {/* 🔴 ASK PRICE - จัดกึ่งกลาง */}
+      <div className="text-center font-semibold text-white tracking-wider">
+        {ask}
+      </div>
+
+      {/* 🔴 VOL ASK - อยู่ในคอลัมน์ของตัวเอง ดึงตัวเลขมาเรียงชิดซ้ายให้ตรงกัน */}
+      <div className="flex justify-center">
+        <span className={`w-16 sm:w-20 text-left transition-all duration-300 ${askVolClass}`}>
+          {askVol === "0" ? "-" : askVol}
+        </span>
+      </div>
+
+    </div>
+  );
 }
 
 function StatSection({ title }) {
@@ -828,3 +888,52 @@ const DatePicker = memo(({ dates, selected, onChange, label, disabled }) => {
         </div>
     );
 });
+
+// ============================================================
+// OrderBookSkeleton (Loading State สำหรับตาราง Bid/Ask)
+// ============================================================
+function OrderBookSkeleton() {
+  return (
+    <div className="flex-1 flex flex-col relative overflow-hidden bg-[#0B1221]">
+      <style>{`
+        @keyframes shimmer-orderbook { 
+          0% { transform: translateX(-100%); } 
+          100% { transform: translateX(100%); } 
+        }
+      `}</style>
+      
+      {/* สร้างแถวจำลอง 20 แถว (Mock Rows) */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {[...Array(20)].map((_, i) => (
+          <div key={i} className="grid grid-cols-4 items-center min-h-[26px] md:min-h-[30px] border-b border-slate-800/40 px-1">
+            {/* Vol BID Placeholder */}
+            <div className="flex justify-center">
+              <div className="h-2.5 w-10 sm:w-14 bg-slate-700/30 rounded-sm" />
+            </div>
+            {/* BID Price Placeholder */}
+            <div className="flex justify-center">
+              <div className="h-3 w-12 sm:w-16 bg-slate-600/30 rounded-sm" />
+            </div>
+            {/* ASK Price Placeholder */}
+            <div className="flex justify-center">
+              <div className="h-3 w-12 sm:w-16 bg-slate-600/30 rounded-sm" />
+            </div>
+            {/* Vol ASK Placeholder */}
+            <div className="flex justify-center">
+              <div className="h-2.5 w-10 sm:w-14 bg-slate-700/30 rounded-sm" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* เอฟเฟกต์แสงสแกนวิ่งจากซ้ายไปขวา (Sweeping Gradient Shimmer) */}
+      <div
+        className="absolute inset-0 z-20 pointer-events-none"
+        style={{
+          background: "linear-gradient(90deg, transparent 0%, rgba(6,182,212,0.02) 30%, rgba(6,182,212,0.08) 50%, rgba(6,182,212,0.02) 70%, transparent 100%)",
+          animation: "shimmer-orderbook 1.5s ease-in-out infinite",
+        }}
+      />
+    </div>
+  );
+}
