@@ -87,7 +87,6 @@ const projects = [
   { id: "s50",       name: "S50",                  iconKey: "s50"       },
   { id: "gold",      name: "Gold",                 iconKey: "gold"      },
   { id: "bidask",    name: "BidAsk",               iconKey: "bidask"    },
-  { id: "multibidask", name: "Multi BidAsk",       iconKey: "multibidask" },
   { id: "tickmatch", name: "TickMatch",            iconKey: "tickmatch" },
   { id: "dr",        name: "DR",                   iconKey: "dr"        },
 ];
@@ -100,7 +99,6 @@ const PROJECT_PREVIEWS = {
   s50:       "S50",
   gold:      "Gold",
   bidask:    "BidAsk",
-  multibidask: "multibidask",
   tickmatch: "TickMatch",
   dr:        "DRInsight",
 };
@@ -717,6 +715,33 @@ const SidebarContent = ({
               }
             />
             {!isCollapsed && <span>YTD Performance</span>}
+          </div>
+        </button>
+
+        {/* Multi BidAsk Button */}
+        <button
+          onClick={() => handleNavigation("multibidask")}
+          onMouseEnter={(e) => handleMouseEnter(e, "Multi BidAsk")}
+          onMouseLeave={handleMouseLeave}
+          className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
+          ${activePage === "multibidask" ? "bg-slate-800" : "hover:bg-white/5"}
+          ${isCollapsed ? "w-10 h-10 justify-center" : "w-full h-11 px-4 justify-between"}`}
+        >
+          <div className={`flex items-center gap-3 font-medium transition-colors pointer-events-none
+            ${activePage === "multibidask" ? "text-white" : "text-gray-400"}
+            ${isCollapsed ? "justify-center w-full" : ""}`}
+          >
+            <img
+              src={getIcon("multibidask", activePage === "multibidask")}
+              className="w-5"
+              alt="Multi BidAsk"
+              style={
+                activePage === "multibidask"
+                  ? { filter: "brightness(0) invert(1)" }
+                  : { filter: "brightness(0) invert(1) opacity(0.4)" }
+              }
+            />
+            {!isCollapsed && <span>Multi BidAsk</span>}
           </div>
         </button>
 
