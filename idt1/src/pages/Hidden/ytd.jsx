@@ -384,10 +384,10 @@ export default function YTDPerformance() {
   const selectedColor = selectedIdx >= 0 ? SYMBOL_COLORS[selectedIdx % SYMBOL_COLORS.length] : null;
 
   return (
-    <div className="flex flex-col text-white font-sans relative" style={{ height:"100dvh", background:"#0d1117" }}>
+    <div className="flex flex-col text-slate-200 font-sans relative bg-slate-900" style={{ height:"100dvh" }}>
 
       {/* ── TOP BAR ── */}
-      <div className="flex flex-col md:flex-row md:items-end gap-2 px-4 pt-1 pb-2 border-b border-white/5 shrink-0 z-20">
+      <div className="flex flex-col md:flex-row md:items-end gap-2 px-4 pt-1 pb-2 border-b border-slate-500/30 shrink-0 z-20">
         <div className="flex flex-row items-end gap-4 w-full md:w-auto overflow-x-auto no-scrollbar pt-0 pb-1 md:pb-0">
           <div className="shrink-0 mb-1">
             <ToolHint onViewDetails={() => { window.scrollTo({ top:0 }); }}>
@@ -396,21 +396,22 @@ export default function YTDPerformance() {
           </div>
           
           <div className="flex flex-col gap-1 mb-1">
-            <span className="text-[10px] text-gray-500 font-mono tracking-wider ml-1 uppercase">Select Year</span>
+            <span className="text-[10px] text-slate-500 font-sans tracking-wider ml-1 uppercase">Select Year</span>
             {spinning ? (
-              <div className="h-9 w-24 bg-slate-800/50 animate-pulse rounded-lg border border-white/5" />
+              <div className="h-9 w-32 bg-slate-800/50 animate-pulse rounded-lg border border-white/5" />
             ) : (
               <div className="relative group">
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                  className="appearance-none bg-[#111827] border border-slate-700 rounded-lg px-4 pr-10 h-9 text-[13px] font-mono text-white outline-none focus:border-blue-500/50 transition-all cursor-pointer shadow-lg"
+                  className="appearance-none bg-white/[0.03] border border-slate-500/30 rounded-lg px-4 pr-10 h-9 text-[13px] text-slate-200 outline-none focus:border-blue-400/50 transition-all cursor-pointer w-32"
+                  style={{ fontFamily: "'Inter','Helvetica Neue',sans-serif" }}
                 >
                   {AVAILABLE_YEARS.map(y => (
                     <option key={y} value={y}>{y}</option>
                   ))}
                 </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 group-hover:text-white transition-colors">
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 transition-colors">
                   <ChevronDownIcon />
                 </div>
               </div>
@@ -418,9 +419,9 @@ export default function YTDPerformance() {
           </div>
 
           <div className="flex flex-col gap-1 mb-1">
-            <span className="text-[10px] text-gray-500 font-mono tracking-wider ml-1 uppercase">Show Top-K</span>
+            <span className="text-[10px] text-slate-500 font-sans tracking-wider ml-1 uppercase">Show Top-K</span>
             {spinning ? (
-              <div className="h-9 w-20 bg-slate-800/50 animate-pulse rounded-lg border border-white/5" />
+              <div className="h-9 w-24 bg-slate-800/50 animate-pulse rounded-lg border border-white/5" />
             ) : (
               <input
                 type="number"
@@ -428,7 +429,8 @@ export default function YTDPerformance() {
                 max={MOCK_TABLE.length}
                 value={topK}
                 onChange={(e) => setTopK(Math.max(1, Math.min(MOCK_TABLE.length, parseInt(e.target.value) || 1)))}
-                className="bg-[#111827] border border-slate-700 rounded-lg px-3 h-9 w-20 text-[13px] font-mono text-white outline-none focus:border-blue-500/50 transition-all shadow-lg"
+                className="bg-white/[0.03] border border-slate-500/30 rounded-lg px-3 h-9 w-24 text-[13px] text-slate-200 outline-none focus:border-blue-400/50 transition-all"
+                style={{ fontFamily: "'Inter','Helvetica Neue',sans-serif" }}
               />
             )}
           </div>
@@ -440,11 +442,11 @@ export default function YTDPerformance() {
           ) : (
             <button
               onClick={() => { setSelectedSymbol(null); setIsShowAll(true); setSearchQuery(""); }}
-              className="w-full md:w-auto h-9 md:h-8 px-4 text-[12px] font-semibold tracking-wider uppercase rounded-lg transition-all"
+              className="w-full md:w-auto h-9 md:h-8 px-4 text-[11px] font-bold tracking-wider uppercase rounded-lg transition-all"
               style={{
-                background: (!selectedSymbol && isShowAll) ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.05)",
-                border:"1px solid rgba(255,255,255,0.1)",
-                color: (!selectedSymbol && isShowAll) ? "#ffffff" : "#9ca3af",
+                background: (!selectedSymbol && isShowAll) ? "linear-gradient(135deg,#3b82f6,#1d4ed8)" : "transparent",
+                border: (!selectedSymbol && isShowAll) ? "1px solid rgba(59,130,246,0.4)" : "1px solid rgba(100,116,139,0.3)",
+                color: (!selectedSymbol && isShowAll) ? "#ffffff" : "#64748b",
               }}>
               Show All
             </button>
@@ -459,12 +461,12 @@ export default function YTDPerformance() {
         <div ref={chartAreaRef} className="flex flex-col flex-1 min-w-0 overflow-hidden fullscreen-container">
           <div className="flex flex-row items-center justify-between px-5 pt-4 pb-2 shrink-0 gap-3">
             <div className="flex items-center gap-4">
-              <span className="text-[14px] font-semibold text-white/90 tracking-tight">YTD Performance (% Change)</span>
+              <span className="text-[14px] font-semibold text-slate-200/90 tracking-tight">YTD Performance (% Change)</span>
               {!spinning && selectedSymbol && selectedColor && (
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background:"#34d399" }}/>
-                    <span className="text-[12px] text-gray-400">{selectedSymbol} Performance</span>
+                    <span className="text-[12px] text-slate-500">{selectedSymbol} Performance</span>
                   </div>
                 </div>
               )}
@@ -473,7 +475,7 @@ export default function YTDPerformance() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={toggleFullscreen}
-                  className="flex items-center gap-1.5 px-3 h-8 text-[12px] font-semibold tracking-wider uppercase rounded-lg transition-all bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-300 hover:text-white"
+                  className="flex items-center gap-1.5 px-3 h-8 text-[12px] font-semibold tracking-wider uppercase rounded-lg transition-all bg-white/[0.04] border border-slate-500/30 hover:border-slate-500/60 text-slate-500 hover:text-slate-200"
                 >
                   {isFullscreen ? <MinimizeIcon /> : <MaximizeIcon />}
                 </button>
@@ -503,7 +505,7 @@ export default function YTDPerformance() {
                 {/* Empty state */}
                 {!selectedSymbol && !isShowAll && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-4 text-center">
-                    <span className="text-[16px] text-gray-600 tracking-wide">
+                    <span className="text-[16px] text-slate-600 tracking-wide">
                       Select a symbol or click "Show All" to view chart.
                     </span>
                   </div>
@@ -514,7 +516,7 @@ export default function YTDPerformance() {
         </div>
 
         {/* ── TABLE PANEL ── */}
-        <div className="w-full md:w-[290px] md:h-full shrink-0 flex flex-col border-b md:border-b-0 md:border-l border-white/5" style={{ background:"#0b0e14" }}>
+        <div className="w-full md:w-[290px] md:h-full shrink-0 flex flex-col border-b md:border-b-0 md:border-l border-slate-500/15 bg-slate-800">
 
           <div className="flex items-center gap-1.5 px-4 md:px-2.5 pt-3 md:pt-2.5 pb-3 md:pb-2 shrink-0">
             {/* Search + Dropdown */}
@@ -522,7 +524,7 @@ export default function YTDPerformance() {
               {spinning ? (
                 <div className="h-9 w-full bg-slate-800/50 animate-pulse rounded-lg border border-white/5" />
               ) : (
-                <div className="relative bg-[#111827] border border-slate-700 rounded-lg px-2.5 flex items-center shadow-inner h-9 transition-colors focus-within:border-blue-500/50 focus-within:bg-[#1e293b]">
+                <div className="relative bg-white/[0.03] border border-slate-500/30 rounded-lg px-2.5 flex items-center h-9 transition-colors focus-within:border-blue-400/50 focus-within:bg-slate-800">
                   <SearchIcon/>
                   <input
                     ref={inputRef}
@@ -530,17 +532,17 @@ export default function YTDPerformance() {
                     onChange={e => { setSearchQuery(e.target.value); setIsDropdownOpen(true); }}
                     onFocus={() => { setIsDropdownOpen(true); if (selectedSymbol) setSearchQuery(""); }}
                     placeholder="Type a Symbol..."
-                    className="flex-1 bg-transparent outline-none text-white text-[13px] placeholder:text-slate-500 min-w-0 pl-1.5 pr-1"
+                    className="flex-1 bg-transparent outline-none text-slate-200 text-[13px] placeholder:text-slate-500 min-w-0 pl-1.5 pr-1"
                   />
                   <div className="flex items-center shrink-0">
                     {searchQuery && (
                       <button
                         onClick={e => { e.stopPropagation(); setSearchQuery(""); inputRef.current?.focus(); }}
-                        className="text-[10px] text-slate-400 hover:text-white mr-1 px-1 flex items-center justify-center h-full"
+                        className="text-[10px] text-slate-500 hover:text-red-400 mr-1 px-1 flex items-center justify-center h-full transition-colors"
                       >✕</button>
                     )}
                     <span onClick={() => { setIsDropdownOpen(!isDropdownOpen); if (!isDropdownOpen) inputRef.current?.focus(); }}
-                      className="text-slate-400 cursor-pointer flex items-center px-1">
+                      className="text-slate-500 cursor-pointer flex items-center px-1">
                       <div style={{ transform:isDropdownOpen?"rotate(180deg)":"rotate(0deg)", transition:"transform 0.2s" }}>
                         <ChevronDownIcon/>
                       </div>
@@ -550,7 +552,7 @@ export default function YTDPerformance() {
               )}
 
               {isDropdownOpen && !spinning && (
-                <div className="absolute top-full mt-1.5 left-0 w-full min-w-[200px] bg-[#0f172a] border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto z-[60] custom-scrollbar">
+                <div className="absolute top-full mt-1.5 left-0 w-full min-w-[200px] bg-slate-900 border border-slate-500/30 rounded-xl shadow-2xl max-h-60 overflow-y-auto z-[60] custom-scrollbar">
                   {filteredTable.length > 0 ? (
                     filteredTable.map((item, index) => {
                       const isSelected = selectedSymbol === item.symbol;
@@ -565,10 +567,10 @@ export default function YTDPerformance() {
                             setIsDropdownOpen(false);
                           }}
                           className={`px-4 py-3 text-[13px] transition flex items-center gap-3 cursor-pointer
-                            ${isSelected ? "bg-cyan-500/20 text-white" : "text-slate-300 hover:bg-[#1e293b] hover:text-white"}`}>
+                            ${isSelected ? "bg-blue-500/15 text-slate-200" : "text-slate-500 hover:bg-white/[0.04] hover:text-slate-200"}`}>
                           <span className="shrink-0 w-2.5 h-2.5 rounded-full" style={{ background:dotColor }}/>
                           <span className="flex-1">{item.symbol}</span>
-                          <span className={isSelected ? "text-cyan-400" : (item.ytd >= 0 ? "text-green-400" : "text-red-400")}>{item.ytd.toFixed(2)}%</span>
+                          <span className={isSelected ? "text-blue-400" : (item.ytd >= 0 ? "text-green-400" : "text-red-400")}>{item.ytd.toFixed(2)}%</span>
                         </div>
                       );
                     })
@@ -580,21 +582,21 @@ export default function YTDPerformance() {
             </div>
 
             <button onClick={() => setSortAsc(o=>!o)}
-              className="hidden md:flex w-9 h-9 items-center justify-center rounded-lg text-slate-400 hover:text-white transition-colors shrink-0 bg-[#111827] border border-slate-700"
+              className="hidden md:flex w-9 h-9 items-center justify-center rounded-lg text-slate-500 hover:text-slate-200 transition-colors shrink-0 bg-white/[0.04] border border-slate-500/30 hover:border-slate-500/60"
               title={sortAsc ? "Sorted: Low→High" : "Sorted: High→Low"}>
               <SortIcon asc={sortAsc}/>
             </button>
 
             <button handleReset={handleReset}
               onClick={handleReset}
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-white transition-colors shrink-0 bg-[#111827] border border-slate-700">
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-200 transition-colors shrink-0 bg-white/[0.04] border border-slate-500/30 hover:border-slate-500/60">
               <RefreshIcon spinning={spinning}/>
             </button>
           </div>
 
           {/* Table Header (PC only) */}
-          <div className="hidden md:flex items-center px-4 py-2 shrink-0" style={{ borderBottom:"1px solid rgba(255,255,255,0.05)" }}>
-            <span className="flex-1 text-[11px] font-semibold text-gray-500 tracking-wider uppercase">Symbol</span>
+          <div className="hidden md:flex items-center px-4 py-2 shrink-0" style={{ borderBottom:"1px solid rgba(100,116,139,0.15)" }}>
+            <span className="flex-1 text-[11px] font-semibold text-slate-500 tracking-wider uppercase">Symbol</span>
             <button onClick={() => setSortAsc(o=>!o)}
               className="flex items-center gap-1 text-[11px] font-semibold text-[#60a5fa] tracking-wider uppercase hover:text-blue-300 transition-colors">
               YTD % <SortIcon asc={sortAsc}/>
@@ -624,7 +626,7 @@ export default function YTDPerformance() {
                     <span className="w-full flex items-center gap-2.5 px-3 py-2 rounded-full transition-all"
                       style={{ background: isSelected ? "rgba(59,130,246,0.2)" : "transparent" }}>
                       <span className="shrink-0 w-3 h-3 rounded-full" style={{ background: isSelected ? "#60a5fa" : dotColor }}/>
-                      <span className="flex-1 text-left text-[13px] font-semibold" style={{ color: isSelected ? "#ffffff" : "#9ca3af" }}>
+                      <span className="flex-1 text-left text-[13px] font-semibold" style={{ color: isSelected ? "#e2e8f0" : "#64748b" }}>
                         {row.symbol}
                       </span>
                       <span className="text-[13px] font-semibold" style={{ color: isSelected ? "#34d399" : (row.ytd >= 0 ? "#10b981" : "#ef4444") }}>
@@ -640,6 +642,7 @@ export default function YTDPerformance() {
       </div>
 
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         .no-scrollbar::-webkit-scrollbar { display:none; }
         .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
         .custom-scrollbar::-webkit-scrollbar { width:6px; }
@@ -648,11 +651,11 @@ export default function YTDPerformance() {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background:#64748b; }
         
         .fullscreen-container:-webkit-full-screen {
-          background-color: #0d1117 !important;
+          background-color: #0f172a !important;
           padding: 16px;
         }
         .fullscreen-container:fullscreen {
-          background-color: #0d1117 !important;
+          background-color: #0f172a !important;
           padding: 16px;
         }
       `}</style>
