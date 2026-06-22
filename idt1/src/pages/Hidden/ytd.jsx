@@ -98,6 +98,64 @@ const SortIcon = ({ asc }) => (
   </svg>
 );
 
+const MaximizeIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 3 21 3 21 9"/>
+    <polyline points="9 21 3 21 3 15"/>
+    <line x1="21" y1="3" x2="14" y2="10"/>
+    <line x1="3" y1="21" x2="10" y2="14"/>
+  </svg>
+);
+
+const MinimizeIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="4 14 10 14 10 20"/>
+    <polyline points="20 10 14 10 14 4"/>
+    <line x1="14" y1="10" x2="20" y2="4"/>
+    <line x1="10" y1="14" x2="4" y2="20"/>
+  </svg>
+);
+
+/* ================= LOADING SKELETONS ================= */
+const shimmerStyle = {
+  background: "linear-gradient(90deg,transparent 0%,rgba(56,189,248,0.08) 40%,rgba(125,211,252,0.18) 50%,rgba(56,189,248,0.08) 60%,transparent 100%)",
+  animation: "shimmer 1.8s ease-in-out infinite",
+};
+
+function WaveSkeleton({ delay = 0 }) {
+  return (
+    <div className="w-full h-full bg-[#0f172a]/20 rounded-xl overflow-hidden relative border border-white/5">
+      <style>{`@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}`}</style>
+      <div className="absolute inset-0 flex flex-col justify-between p-4">
+        <div className="flex gap-2">
+          <div className="h-2 rounded-full bg-slate-800 w-1/4" />
+          <div className="h-2 rounded-full bg-slate-800 w-1/6" />
+        </div>
+        <div className="flex-1 my-4 rounded bg-slate-800/20 border border-white/5" />
+        <div className="flex gap-3 justify-between">
+          {[...Array(8)].map((_, i) => (
+            <div key={`skel-bar-${i}`} className="h-2 rounded-full bg-slate-800 flex-1" />
+          ))}
+        </div>
+      </div>
+      <div className="absolute inset-0 pointer-events-none" style={{ ...shimmerStyle, animationDelay: `${delay}s` }} />
+    </div>
+  );
+}
+
+function TableRowSkeleton({ delay = 0 }) {
+  return (
+    <div className="relative overflow-hidden w-full flex items-center px-2 py-1 transition-all">
+      <span className="w-full flex items-center gap-2.5 px-3 py-2 rounded-full bg-slate-900/40 border border-white/5">
+        <span className="shrink-0 w-3 h-3 rounded-full bg-slate-800" />
+        <span className="flex-1 text-left text-[13px] font-semibold bg-slate-800 h-3 rounded-full" />
+        <span className="text-[13px] font-semibold bg-slate-800 h-3 rounded-full w-12" />
+      </span>
+      <div className="absolute inset-0 pointer-events-none" style={{ ...shimmerStyle, animationDelay: `${delay}s` }} />
+    </div>
+  );
+}
+
 /* ================= MULTI LINE CHART (Show All) ================= */
 function MultiLineChart({ allSeriesData }) {
   const containerRef = useRef(null);
@@ -186,8 +244,32 @@ export default function YTDPerformance() {
   const ytdSeriesRef      = useRef(null);
   const dropdownRef       = useRef(null);
   const inputRef          = useRef(null);
+  const chartAreaRef      = useRef(null);
 
   const currentYear = new Date().getFullYear();
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!chartAreaRef.current) return;
+    if (!document.fullscreenElement) {
+      chartAreaRef.current.requestFullscreen().catch((err) => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen().catch((err) => {
+        console.error(`Error attempting to exit fullscreen: ${err.message}`);
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
 
   const [selectedYear,    setSelectedYear]    = useState(currentYear);
   const [topK,            setTopK]            = useState(20);
@@ -374,8 +456,8 @@ export default function YTDPerformance() {
       <div className="flex flex-col-reverse md:flex-row flex-1 overflow-hidden relative z-10">
 
         {/* ── CHART AREA ── */}
-        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-          <div className="flex flex-col md:flex-row md:items-center justify-between px-5 pt-4 pb-2 shrink-0 gap-3 md:gap-0">
+        <div ref={chartAreaRef} className="flex flex-col flex-1 min-w-0 overflow-hidden fullscreen-container">
+          <div className="flex flex-row items-center justify-between px-5 pt-4 pb-2 shrink-0 gap-3">
             <div className="flex items-center gap-4">
               <span className="text-[14px] font-semibold text-white/90 tracking-tight">YTD Performance (% Change)</span>
               {!spinning && selectedSymbol && selectedColor && (
@@ -387,16 +469,23 @@ export default function YTDPerformance() {
                 </div>
               )}
             </div>
+            {!spinning && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleFullscreen}
+                  className="flex items-center gap-1.5 px-3 h-8 text-[12px] font-semibold tracking-wider uppercase rounded-lg transition-all bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-slate-300 hover:text-white"
+                >
+                  {isFullscreen ? <MinimizeIcon /> : <MaximizeIcon />}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ── CHART MOUNT ── */}
           <div className="flex-1 min-h-0 px-2 pb-3 relative">
             {spinning ? (
               <div className="w-full h-full p-4">
-                <div className="w-full h-full bg-slate-800/40 animate-pulse rounded-2xl border border-white/5 flex flex-col items-center justify-center gap-3">
-                   <div className="w-1/2 h-4 bg-slate-700/50 rounded-full animate-pulse" />
-                   <div className="w-1/3 h-3 bg-slate-700/30 rounded-full animate-pulse" />
-                </div>
+                <WaveSkeleton delay={0} />
               </div>
             ) : (
               <>
@@ -516,11 +605,7 @@ export default function YTDPerformance() {
           {spinning ? (
             <div className="hidden md:block flex-1 overflow-hidden px-2 pt-2">
               {[...Array(12)].map((_, i) => (
-                <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 mb-1 animate-pulse">
-                  <div className="w-3 h-3 rounded-full bg-slate-800/60" />
-                  <div className="flex-1 h-3.5 bg-slate-800/60 rounded-full w-24" />
-                  <div className="h-3.5 bg-slate-800/40 rounded-full w-12" />
-                </div>
+                <TableRowSkeleton key={i} delay={i * 0.1} />
               ))}
             </div>
           ) : (
@@ -561,6 +646,15 @@ export default function YTDPerformance() {
         .custom-scrollbar::-webkit-scrollbar-track { background:transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background:#475569; border-radius:10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background:#64748b; }
+        
+        .fullscreen-container:-webkit-full-screen {
+          background-color: #0d1117 !important;
+          padding: 16px;
+        }
+        .fullscreen-container:fullscreen {
+          background-color: #0d1117 !important;
+          padding: 16px;
+        }
       `}</style>
     </div>
   );
