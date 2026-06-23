@@ -37,6 +37,7 @@ import S50OutstandingShort from "@/pages/Hidden/S50OutstandingShort";
 import StockDataTable from "@/pages/Hidden/StockDataTable"; 
 import Options from "@/pages/Hidden/options";
 import YTD from "@/pages/Hidden/ytd";
+import hisdaytrade from "@/pages/Hidden/hisdaytrade";
 
 /* ================= CONSTANTS ================= */
 const CHART_IMAGE_URL = "https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=1964&auto=format&fit=crop";
@@ -92,6 +93,7 @@ const TOOL_CONFIG = {
 
   "options": { component: Options, id: "options", name: "Options Analysis", isPremium: false },
   "ytd": { component: YTD, id: "ytd", name: "YTD Performance", isPremium: false },
+  "hisdaytrade": { component: hisdaytrade, id: "hisdaytrade", name: "Historical Day Trade", isPremium: false },
 };
 
 const FULL_WIDTH_PAGES = []; 
@@ -180,7 +182,7 @@ export default function Dashboard({ initialPage }) {
       else if (path === "stock-data-table") setActivePage("stock-data-table");
       else if (path === "options") setActivePage("options");
       else if (path === "ytd") setActivePage("ytd");
-
+      else if (path === "hisdaytrade") setActivePage("hisdaytrade");
 
       else setActivePage("preview-projects"); 
     }
