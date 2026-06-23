@@ -47,6 +47,7 @@ import s50outIcon from "@/assets/icons/s50out.svg";
 import optionsIcon from "@/assets/icons/options.svg";
 import multibidaskIcon from "@/assets/icons/multibidask.svg";
 import amultibidaskIcon from "@/assets/icons/amultibidask.svg";
+import hisDayTradeIcon from "@/assets/icons/hisday.svg";
 
 /* ================= ICON MAP ================= */
 const sidebarIcons = {
@@ -70,6 +71,7 @@ const sidebarIcons = {
   options: { default: optionsIcon, active: optionsIcon },
   multibidask: { default: multibidaskIcon, active: amultibidaskIcon },
   ytd: { default: s50outIcon, active: s50outIcon },
+  hisdaytrade: { default: hisDayTradeIcon, active: hisDayTradeIcon },
 };
 
 const getIcon = (key, active) => {
@@ -791,6 +793,7 @@ const SidebarContent = ({
           </div>
         </button>
 
+        
         {/* ACCOUNT SECTION */}
         {isCollapsed
           ? <div className="w-8 h-[1px] bg-white/10 my-1 shrink-0" />
