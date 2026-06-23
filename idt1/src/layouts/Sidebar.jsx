@@ -157,6 +157,34 @@ const ChartFlipIconSVG = ({ active }) => {
   );
 };
 
+/* His Day Trade icon — desk computer with investment chart (custom inline SVG) */
+const HisDayTradeIconSVG = ({ active }) => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 216.739 216.739"
+    fill={active ? "#ffffff" : "#9ca3af"}
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M189.317,120.237h-29.445V67.492h29.445V120.237z M216.739,164.37c0,2.762-2.238,5-5,5h-7.907h-58.474H90.324H42.421H5
+      c-2.762,0-5-2.238-5-5s2.238-5,5-5h32.494c0.354-2.414,2.414-4.273,4.927-4.273c3.603,0,6.702-2.188,8.044-5.305H9.397
+      c-2.762,0-5-2.238-5-5V64.689c0-2.762,2.238-5,5-5h113.949c2.762,0,5,2.238,5,5v80.103c0,2.762-2.238,5-5,5H82.28
+      c1.342,3.116,4.442,5.305,8.044,5.305c2.513,0,4.572,1.859,4.927,4.273h45.107v-107c0-2.762,2.238-5,5-5h58.474c2.762,0,5,2.238,5,5
+      v107h2.907C214.501,159.37,216.739,161.608,216.739,164.37z M65.847,123.379L94.833,97.26c0.841,1.579,2.503,2.654,4.417,2.654
+      c2.762,0,5-2.238,5-5v-8.365c0-0.305-0.037-0.603-0.09-0.896c-0.016-0.09-0.038-0.177-0.059-0.266
+      c-0.051-0.212-0.115-0.419-0.193-0.621c-0.03-0.078-0.055-0.157-0.088-0.233c-0.115-0.259-0.248-0.509-0.404-0.744
+      c-0.034-0.051-0.074-0.096-0.11-0.146c-0.134-0.187-0.28-0.364-0.438-0.531c-0.062-0.065-0.125-0.126-0.189-0.188
+      c-0.159-0.15-0.328-0.289-0.506-0.418c-0.061-0.044-0.117-0.092-0.179-0.133c-0.224-0.147-0.459-0.281-0.709-0.393
+      c-0.015-0.006-0.031-0.01-0.046-0.016c-0.064-0.028-0.132-0.046-0.197-0.071c-0.214-0.082-0.43-0.15-0.649-0.202
+      c-0.091-0.021-0.183-0.04-0.276-0.056c-0.25-0.044-0.501-0.07-0.752-0.076c-0.039-0.001-0.074-0.012-0.113-0.012h-9.333
+      c-2.762,0-5,2.238-5,5c0,1.741,0.891,3.271,2.241,4.166l-24.23,21.833l-6.91-7.921c-1.722-1.971-4.673-2.285-6.768-0.713l-24,18
+      c-2.209,1.657-2.657,4.791-1,7c0.982,1.31,2.483,2,4.004,2c1.044,0,2.097-0.325,2.996-1L51.535,114.7l7.197,8.251
+      c0.881,1.01,2.13,1.623,3.468,1.704C63.544,124.731,64.852,124.275,65.847,123.379z M183.495,147.792c0-4.907-3.993-8.899-8.9-8.899
+      s-8.9,3.992-8.9,8.899s3.993,8.9,8.9,8.9S183.495,152.699,183.495,147.792z M199.317,62.492c0-2.762-2.238-5-5-5h-39.445
+      c-2.762,0-5,2.238-5,5v62.745c0,2.762,2.238,5,5,5h39.445c2.762,0,5-2.238,5-5V62.492z"/>
+  </svg>
+);
+
 /* ================= FLOATING TOOLTIP ================= */
 const FloatingTooltip = ({ visible, top, text }) => {
   if (!visible) return null;
@@ -742,6 +770,24 @@ const SidebarContent = ({
               }
             />
             {!isCollapsed && <span>Multi BidAsk</span>}
+          </div>
+        </button>
+
+        {/* His Day Trade Button */}
+        <button
+          onClick={() => handleNavigation("hisdaytrade")}
+          onMouseEnter={(e) => handleMouseEnter(e, "His Day Trade")}
+          onMouseLeave={handleMouseLeave}
+          className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
+          ${activePage === "hisdaytrade" ? "bg-slate-800" : "hover:bg-white/5"}
+          ${isCollapsed ? "w-10 h-10 justify-center" : "w-full h-11 px-4 justify-between"}`}
+        >
+          <div className={`flex items-center gap-3 font-medium transition-colors pointer-events-none
+            ${activePage === "hisdaytrade" ? "text-white" : "text-gray-400"}
+            ${isCollapsed ? "justify-center w-full" : ""}`}
+          >
+            <HisDayTradeIconSVG active={activePage === "hisdaytrade"} />
+            {!isCollapsed && <span>His Day Trade</span>}
           </div>
         </button>
 
