@@ -180,7 +180,7 @@ function TradeTable({ trades, loading }) {
 }
 
 function td(row) {
-  return { padding: "8px 6px", color: row.highlight ? "#d1fae5" : "#cbd5e1", textAlign: "center" };
+  return { padding: "10px 8px", color: row.highlight ? "#d1fae5" : "#cbd5e1", textAlign: "center" };
 }
 
 function Field({ label, value, onChange, icon, width = 150 }) {
@@ -197,7 +197,7 @@ function Field({ label, value, onChange, icon, width = 150 }) {
         </span>
       )}
       <div style={{
-        display: "flex", alignItems: "center", gap: 6, height: 38,
+        display: "flex", alignItems: "center", gap: 6, height: 44,
         background: "#111827", border: `1px solid ${focused ? "#3b82f6" : "rgba(255, 255, 255, 0.08)"}`,
         boxShadow: focused ? "0 0 0 2.5px rgba(59, 130, 246, 0.2)" : "none",
         borderRadius: 20, padding: "0 14px", boxSizing: "border-box",
@@ -213,7 +213,7 @@ function Field({ label, value, onChange, icon, width = 150 }) {
           onBlur={() => setFocused(false)}
           style={{
             background: "transparent", border: "none", outline: "none",
-            color: "#e2e8f0", fontSize: 13, width: "100%", minWidth: 0,
+            color: "#e2e8f0", fontSize: 14, width: "100%", minWidth: 0,
           }}
         />
         {icon && <span style={{ color: "#334155", fontSize: 15, flexShrink: 0 }}>{icon}</span>}
@@ -243,7 +243,7 @@ function SymbolDropdown({ value, onChange, width = 180 }) {
         Symbol *
       </span>
       <div style={{
-        display: "flex", alignItems: "center", gap: 6, height: 38,
+        display: "flex", alignItems: "center", gap: 6, height: 44,
         background: "#111827", border: `1px solid ${focused || open ? "#3b82f6" : "rgba(255, 255, 255, 0.08)"}`,
         boxShadow: (focused || open) ? "0 0 0 2.5px rgba(59, 130, 246, 0.2)" : "none",
         borderRadius: 20, padding: "0 14px", boxSizing: "border-box",
@@ -261,7 +261,7 @@ function SymbolDropdown({ value, onChange, width = 180 }) {
           placeholder="Search symbol…"
           style={{
             background: "transparent", border: "none", outline: "none",
-            color: "#e2e8f0", fontSize: 13, width: "100%", minWidth: 0,
+            color: "#e2e8f0", fontSize: 14, width: "100%", minWidth: 0,
           }}
         />
         {(value || q) && (
@@ -320,7 +320,6 @@ function SymbolDropdown({ value, onChange, width = 180 }) {
   );
 }
 
-// ── LEFT SIDE CALENDAR ──
 const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const FULL_MONTH  = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DAY_NAMES   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -375,7 +374,7 @@ function CalChev({ d }) {
 
 function CalIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="4" width="18" height="18" rx="2" />
       <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
       <line x1="3" y1="10" x2="21" y2="10" />
@@ -386,7 +385,6 @@ function CalIcon() {
 function DatePicker({ label, value, onChange, width = 160 }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState("day");
-  const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
   const ref = useRef(null);
 
   const init = useMemo(() => parseDMY(value) || { month: new Date().getMonth() + 1, year: new Date().getFullYear() }, [value]); // eslint-disable-line
@@ -418,13 +416,6 @@ function DatePicker({ label, value, onChange, width = 160 }) {
   const openCalendar = () => {
     const p = parseDMY(value);
     if (p) { setViewMonth(p.month); setViewYear(p.year); }
-    if (ref.current) {
-      const rect = ref.current.getBoundingClientRect();
-      const POPUP_W = 252;
-      const clampedLeft = Math.min(rect.left, window.innerWidth - POPUP_W - 8);
-      const clampedTop  = Math.min(rect.bottom + 8, window.innerHeight - 8);
-      setPopupPos({ top: clampedTop, left: Math.max(8, clampedLeft) });
-    }
     setOpen((o) => !o);
     setView("day");
   };
@@ -437,7 +428,7 @@ function DatePicker({ label, value, onChange, width = 160 }) {
     overflow: "hidden", maxHeight: 360, overflowY: "auto",
   };
   const dpHeader = {
-    display: "flex", alignItems: "center", justifySpace: "between",
+    display: "flex", alignItems: "center", justifyContent: "space-between",
     padding: "10px 14px 8px", borderBottom: "0.5px solid rgba(255,255,255,0.07)",
   };
 
@@ -453,10 +444,10 @@ function DatePicker({ label, value, onChange, width = 160 }) {
         </span>
       )}
       <button onClick={openCalendar} style={{
-        display: "flex", alignItems: "center", gap: 7, padding: "0 14px", height: 38, width: "100%",
+        display: "flex", alignItems: "center", gap: 7, padding: "0 14px", height: 44, width: "100%",
         background: "#111827", border: `1px solid ${open ? "#3b82f6" : "rgba(255, 255, 255, 0.08)"}`,
         boxShadow: open ? "0 0 0 2.5px rgba(59, 130, 246, 0.2)" : "none",
-        borderRadius: 20, cursor: "pointer", color: "#e2e8f0", fontSize: 13,
+        borderRadius: 20, cursor: "pointer", color: "#e2e8f0", fontSize: 14,
         transition: "all 0.2s ease", justifyContent: "space-between",
         boxSizing: "border-box",
       }}
@@ -612,7 +603,6 @@ function DatePicker({ label, value, onChange, width = 160 }) {
   );
 }
 
-// ── RIGHT SIDE TRADING CALENDAR ──
 function getTradingDates(numDays = 2087) {
     const dates = [];
     const base = new Date("2019-01-02");
@@ -645,13 +635,12 @@ function formatTradingDisplay(key) {
     return `${String(day).padStart(2, "0")} ${M[month - 1]} ${year}`;
 }
 
-const TradingDatePicker = memo(({ dates, selected, onChange, label, disabled }) => {
+const TradingDatePicker = memo(({ dates, selected, onChange, label, disabled, align = "left" }) => {
     const [open, setOpen] = useState(false);
     const [view, setView] = useState("day");
-    const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
     const ref = useRef(null);
 
-    const FULL_MONTH = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const FULL_MONTH_T = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const SHORT_MONTH = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
     const initView = useMemo(() => {
@@ -714,7 +703,9 @@ const TradingDatePicker = memo(({ dates, selected, onChange, label, disabled }) 
     }, [viewMonth, viewYear]);
 
     const popup = {
-        position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 9999,
+        position: "absolute", top: "calc(100% + 6px)",
+        ...(align === "right" ? { right: 0 } : { left: 0 }),
+        zIndex: 9999,
         width: 252, background: "#0f172a",
         border: "0.5px solid rgba(255,255,255,0.12)", borderRadius: 12,
         boxShadow: "0 16px 40px rgba(0,0,0,0.6)", fontFamily: "monospace",
@@ -748,13 +739,6 @@ const TradingDatePicker = memo(({ dates, selected, onChange, label, disabled }) 
         if (disabled) return;
         const p = parseTradingKey(selected);
         if (p) { setViewMonth(p.month); setViewYear(p.year); }
-        if (ref.current) {
-            const rect = ref.current.getBoundingClientRect();
-            const POPUP_W = 252;
-            const clampedLeft = Math.min(rect.left, window.innerWidth - POPUP_W - 8);
-            const clampedTop  = Math.min(rect.bottom + 6, window.innerHeight - 8);
-            setPopupPos({ top: clampedTop, left: Math.max(8, clampedLeft) });
-        }
         setOpen(o => !o);
         setView("day");
     };
@@ -771,26 +755,27 @@ const TradingDatePicker = memo(({ dates, selected, onChange, label, disabled }) 
                 {label}
               </span>
             )}
-            <button onClick={openCalendar} className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 w-full justify-between" style={{
+            <button onClick={openCalendar} style={{
                 background: "#111827",
-                border: disabled ? "1px solid rgba(255, 255, 255, 0.05)" : (open ? "1px solid #3b82f6" : "rgba(255, 255, 255, 0.08)"),
-                borderRadius: 20, cursor: disabled ? "default" : "pointer", 
-                color: disabled ? "#475569" : "#e2e8f0", 
-                height: 38,
-                fontSize: 10, fontWeight: 500, fontFamily: "monospace", transition: "all .2s ease",
+                border: disabled ? "1px solid rgba(255, 255, 255, 0.05)" : (open ? "1px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.08)"),
+                borderRadius: 20, cursor: disabled ? "default" : "pointer",
+                color: disabled ? "#475569" : "#e2e8f0",
+                height: 44, width: "100%",
+                fontSize: 12, fontWeight: 500, fontFamily: "monospace", transition: "all .2s ease",
                 boxShadow: open ? "0 0 0 2.5px rgba(59, 130, 246, 0.2)" : "none",
                 boxSizing: "border-box",
+                display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 12px",
             }}
             onMouseEnter={(e) => { if (!disabled && !open) e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)"; }}
             onMouseLeave={(e) => { if (!disabled && !open) e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)"; }}
             >
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <svg className="w-3 h-3 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="none" stroke={disabled ? "#64748b" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={disabled ? "#64748b" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="3" y="4" width="18" height="18" rx="2" />
                         <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
                         <line x1="3" y1="10" x2="21" y2="10" />
                     </svg>
-                    <span className="text-[10px] sm:text-xs">{formatTradingDisplay(selected)}</span>
+                    <span style={{ fontSize: 12 }}>{formatTradingDisplay(selected)}</span>
                 </div>
                 <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke={disabled ? "#64748b" : "#94a3b8"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                     style={{ opacity: .8, transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }}>
@@ -890,7 +875,7 @@ const TradingDatePicker = memo(({ dates, selected, onChange, label, disabled }) 
                             <button style={titleBtn} onClick={() => setView("month")}
                                 onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
                                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                                {FULL_MONTH[viewMonth - 1]} {viewYear} <Chev d="down" />
+                                {FULL_MONTH_T[viewMonth - 1]} {viewYear} <Chev d="down" />
                             </button>
                             <button style={navBtn(canNext())} onClick={nextMonth}
                                 onMouseEnter={e => { if (canNext()) e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
@@ -977,7 +962,7 @@ function timeFrom24(val = "10:00") {
 
 function ClockIcon() {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <polyline points="12 6 12 12 16 14" />
     </svg>
@@ -986,7 +971,6 @@ function ClockIcon() {
 
 function TimeDropdown({ label, value, onChange, width = 160 }) {
   const [open, setOpen] = useState(false);
-  const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
   const ref = useRef(null);
   const listRef = useRef(null);
 
@@ -1012,10 +996,6 @@ function TimeDropdown({ label, value, onChange, width = 160 }) {
     const sel = listRef.current.querySelector("[data-selected='true']");
     if (sel) setTimeout(() => sel.scrollIntoView({ block: "center" }), 0);
   }, [open]);
-
-  const openDropdown = () => {
-    setOpen((o) => !o);
-  };
 
   const pickSlot = (slot) => {
     setH(slot.h);
@@ -1050,11 +1030,11 @@ function TimeDropdown({ label, value, onChange, width = 160 }) {
           {label}
         </span>
       )}
-      <button onClick={openDropdown} style={{
-        display: "flex", alignItems: "center", gap: 7, padding: "0 14px", height: 38, width: "100%",
+      <button onClick={() => setOpen((o) => !o)} style={{
+        display: "flex", alignItems: "center", gap: 7, padding: "0 14px", height: 44, width: "100%",
         background: "#111827", border: `1px solid ${open ? "#3b82f6" : "rgba(255, 255, 255, 0.08)"}`,
         boxShadow: open ? "0 0 0 2.5px rgba(59, 130, 246, 0.2)" : "none",
-        borderRadius: 20, cursor: "pointer", color: "#e2e8f0", fontSize: 13,
+        borderRadius: 20, cursor: "pointer", color: "#e2e8f0", fontSize: 14,
         transition: "all 0.2s ease", justifyContent: "space-between",
         boxSizing: "border-box",
       }}
@@ -1127,7 +1107,7 @@ function TimeDropdown({ label, value, onChange, width = 160 }) {
 
 function SearchIcon() {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="8" />
       <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
@@ -1140,11 +1120,11 @@ function SearchBtn({ onClick, loading }) {
       onClick={onClick}
       disabled={loading}
       style={{
-        height: 38, padding: "0 20px", borderRadius: 20, border: "none",
+        height: 44, padding: "0 22px", borderRadius: 20, border: "none",
         cursor: loading ? "default" : "pointer",
         background: loading ? "#1e293b" : "linear-gradient(135deg, #06b6d4, #3b82f6)",
         color: loading ? "#64748b" : "#fff",
-        fontWeight: 700, fontSize: 13, letterSpacing: "0.04em",
+        fontWeight: 700, fontSize: 14, letterSpacing: "0.04em",
         boxShadow: loading ? "none" : "0 0 16px rgba(6,182,212,0.35)",
         transition: "all 0.2s ease",
         alignSelf: "flex-end",
@@ -1167,7 +1147,7 @@ function SearchBtn({ onClick, loading }) {
     >
       {loading && (
         <span style={{
-          width: 11, height: 11, borderRadius: "50%",
+          width: 12, height: 12, borderRadius: "50%",
           border: "2px solid rgba(255,255,255,0.25)", borderTopColor: "#67e8f9",
           animation: "spin 0.7s linear infinite", display: "inline-block",
         }} />
@@ -1199,9 +1179,9 @@ function ExcBadge({ label, active, onClick }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        padding: "4px 11px", borderRadius: 6,
+        padding: "6px 16px", borderRadius: 8,
         border, background, color,
-        fontWeight: 600, fontSize: 12, cursor: "pointer",
+        fontWeight: 600, fontSize: 13, cursor: "pointer",
         boxShadow: active ? "0 0 10px rgba(6, 182, 212, 0.25)" : "none",
         transition: "all 0.15s ease",
       }}
@@ -1228,18 +1208,17 @@ function PauseIcon() {
   );
 }
 
-
-
 export default function HisDayTrade() {
   const [activeExc, setActiveExc] = useState([...EXCHANGES]);
 
   const [leftDate, setLeftDate] = useState("13/06/2025");
   const [leftTime, setLeftTime] = useState("10:00");
   const [symbol, setSymbol] = useState("");
-  
+
   const tradingDates = useMemo(() => getTradingDates(), []);
   const [startDate, setStartDate] = useState(() => tradingDates[tradingDates.length - 1] ?? "13/06/2026");
-  
+  const [endDate, setEndDate] = useState(() => tradingDates[tradingDates.length - 1] ?? "13/06/2026");
+
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("16:30");
   const [speed, setSpeed] = useState("1");
@@ -1250,7 +1229,6 @@ export default function HisDayTrade() {
   const [tradesLeft, setTradesLeft] = useState(() => generateTrades("init-left", 10));
   const [tradesRight, setTradesRight] = useState(() => generateTrades("init-right", 10));
   const [tradeLoading, setTradeLoading] = useState(false);
-  const [lastSearch, setLastSearch] = useState(null);
 
   const [orderbook, setOrderbook] = useState(null);
   const [obLoading, setObLoading] = useState(false);
@@ -1311,14 +1289,13 @@ export default function HisDayTrade() {
       const rightSeed = `trades-right|${leftDate}|${leftTime}|${excKey}`;
       setTradesLeft(generateTrades(leftSeed, 10));
       setTradesRight(generateTrades(rightSeed, 10));
-      setLastSearch({ date: leftDate, time: leftTime });
       setTradeLoading(false);
     }, 500);
 
     setTimeout(() => {
       if (symbol) {
         const pick = SYMBOL_POOL.find((s) => s.symbol === symbol) || SYMBOL_POOL[0];
-        const obSeed = `orderbook|${symbol}|${startDate}|${startDate}|${startTime}|${endTime}`;
+        const obSeed = `orderbook|${symbol}|${startDate}|${endDate}|${startTime}|${endTime}`;
         setObBaseSeed(obSeed);
         setObBasePrice(pick.base);
         setOrderbook(generateOrderbook(`${obSeed}|tick-0`, pick.base));
@@ -1330,7 +1307,7 @@ export default function HisDayTrade() {
       }
       setObLoading(false);
     }, 650);
-  }, [symbol, leftDate, leftTime, activeExc, startDate, startTime, endTime]);
+  }, [symbol, leftDate, leftTime, activeExc, startDate, endDate, startTime, endTime]);
 
   const card = {
     background: "rgba(17, 24, 39, 0.85)",
@@ -1344,30 +1321,9 @@ export default function HisDayTrade() {
 
   const sectionLabel = {
     fontSize: 10, color: "#64748b", letterSpacing: "0.12em",
-    textTransform: "uppercase", marginBottom: 12, display: "block",
+    textTransform: "uppercase", marginBottom: 16, display: "block",
     fontWeight: 600,
   };
-
-  const maxVol = useMemo(() => {
-    if (!orderbook || !orderbook.rows) return 1;
-    let m = 1;
-    orderbook.rows.forEach(r => {
-      if (r.volBid > m) m = r.volBid;
-      if (r.volAsk > m) m = r.volAsk;
-    });
-    return m;
-  }, [orderbook]);
-
-  const { totalBid, totalAsk, sum5Bid, sum5Ask } = useMemo(() => {
-    if (!orderbook || !orderbook.rows) {
-      return { totalBid: 0, totalAsk: 0, sum5Bid: 0, sum5Ask: 0 };
-    }
-    const totalBid = orderbook.rows.reduce((sum, r) => sum + (r.volBid || 0), 0);
-    const totalAsk = orderbook.rows.reduce((sum, r) => sum + (r.volAsk || 0), 0);
-    const sum5Bid = orderbook.rows.slice(0, 5).reduce((sum, r) => sum + (r.volBid || 0), 0);
-    const sum5Ask = orderbook.rows.slice(0, 5).reduce((sum, r) => sum + (r.volAsk || 0), 0);
-    return { totalBid, totalAsk, sum5Bid, sum5Ask };
-  }, [orderbook]);
 
   return (
     <div style={{
@@ -1379,40 +1335,26 @@ export default function HisDayTrade() {
     }}>
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        /* Custom scrollbar styling */
-        .custom-scroll::-webkit-scrollbar {
-          width: 4px;
-          height: 4px;
-        }
-        .custom-scroll::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.01);
-        }
-        .custom-scroll::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 2px;
-        }
-        .custom-scroll::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.25);
-        }
+        .custom-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.01); }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 2px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
       `}</style>
 
       <div style={{ display: "flex", gap: 16, alignItems: "stretch", flex: 1, minHeight: 0 }}>
 
-        {/* LEFT PANEL */}
+        {/* ── LEFT PANEL ── */}
         <div style={{ flex: "2 1 520px", minWidth: 340, position: "relative", overflow: "visible", display: "flex", flexDirection: "column", minHeight: 0 }}>
-          {/* ToolHint — top-left corner */}
           <div style={{ position: "absolute", top: -12, left: -12, zIndex: 20 }}>
             <ToolHint onViewDetails={() => {}}>
               Trade History — Select an exchange, pick a date & time, then hit Search. Compare left vs right columns for two sessions.
               Order Book Replay — Pick a symbol & date, hit Search, then use Play / Pause and the speed slider to simulate the live order book.
             </ToolHint>
           </div>
-          {/* actual card */}
           <div style={{ ...card, flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
-
             <div style={{ marginBottom: 14, flexShrink: 0 }}>
               <span style={sectionLabel}>Exchange</span>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                 {EXCHANGES.map((exc) => (
                   <ExcBadge key={exc} label={exc} active={activeExc.includes(exc)} onClick={() => toggleExc(exc)} />
                 ))}
@@ -1420,192 +1362,193 @@ export default function HisDayTrade() {
             </div>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-end", marginBottom: 14, flexShrink: 0 }}>
-              <DatePicker label="Select Date" value={leftDate} onChange={setLeftDate} width={158} />
-              <TimeDropdown label="Select Time" value={leftTime} onChange={setLeftTime} width={160} />
+              <DatePicker label="Select Date" value={leftDate} onChange={setLeftDate} width={168} />
+              <TimeDropdown label="Select Time" value={leftTime} onChange={setLeftTime} width={170} />
               <SearchBtn onClick={handleSearch} loading={tradeLoading || obLoading} />
             </div>
 
             <div style={{ height: 1, background: "rgba(255, 255, 255, 0.05)", marginBottom: 14, flexShrink: 0 }} />
 
-            <div className="custom-scroll" style={{ flex: 1, minHeight: 0, display: "flex", gap: 16, overflow: "auto", alignItems: "stretch" }}>
+            <div className="custom-scroll" style={{ flex: 1, minHeight: 0, display: "flex", gap: 20, overflow: "auto", alignItems: "stretch" }}>
               <div style={{ flex: 1, minWidth: 240 }}><TradeTable trades={tradesLeft} loading={tradeLoading} /></div>
-              <div style={{ width: 1, background: "rgba(255, 255, 255, 0.05)", flexShrink: 0 }} />
+              <div style={{
+                width: 1, flexShrink: 0,
+                background: "linear-gradient(to bottom, transparent 0%, rgba(148,163,184,0.45) 12%, rgba(148,163,184,0.45) 88%, transparent 100%)",
+              }} />
               <div style={{ flex: 1, minWidth: 240 }}><TradeTable trades={tradesRight} loading={tradeLoading} /></div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT PANEL */}
+        {/* ── RIGHT PANEL ── */}
         <div style={{ flex: "1 1 320px", minWidth: 300, position: "relative", overflow: "visible", display: "flex", flexDirection: "column", minHeight: 0 }}>
-          {/* actual card */}
           <div style={{ ...card, flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "visible" }}>
 
-          <span style={{ ...sectionLabel, flexShrink: 0 }}>Order Book Replay</span>
+            <span style={{ ...sectionLabel, flexShrink: 0 }}>Order Book Replay</span>
 
-          {/* ── Symbol + DateRange on the same row ── */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 12, flexShrink: 0, alignItems: "flex-end" }}>
-            <div style={{ flex: "1 1 120px", minWidth: 100 }}>
-              <SymbolDropdown value={symbol} onChange={setSymbol} width="100%" />
+            {/* Row 1: Symbol + Start Date + End Date */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 10, flexShrink: 0, alignItems: "flex-end" }}>
+              <div style={{ flex: "1 1 0", minWidth: 0 }}>
+                <SymbolDropdown value={symbol} onChange={setSymbol} width="100%" />
+              </div>
+              <div style={{ flex: "1 1 0", minWidth: 0 }}>
+                <TradingDatePicker dates={tradingDates} selected={startDate} onChange={setStartDate} label="Start Date" />
+              </div>
+              <div style={{ flex: "1 1 0", minWidth: 0 }}>
+                <TradingDatePicker dates={tradingDates} selected={endDate} onChange={setEndDate} label="End Date" align="right" />
+              </div>
             </div>
-            <div style={{ flex: "1 1 120px", minWidth: 100 }}>
-              <TradingDatePicker
-                dates={tradingDates}
-                selected={startDate}
-                onChange={setStartDate}
-                label="Start Date"
-              />
+
+            {/* Row 2: Start Time + End Time + Speed */}
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 10, flexShrink: 0 }}>
+              <div style={{ flex: 2, minWidth: 0 }}><TimeDropdown label="Start Time" value={startTime} onChange={setStartTime} width="100%" /></div>
+              <div style={{ flex: 2, minWidth: 0 }}><TimeDropdown label="End Time" value={endTime} onChange={setEndTime} width="100%" /></div>
+              <div style={{ flex: 1, minWidth: 0 }}><Field label="Speed" value={speed} onChange={setSpeed} width="100%" /></div>
             </div>
-            <div style={{ flex: "1 1 120px", minWidth: 100 }}>
-              <TradingDatePicker
-                dates={tradingDates}
-                selected={startDate}
-                disabled={true}
-                label="End Date"
-              />
-            </div>
-          </div>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-end", marginBottom: 12, flexShrink: 0 }}>
-            <TimeDropdown label="Start Time" value={startTime} onChange={setStartTime} width={160} />
-            <TimeDropdown label="End Time"   value={endTime}   onChange={setEndTime}   width={160} />
-            <Field label="Speed" value={speed} onChange={setSpeed} width={60} />
-            <SearchBtn onClick={handleSearch} loading={tradeLoading || obLoading} />
-          </div>
-
-          <div style={{
-            background: "#0f172a", border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: 12,
-            padding: "8px 16px", marginBottom: 14, flexShrink: 0,
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-          }}>
-            <span style={{
-              fontFamily: "'JetBrains Mono', 'Courier New', monospace",
-              fontSize: 24, fontWeight: 700, letterSpacing: "0.08em",
-              color: playing ? "#34d399" : "#cbd5e1",
-              transition: "color 0.3s",
-            }}>
-              {fmtTimer(timer)}
-            </span>
-            <button
-              disabled={!orderbook}
-              onClick={() => setPlaying(!playing)}
-              style={{
-                width: 36, height: 36, borderRadius: "50%",
-                border: "none",
-                background: !orderbook ? "#1e293b" : "linear-gradient(135deg, #06b6d4, #3b82f6)",
-                color: !orderbook ? "#475569" : "#fff",
-                cursor: !orderbook ? "default" : "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: !orderbook || !playing ? "none" : "0 0 12px rgba(6, 182, 212, 0.4)",
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => { if (orderbook) e.currentTarget.style.filter = "brightness(1.15)"; }}
-              onMouseLeave={(e) => { if (orderbook) e.currentTarget.style.filter = "brightness(1)"; }}
-            >
-              {playing ? <PauseIcon /> : <PlayIcon />}
-            </button>
-          </div>
-
-          <div style={{ flex: 1, minHeight: 0, overflow: "auto", marginBottom: 12, ...scrollbarHide }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-              <thead>
-                <tr>
-                  {["Vol BID", "BID", "ASK", "Vol ASK"].map((h) => (
-                    <th key={h} style={{
-                      padding: "8px 6px", background: "#1e3a5f",
-                      color: "#93c5fd", fontWeight: 700, textAlign: "center",
-                      fontSize: 11, letterSpacing: "0.04em", borderBottom: "1px solid #1e3a8a",
-                    }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody style={{ opacity: obLoading ? 0.35 : 1, transition: "opacity 0.15s" }}>
-                {Array.from({ length: ORDERBOOK_ROW_COUNT }).map((_, i) => {
-                  const row = orderbook?.rows?.[i];
-                  const bidRaw = row?.volBid || 0;
-                  const askRaw = row?.volAsk || 0;
-
-                  let bidVolColor = "#64748b"; // default slate-500
-                  let bidVolWeight = "normal";
-                  let bidVolShadow = "none";
-
-                  let askVolColor = "#64748b"; // default slate-500
-                  let askVolWeight = "normal";
-                  let askVolShadow = "none";
-
-                  if (row) {
-                    if (bidRaw > askRaw * 1.5) {
-                      bidVolColor = "#4ade80"; // green-400
-                      bidVolWeight = "bold";
-                      bidVolShadow = "drop-shadow(0 0 6px rgba(74, 222, 128, 0.5))";
-                    } else if (askRaw > bidRaw * 1.5) {
-                      askVolColor = "#f87171"; // red-400
-                      askVolWeight = "bold";
-                      askVolShadow = "drop-shadow(0 0 6px rgba(248, 113, 113, 0.5))";
-                    }
-                  }
-
-                  return (
-                    <tr key={i} style={{ background: i % 2 === 0 ? "#0f172a" : "#111827" }}>
-                      <td style={{ padding: "6px", textAlign: "center", color: row ? bidVolColor : "#334155", fontWeight: row ? bidVolWeight : "normal", filter: bidVolShadow, fontSize: 12 }}>
-                        {row ? fmt(row.volBid, 0) : "—"}
-                      </td>
-                      <td style={{ padding: "6px", textAlign: "center", color: row ? "#ffffff" : "#334155", fontWeight: row ? 600 : "normal", fontSize: 12 }}>
-                        {row ? fmt(row.bid) : "—"}
-                      </td>
-                      <td style={{ padding: "6px", textAlign: "center", color: row ? "#ffffff" : "#334155", fontWeight: row ? 600 : "normal", fontSize: 12 }}>
-                        {row ? fmt(row.ask) : "—"}
-                      </td>
-                      <td style={{ padding: "6px", textAlign: "center", color: row ? askVolColor : "#334155", fontWeight: row ? askVolWeight : "normal", filter: askVolShadow, fontSize: 12 }}>
-                        {row ? fmt(row.volAsk, 0) : "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                <tr style={{ background: "#0f172a", borderTop: "1px solid #1e293b" }}>
-                  <td colSpan={2} style={{ padding: "8px 10px" }}>
-                    <span style={{ fontSize: 10, color: "#475569", display: "block" }}>Sum Bid</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "#34d399" }}>
-                      {orderbook ? fmt(orderbook.sumBid, 0) : 0}
-                    </span>
-                  </td>
-                  <td colSpan={2} style={{ padding: "8px 10px", textAlign: "right" }}>
-                    <span style={{ fontSize: 10, color: "#475569", display: "block" }}>Sum Ask</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "#f87171" }}>
-                      {orderbook ? fmt(orderbook.sumAsk, 0) : 0}
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexShrink: 0 }}>
-            <div style={{ flex: 1, position: "relative", height: 6, background: "#1e293b", borderRadius: 3 }}>
+            {/* Row 3: Timer + Play/Pause + Search */}
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10, flexShrink: 0 }}>
               <div style={{
-                position: "absolute", left: 0, top: 0, height: "100%",
-                width: `${sliderVal}%`,
-                background: "linear-gradient(90deg, #06b6d4, #3b82f6)",
-                borderRadius: 3, transition: "width 0.1s",
-              }} />
-              <input
-                type="range" min={0} max={100} value={sliderVal}
-                onChange={(e) => { setPlaying(false); setSliderVal(Number(e.target.value)); }}
-                disabled={!orderbook}
-                style={{
-                  position: "absolute", inset: 0, width: "100%", margin: 0,
-                  opacity: 0, cursor: orderbook ? "pointer" : "default", height: "100%",
-                }}
-              />
+                flexShrink: 0,
+                background: "#0f172a",
+                border: "1px solid rgba(255,255,255,0.05)",
+                borderRadius: 10,
+                padding: "0 12px",
+                height: 44,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+              }}>
+                <span style={{
+                  fontFamily: "'JetBrains Mono', 'Courier New', monospace",
+                  fontSize: 13, fontWeight: 700, letterSpacing: "0.05em",
+                  color: playing ? "#34d399" : "#cbd5e1",
+                  transition: "color 0.3s", whiteSpace: "nowrap",
+                }}>
+                  {fmtTimer(timer)}
+                </span>
+                <button
+                  disabled={!orderbook}
+                  onClick={() => setPlaying(!playing)}
+                  style={{
+                    width: 26, height: 26, borderRadius: "50%", border: "none",
+                    background: !orderbook ? "#1e293b" : "linear-gradient(135deg, #06b6d4, #3b82f6)",
+                    color: !orderbook ? "#475569" : "#fff",
+                    cursor: !orderbook ? "default" : "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    boxShadow: !orderbook || !playing ? "none" : "0 0 10px rgba(6,182,212,0.4)",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => { if (orderbook) e.currentTarget.style.filter = "brightness(1.15)"; }}
+                  onMouseLeave={(e) => { if (orderbook) e.currentTarget.style.filter = "brightness(1)"; }}
+                >
+                  {playing ? <PauseIcon /> : <PlayIcon />}
+                </button>
+              </div>
+              <SearchBtn onClick={handleSearch} loading={tradeLoading || obLoading} />
             </div>
-            <span style={{ fontSize: 11, color: "#475569", flexShrink: 0, fontFamily: "'JetBrains Mono', monospace" }}>{Math.round(sliderVal)}%</span>
-          </div>
 
+            {/* Orderbook table */}
+            <div style={{ flex: 1, minHeight: 0, overflow: "auto", ...scrollbarHide }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    {["Vol BID", "BID", "ASK", "Vol ASK"].map((h) => (
+                      <th key={h} style={{
+                        padding: "8px 6px", background: "#1e3a5f",
+                        color: "#93c5fd", fontWeight: 700, textAlign: "center",
+                        fontSize: 11, letterSpacing: "0.04em", borderBottom: "1px solid #1e3a8a",
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody style={{ opacity: obLoading ? 0.35 : 1, transition: "opacity 0.15s" }}>
+                  {Array.from({ length: ORDERBOOK_ROW_COUNT }).map((_, i) => {
+                    const row = orderbook?.rows?.[i];
+                    const bidRaw = row?.volBid || 0;
+                    const askRaw = row?.volAsk || 0;
 
+                    let bidVolColor = "#64748b";
+                    let bidVolWeight = "normal";
+                    let bidVolShadow = "none";
+                    let askVolColor = "#64748b";
+                    let askVolWeight = "normal";
+                    let askVolShadow = "none";
 
-          </div>{/* end inner card (right panel) */}
-        </div>{/* end right panel wrapper */}
-      </div>
-    </div>
+                    if (row) {
+                      if (bidRaw > askRaw * 1.5) {
+                        bidVolColor = "#4ade80"; bidVolWeight = "bold";
+                        bidVolShadow = "drop-shadow(0 0 6px rgba(74, 222, 128, 0.5))";
+                      } else if (askRaw > bidRaw * 1.5) {
+                        askVolColor = "#f87171"; askVolWeight = "bold";
+                        askVolShadow = "drop-shadow(0 0 6px rgba(248, 113, 113, 0.5))";
+                      }
+                    }
+
+                    return (
+                      <tr key={i} style={{ background: i % 2 === 0 ? "#0f172a" : "#111827" }}>
+                        <td style={{ padding: "6px", textAlign: "center", color: row ? bidVolColor : "#334155", fontWeight: row ? bidVolWeight : "normal", filter: bidVolShadow, fontSize: 12 }}>
+                          {row ? fmt(row.volBid, 0) : "—"}
+                        </td>
+                        <td style={{ padding: "6px", textAlign: "center", color: row ? "#ffffff" : "#334155", fontWeight: row ? 600 : "normal", fontSize: 12 }}>
+                          {row ? fmt(row.bid) : "—"}
+                        </td>
+                        <td style={{ padding: "6px", textAlign: "center", color: row ? "#ffffff" : "#334155", fontWeight: row ? 600 : "normal", fontSize: 12 }}>
+                          {row ? fmt(row.ask) : "—"}
+                        </td>
+                        <td style={{ padding: "6px", textAlign: "center", color: row ? askVolColor : "#334155", fontWeight: row ? askVolWeight : "normal", filter: askVolShadow, fontSize: 12 }}>
+                          {row ? fmt(row.volAsk, 0) : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  <tr style={{ background: "#0f172a", borderTop: "1px solid #1e293b" }}>
+                    <td colSpan={2} style={{ padding: "8px 10px" }}>
+                      <span style={{ fontSize: 10, color: "#475569", display: "block" }}>Sum Bid</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#34d399" }}>
+                        {orderbook ? fmt(orderbook.sumBid, 0) : 0}
+                      </span>
+                    </td>
+                    <td colSpan={2} style={{ padding: "8px 10px", textAlign: "right" }}>
+                      <span style={{ fontSize: 10, color: "#475569", display: "block" }}>Sum Ask</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#f87171" }}>
+                        {orderbook ? fmt(orderbook.sumAsk, 0) : 0}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Slider */}
+            <div style={{ paddingTop: 10, display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+              <div style={{ flex: 1, position: "relative", height: 6, background: "#1e293b", borderRadius: 3 }}>
+                <div style={{
+                  position: "absolute", left: 0, top: 0, height: "100%",
+                  width: `${sliderVal}%`,
+                  background: "linear-gradient(90deg, #06b6d4, #3b82f6)",
+                  borderRadius: 3, transition: "width 0.1s",
+                }} />
+                <input
+                  type="range" min={0} max={100} value={sliderVal}
+                  onChange={(e) => { setPlaying(false); setSliderVal(Number(e.target.value)); }}
+                  disabled={!orderbook}
+                  style={{
+                    position: "absolute", inset: 0, width: "100%", margin: 0,
+                    opacity: 0, cursor: orderbook ? "pointer" : "default", height: "100%",
+                  }}
+                />
+              </div>
+              <span style={{ fontSize: 11, color: "#475569", flexShrink: 0, fontFamily: "'JetBrains Mono', monospace" }}>
+                {Math.round(sliderVal)}%
+              </span>
+            </div>
+
+          </div>{/* end card */}
+        </div>{/* end right panel */}
+
+      </div>{/* end left+right flex row */}
+    </div>/* end root */
   );
 }
