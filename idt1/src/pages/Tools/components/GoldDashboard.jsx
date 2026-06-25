@@ -96,6 +96,7 @@ function SubPanel({ c, data }) {
   const diff = +(lastVal - firstVal).toFixed(2);
   const pct = +((diff / (firstVal || 1)) * 100).toFixed(2);
   const up = diff >= 0;
+  const dynCol = up ? "#22c55e" : "#ef4444";
 
   const lwcData = useMemo(() => toLWC(data), [data]);
 
@@ -114,14 +115,14 @@ function SubPanel({ c, data }) {
     }}>
       <div style={{
         position: "absolute", top: 0, left: "10%", right: "10%", height: 1,
-        background: `linear-gradient(90deg,transparent,${c.col}44,transparent)`,
+        background: `linear-gradient(90deg,transparent,${dynCol}44,transparent)`,
       }} />
 
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingRight: 10, marginBottom: 2, flexShrink: 0 }}>
         <span style={{ fontSize: 10, fontWeight: 700, color: "#667788", letterSpacing: "0.08em" }}>{c.title}</span>
         <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-          <span style={{ fontSize: 13, fontWeight: 800, color: c.col, fontFamily: "monospace" }}>{c.f(lastVal)}</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: dynCol, fontFamily: "monospace" }}>{c.f(lastVal)}</span>
           <span style={{ fontSize: 8.5, fontWeight: 600, color: up ? "#4ade80" : "#f87171", fontFamily: "monospace" }}>
             {up ? "▲" : "▼"} {Math.abs(diff)} ({up ? "+" : ""}{pct}%)
           </span>
@@ -130,7 +131,7 @@ function SubPanel({ c, data }) {
 
       {/* Chart — AreaLWC handles everything */}
       <div style={{ flex: 1, minHeight: 0 }}>
-        <AreaLWC data={lwcData} color={c.col} height={100} gradientOpacity={0.2} />
+        <AreaLWC data={lwcData} color={dynCol} height={100} gradientOpacity={0.2} />
       </div>
     </div>
   );
@@ -200,7 +201,7 @@ export default function GoldDashboard() {
           boxShadow: "0 4px 24px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.04)",
           display: "flex", flexDirection: "column",
         }}>
-          <div style={{ position: "absolute", top: 0, left: "5%", right: "5%", height: 1, background: "linear-gradient(90deg,transparent,rgba(34,197,94,0.5),transparent)" }} />
+          <div style={{ position: "absolute", top: 0, left: "5%", right: "5%", height: 1, background: `linear-gradient(90deg,transparent,${goldUp ? "rgba(34,197,94,0.5)" : "rgba(239,68,68,0.5)"},transparent)` }} />
           <div style={{ position: "absolute", left: "50%", top: "55%", transform: "translate(-50%,-50%)", fontSize: 52, fontWeight: 900, color: "rgba(251,191,36,0.018)", letterSpacing: "0.3em", pointerEvents: "none", userSelect: "none" }}>GOLD</div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingRight: 10, marginBottom: 4, flexShrink: 0 }}>
@@ -214,7 +215,7 @@ export default function GoldDashboard() {
           </div>
 
           <div style={{ flex: 1, minHeight: 0 }}>
-            <AreaLWC data={goldLWC} color="#22c55e" height={180} gradientOpacity={0.25} />
+            <AreaLWC data={goldLWC} color={goldUp ? "#22c55e" : "#ef4444"} height={180} gradientOpacity={0.25} />
           </div>
         </div>
 
