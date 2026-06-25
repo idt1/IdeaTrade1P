@@ -1437,12 +1437,12 @@ export default function TickMatch() {
                                 {filteredTicks.length > 0 ? filteredTicks.map((row, idx) => (
                                     <div key={idx} className="grid grid-cols-5 text-xs font-mono text-slate-300 border-b border-slate-800/30 hover:bg-slate-800/50 transition-colors">
                                         <div className="p-2 text-center text-slate-400">{row.time}</div>
-                                        <div className="p-2 text-right text-yellow-500">{row.last}</div>
-                                        <div className="p-2 text-right font-bold text-slate-200">{row.vol}</div>
+                                        <div className="p-2 text-center text-yellow-500">{row.last}</div>
+                                        <div className="p-2 text-center font-bold text-slate-200">{row.vol}</div>
                                         <div className="p-2 flex justify-center items-center">
                                             <span className={`flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold text-black ${row.type === 'B' ? 'bg-green-500' : 'bg-red-500'}`}>{row.type}</span>
                                         </div>
-                                        <div className="p-2 text-right truncate min-w-0 max-w-[60px]">{row.sum}</div>
+                                        <div className="p-2 text-center">{row.sum}</div>
                                     </div>
                                 )) : (
                                     <div className="p-6 text-center text-slate-500 text-xs">No tick data available</div>
