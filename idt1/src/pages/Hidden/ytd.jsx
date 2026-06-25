@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createChart, CrosshairMode, LineStyle, LineSeries } from "lightweight-charts";
 import ToolHint from "@/components/ToolHint.jsx";
 
@@ -274,12 +274,13 @@ export default function YTDPerformance() {
   const [selectedYear,    setSelectedYear]    = useState(currentYear);
   const [topK,            setTopK]            = useState(20);
   const [searchQuery,     setSearchQuery]     = useState("");
-  const [selectedSymbol,  setSelectedSymbol]  = useState(null);
+  const [selectedSymbols, setSelectedSymbols] = useState([]);
   const [isShowAll,       setIsShowAll]       = useState(false);
   const [spinning,        setSpinning]        = useState(false);
   const [sortAsc,         setSortAsc]         = useState(false);
   const [isDropdownOpen,  setIsDropdownOpen]  = useState(false);
   const [allSeriesData,   setAllSeriesData]   = useState({});
+  const lastClickedRef    = useRef(null);
 
   const loadData = useCallback(() => {
     setSpinning(true);
@@ -299,14 +300,13 @@ export default function YTDPerformance() {
     function handleClickOutside(e) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setIsDropdownOpen(false);
-        setSearchQuery(selectedSymbol || "");
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [selectedSymbol]);
+  }, []);
 
-  /* Single-symbol chart */
+  /* Single-symbol chart — only when exactly one is selected */
   useEffect(() => {
     if (!chartContainerRef.current) return;
     if (chartRef.current) {
@@ -314,7 +314,7 @@ export default function YTDPerformance() {
       chartRef.current = null;
       ytdSeriesRef.current = null;
     }
-    if (!selectedSymbol) return;
+    if (selectedSymbols.length !== 1) return;
 
     const chart = createChart(chartContainerRef.current, {
       layout: { background:{ color:"transparent" }, textColor:"#6b7280", fontFamily:"inherit", fontSize:11 },
@@ -343,20 +343,21 @@ export default function YTDPerformance() {
     });
     ro.observe(chartContainerRef.current);
     return () => { ro.disconnect(); chart.remove(); chartRef.current = null; };
-  }, [selectedSymbol]);
+  }, [selectedSymbols]);
 
   useEffect(() => {
-    if (!chartRef.current || !selectedSymbol || Object.keys(allSeriesData).length===0) return;
-    if (ytdSeriesRef.current && allSeriesData[selectedSymbol])
-      ytdSeriesRef.current.setData(allSeriesData[selectedSymbol]);
+    if (!chartRef.current || selectedSymbols.length !== 1 || Object.keys(allSeriesData).length===0) return;
+    if (ytdSeriesRef.current && allSeriesData[selectedSymbols[0]])
+      ytdSeriesRef.current.setData(allSeriesData[selectedSymbols[0]]);
     chartRef.current?.timeScale().fitContent();
-  }, [allSeriesData, selectedSymbol]);
+  }, [allSeriesData, selectedSymbols]);
 
   const handleReset = () => {
     setSelectedYear(currentYear);
     setTopK(20);
     setSearchQuery("");
-    setSelectedSymbol(null);
+    setSelectedSymbols([]);
+    lastClickedRef.current = null;
     setIsShowAll(false);
     setSortAsc(false);
     loadData();
@@ -369,19 +370,32 @@ export default function YTDPerformance() {
       .slice(0, topK);
   }, [searchQuery, sortAsc, topK]);
 
-  const visibleSeriesData = useMemo(() => {
-    if (!isShowAll) return {};
-    const data = {};
-    filteredTable.forEach(row => {
-      if (allSeriesData[row.symbol]) {
-        data[row.symbol] = allSeriesData[row.symbol];
-      }
-    });
-    return data;
-  }, [allSeriesData, filteredTable, isShowAll]);
+  /* ── Data for the multi-line chart: Show All mode or multi-select ── */
+  const chartMultiData = useMemo(() => {
+    if (isShowAll && selectedSymbols.length === 0) {
+      const data = {};
+      filteredTable.forEach(row => {
+        if (allSeriesData[row.symbol]) data[row.symbol] = allSeriesData[row.symbol];
+      });
+      return data;
+    }
+    if (selectedSymbols.length > 1) {
+      const data = {};
+      selectedSymbols.forEach(sym => {
+        if (allSeriesData[sym]) data[sym] = allSeriesData[sym];
+      });
+      return data;
+    }
+    return {};
+  }, [allSeriesData, filteredTable, isShowAll, selectedSymbols]);
 
-  const selectedIdx   = selectedSymbol ? MOCK_TABLE.findIndex(r => r.symbol===selectedSymbol) : -1;
-  const selectedColor = selectedIdx >= 0 ? SYMBOL_COLORS[selectedIdx % SYMBOL_COLORS.length] : null;
+  /* ── What the search input displays ── */
+  const inputValue = useMemo(() => {
+    if (isDropdownOpen) return searchQuery;
+    if (selectedSymbols.length > 1) return `${selectedSymbols.length} selected`;
+    if (selectedSymbols.length === 1) return selectedSymbols[0];
+    return searchQuery;
+  }, [isDropdownOpen, searchQuery, selectedSymbols]);
 
   return (
     <div className="flex flex-col text-slate-200 font-sans relative bg-slate-900" style={{ height:"100dvh" }}>
@@ -441,12 +455,21 @@ export default function YTDPerformance() {
             <div className="w-full md:w-24 h-9 md:h-8 bg-slate-800/50 animate-pulse rounded-lg border border-white/5" />
           ) : (
             <button
-              onClick={() => { setSelectedSymbol(null); setIsShowAll(true); setSearchQuery(""); }}
+              onClick={() => {
+                if (isShowAll) {
+                  setIsShowAll(false);
+                } else {
+                  setSelectedSymbols([]);
+                  lastClickedRef.current = null;
+                  setIsShowAll(true);
+                  setSearchQuery("");
+                }
+              }}
               className="w-full md:w-auto h-9 md:h-8 px-4 text-[11px] font-bold tracking-wider uppercase rounded-lg transition-all"
               style={{
-                background: (!selectedSymbol && isShowAll) ? "linear-gradient(135deg,#3b82f6,#1d4ed8)" : "transparent",
-                border: (!selectedSymbol && isShowAll) ? "1px solid rgba(59,130,246,0.4)" : "1px solid rgba(100,116,139,0.3)",
-                color: (!selectedSymbol && isShowAll) ? "#ffffff" : "#64748b",
+                background: isShowAll ? "linear-gradient(135deg,#3b82f6,#1d4ed8)" : "transparent",
+                border: isShowAll ? "1px solid rgba(59,130,246,0.4)" : "1px solid rgba(100,116,139,0.3)",
+                color: isShowAll ? "#ffffff" : "#64748b",
               }}>
               Show All
             </button>
@@ -462,12 +485,17 @@ export default function YTDPerformance() {
           <div className="flex flex-row items-center justify-between px-5 pt-4 pb-2 shrink-0 gap-3">
             <div className="flex items-center gap-4">
               <span className="text-[14px] font-semibold text-slate-200/90 tracking-tight">YTD Performance (% Change)</span>
-              {!spinning && selectedSymbol && selectedColor && (
+              {!spinning && selectedSymbols.length === 1 && (
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background:"#34d399" }}/>
-                    <span className="text-[12px] text-slate-500">{selectedSymbol} Performance</span>
+                    <span className="text-[12px] text-slate-500">{selectedSymbols[0]} Performance</span>
                   </div>
+                </div>
+              )}
+              {!spinning && selectedSymbols.length > 1 && (
+                <div className="flex items-center gap-3">
+                  <span className="text-[12px] text-slate-500">{selectedSymbols.length} symbols selected</span>
                 </div>
               )}
             </div>
@@ -491,19 +519,20 @@ export default function YTDPerformance() {
               </div>
             ) : (
               <>
-                {/* Single symbol chart */}
+                {/* Single symbol chart (exactly one selected) */}
                 <div ref={chartContainerRef} className="w-full h-full"
-                  style={{ visibility: selectedSymbol ? "visible" : "hidden" }}/>
+                  style={{ visibility: selectedSymbols.length === 1 ? "visible" : "hidden" }}/>
 
-                {/* Show All — multi-line chart */}
-                {!selectedSymbol && isShowAll && Object.keys(visibleSeriesData).length > 0 && (
+                {/* Multi-line chart: multi-select OR Show All */}
+                {(selectedSymbols.length > 1 || (selectedSymbols.length === 0 && isShowAll)) &&
+                  Object.keys(chartMultiData).length > 0 && (
                   <div className="absolute inset-0">
-                    <MultiLineChart allSeriesData={visibleSeriesData} />
+                    <MultiLineChart allSeriesData={chartMultiData} />
                   </div>
                 )}
 
-                {/* Empty state */}
-                {!selectedSymbol && !isShowAll && (
+                {/* Empty state — no selection, not Show All */}
+                {selectedSymbols.length === 0 && !isShowAll && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-4 text-center">
                     <span className="text-[16px] text-slate-600 tracking-wide">
                       Select a symbol or click "Show All" to view chart.
@@ -528,9 +557,9 @@ export default function YTDPerformance() {
                   <SearchIcon/>
                   <input
                     ref={inputRef}
-                    value={searchQuery}
+                    value={inputValue}
                     onChange={e => { setSearchQuery(e.target.value); setIsDropdownOpen(true); }}
-                    onFocus={() => { setIsDropdownOpen(true); if (selectedSymbol) setSearchQuery(""); }}
+                    onFocus={() => { setIsDropdownOpen(true); if (selectedSymbols.length === 1) setSearchQuery(""); }}
                     placeholder="Type a Symbol..."
                     className="flex-1 bg-transparent outline-none text-slate-200 text-[13px] placeholder:text-slate-500 min-w-0 pl-1.5 pr-1"
                   />
@@ -555,16 +584,44 @@ export default function YTDPerformance() {
                 <div className="absolute top-full mt-1.5 left-0 w-full min-w-[200px] bg-slate-900 border border-slate-500/30 rounded-xl shadow-2xl max-h-60 overflow-y-auto z-[60] custom-scrollbar">
                   {filteredTable.length > 0 ? (
                     filteredTable.map((item, index) => {
-                      const isSelected = selectedSymbol === item.symbol;
+                      const isSelected = selectedSymbols.includes(item.symbol);
                       const realIdx    = MOCK_TABLE.findIndex(r => r.symbol===item.symbol);
                       const dotColor   = SYMBOL_COLORS[realIdx % SYMBOL_COLORS.length];
                       return (
                         <div key={index}
-                          onClick={() => {
-                            setSelectedSymbol(item.symbol);
-                            setSearchQuery(item.symbol);
-                            setIsShowAll(false);
-                            setIsDropdownOpen(false);
+                          onClick={(e) => {
+                            const { symbol } = item;
+                            // Shift+click: range select (replace current selection)
+                            if (e.shiftKey && lastClickedRef.current) {
+                              const anchorIdx = filteredTable.findIndex(r => r.symbol === lastClickedRef.current);
+                              const clickIdx  = filteredTable.findIndex(r => r.symbol === symbol);
+                              if (anchorIdx !== -1 && clickIdx !== -1) {
+                                const [lo, hi] = anchorIdx < clickIdx ? [anchorIdx, clickIdx] : [clickIdx, anchorIdx];
+                                const range = filteredTable.slice(lo, hi + 1).map(r => r.symbol);
+                                setSelectedSymbols(range);
+                                setIsShowAll(false);
+                                return;
+                              }
+                            }
+                            // Regular click (no Ctrl) sets the anchor for future Shift+click
+                            if (!e.ctrlKey && !e.metaKey) {
+                              lastClickedRef.current = symbol;
+                            }
+                            // Toggle the symbol in/out of selection
+                            if (selectedSymbols.includes(symbol)) {
+                              const next = selectedSymbols.filter(s => s !== symbol);
+                              if (next.length === 0) {
+                                setSelectedSymbols([]);
+                                setIsShowAll(true);
+                              } else {
+                                setSelectedSymbols(next);
+                                setIsShowAll(false);
+                              }
+                            } else {
+                              const next = [...selectedSymbols, symbol];
+                              setSelectedSymbols(next);
+                              setIsShowAll(false);
+                            }
                           }}
                           className={`px-4 py-3 text-[13px] transition flex items-center gap-3 cursor-pointer
                             ${isSelected ? "bg-blue-500/15 text-slate-200" : "text-slate-500 hover:bg-white/[0.04] hover:text-slate-200"}`}>
@@ -613,19 +670,48 @@ export default function YTDPerformance() {
           ) : (
             <div className="hidden md:block flex-1 overflow-y-auto no-scrollbar pb-2 md:pb-0">
               {filteredTable.map((row, i) => {
-                const isSelected = selectedSymbol === row.symbol;
+                const isSelected = selectedSymbols.includes(row.symbol);
                 const realIdx    = MOCK_TABLE.findIndex(r => r.symbol===row.symbol);
                 const dotColor   = SYMBOL_COLORS[realIdx % SYMBOL_COLORS.length];
                 return (
                   <button key={i}
-                    onClick={() => {
-                      if (selectedSymbol===row.symbol) { setSelectedSymbol(null); setIsShowAll(true); }
-                      else { setSelectedSymbol(row.symbol); setIsShowAll(false); }
+                    onClick={(e) => {
+                      const { symbol } = row;
+                      // Shift+click: range select (replace current selection)
+                      if (e.shiftKey && lastClickedRef.current) {
+                        const anchorIdx = filteredTable.findIndex(r => r.symbol === lastClickedRef.current);
+                        const clickIdx  = filteredTable.findIndex(r => r.symbol === symbol);
+                        if (anchorIdx !== -1 && clickIdx !== -1) {
+                          const [lo, hi] = anchorIdx < clickIdx ? [anchorIdx, clickIdx] : [clickIdx, anchorIdx];
+                          const range = filteredTable.slice(lo, hi + 1).map(r => r.symbol);
+                          setSelectedSymbols(range);
+                          setIsShowAll(false);
+                          return;
+                        }
+                      }
+                      // Regular click (no Ctrl) sets the anchor for future Shift+click
+                      if (!e.ctrlKey && !e.metaKey) {
+                        lastClickedRef.current = symbol;
+                      }
+                      // Toggle the symbol in/out of selection
+                      if (selectedSymbols.includes(symbol)) {
+                        const next = selectedSymbols.filter(s => s !== symbol);
+                        if (next.length === 0) {
+                          setSelectedSymbols([]);
+                          setIsShowAll(true);
+                        } else {
+                          setSelectedSymbols(next);
+                          setIsShowAll(false);
+                        }
+                      } else {
+                        setSelectedSymbols([...selectedSymbols, symbol]);
+                        setIsShowAll(false);
+                      }
                     }}
                     className="w-full flex items-center px-2 py-1 transition-all cursor-pointer">
                     <span className="w-full flex items-center gap-2.5 px-3 py-2 rounded-full transition-all"
                       style={{ background: isSelected ? "rgba(59,130,246,0.2)" : "transparent" }}>
-                      <span className="shrink-0 w-3 h-3 rounded-full" style={{ background: isSelected ? "#60a5fa" : dotColor }}/>
+                      <span className="shrink-0 w-3 h-3 rounded-full" style={{ background: dotColor }}/>
                       <span className="flex-1 text-left text-[13px] font-semibold" style={{ color: isSelected ? "#e2e8f0" : "#64748b" }}>
                         {row.symbol}
                       </span>
