@@ -343,6 +343,7 @@ export default function Gold() {
             </ToolHint>
           }
           height={260}
+          color="#22c55e"
           seed={123 + refreshKey}
           points={100}
           basePrice={2030}
@@ -353,10 +354,10 @@ export default function Gold() {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <DynamicChart title="Trends"  height={200} seed={456 + refreshKey} points={100} basePrice={100}  vol={2}   onRefresh={handleRefresh} isRefreshing={isRefreshing} />
-          <DynamicChart title="VIX"     height={200} seed={789 + refreshKey} points={100} basePrice={15}   vol={1}   onRefresh={handleRefresh} isRefreshing={isRefreshing} />
-          <DynamicChart title="DXY"     height={200} seed={101 + refreshKey} points={100} basePrice={103}  vol={0.5} onRefresh={handleRefresh} isRefreshing={isRefreshing} />
-          <DynamicChart title="US10YY"  height={200} seed={202 + refreshKey} points={100} basePrice={4.2}  vol={0.1} onRefresh={handleRefresh} isRefreshing={isRefreshing} />
+          <DynamicChart title="Trends"  height={200} color="#22c55e" seed={456 + refreshKey} points={100} basePrice={100}  vol={2}   onRefresh={handleRefresh} isRefreshing={isRefreshing} />
+          <DynamicChart title="VIX"     height={200} color="#a855f7" seed={789 + refreshKey} points={100} basePrice={15}   vol={1}   onRefresh={handleRefresh} isRefreshing={isRefreshing} />
+          <DynamicChart title="DXY"     height={200} color="#3b82f6" seed={101 + refreshKey} points={100} basePrice={103}  vol={0.5} onRefresh={handleRefresh} isRefreshing={isRefreshing} />
+          <DynamicChart title="US10YY"  height={200} color="#f97316" seed={202 + refreshKey} points={100} basePrice={4.2}  vol={0.1} onRefresh={handleRefresh} isRefreshing={isRefreshing} />
         </div>
 
       </div>

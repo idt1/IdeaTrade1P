@@ -96,7 +96,7 @@ function SubPanel({ c, data }) {
   const diff = +(lastVal - firstVal).toFixed(2);
   const pct = +((diff / (firstVal || 1)) * 100).toFixed(2);
   const up = diff >= 0;
-  const dynCol = up ? "#22c55e" : "#ef4444";
+  const dynCol = c.col;
 
   const lwcData = useMemo(() => toLWC(data), [data]);
 
@@ -201,7 +201,7 @@ export default function GoldDashboard() {
           boxShadow: "0 4px 24px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.04)",
           display: "flex", flexDirection: "column",
         }}>
-          <div style={{ position: "absolute", top: 0, left: "5%", right: "5%", height: 1, background: `linear-gradient(90deg,transparent,${goldUp ? "rgba(34,197,94,0.5)" : "rgba(239,68,68,0.5)"},transparent)` }} />
+          <div style={{ position: "absolute", top: 0, left: "5%", right: "5%", height: 1, background: `linear-gradient(90deg,transparent,rgba(34,197,94,0.5),transparent)` }} />
           <div style={{ position: "absolute", left: "50%", top: "55%", transform: "translate(-50%,-50%)", fontSize: 52, fontWeight: 900, color: "rgba(251,191,36,0.018)", letterSpacing: "0.3em", pointerEvents: "none", userSelect: "none" }}>GOLD</div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingRight: 10, marginBottom: 4, flexShrink: 0 }}>
@@ -215,7 +215,7 @@ export default function GoldDashboard() {
           </div>
 
           <div style={{ flex: 1, minHeight: 0 }}>
-            <AreaLWC data={goldLWC} color={goldUp ? "#22c55e" : "#ef4444"} height={180} gradientOpacity={0.25} />
+            <AreaLWC data={goldLWC} color="#22c55e" height={180} gradientOpacity={0.25} />
           </div>
         </div>
 
