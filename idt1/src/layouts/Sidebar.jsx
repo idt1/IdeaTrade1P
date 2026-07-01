@@ -793,6 +793,27 @@ const SidebarContent = ({
           </div>
         </button>
 
+        {/* Value of Time (VOT) Button */}
+        <button
+          onClick={() => handleNavigation("vot")}
+          onMouseEnter={(e) => handleMouseEnter(e, "Value of Time")}
+          onMouseLeave={handleMouseLeave}
+          className={`rounded-lg flex items-center shrink-0 transition-all mb-1 cursor-pointer relative group
+          ${activePage === "vot" ? "bg-slate-800" : "hover:bg-white/5"}
+          ${isCollapsed ? "w-10 h-10 justify-center" : "w-full h-11 px-4 justify-between"}`}
+        >
+          <div className={`flex items-center gap-3 font-medium transition-colors pointer-events-none
+            ${activePage === "vot" ? "text-white" : "text-gray-400"}
+            ${isCollapsed ? "justify-center w-full" : ""}`}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={activePage === "vot" ? "#ffffff" : "#9ca3af"} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            {!isCollapsed && <span>Value of Time</span>}
+          </div>
+        </button>
+
         
         {/* ACCOUNT SECTION */}
         {isCollapsed

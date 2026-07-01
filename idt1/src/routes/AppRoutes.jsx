@@ -86,6 +86,7 @@ export default function AppRoutes() {
       <Route path="/options" element={<Dashboard initialPage="options" />} />
       <Route path="/ytd" element={<Dashboard initialPage="ytd" />} />
       <Route path="/hisdaytrade" element={<Dashboard initialPage="hisdaytrade" />} />
+      <Route path="/vot" element={<Dashboard initialPage="vot" />} />
       
       {/* === Fallback (กันหลง) === */}
       <Route path="*" element={<Navigate to="/" replace />} />
